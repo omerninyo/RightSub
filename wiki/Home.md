@@ -32,7 +32,7 @@ RightSub separates user-facing CLI operations from its two underlying algorithmi
 
 - **[BiDi & Plex Formatting Guide](BiDi-and-Plex-Guide)**: Deep dive into Unicode RLM (`\u200F`), BiDi rendering levels, and why Plex flips punctuation.
 - **[End-to-End Pipeline Workflow](Pipeline-Workflow)**: Step-by-step workflow from raw video file to deployed subtitles.
-- **[Boston Legal Benchmark Case Study](Boston-Legal-Case-Study)**: Real-world validation across all 101 episodes and 78,000+ dialogue cues.
+- **[Boston Legal Benchmark Case Study (Theoretical)](Boston-Legal-Case-Study)**: Algorithmic validation benchmark across 101 episodes and 78,000+ dialogue cues (presented strictly as a theoretical study for stress-testing and timing research).
 
 ---
 

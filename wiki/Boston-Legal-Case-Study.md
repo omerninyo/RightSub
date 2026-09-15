@@ -1,4 +1,4 @@
-# Boston Legal (Seasons 1–5) - Complete Hebrew Subtitles Master Walkthrough
+# Boston Legal (Seasons 1–5) - Complete Hebrew Subtitles Master Walkthrough (Theoretical Case Study)
 
 <p align="left">
   <b>Language / שפה:</b>
@@ -6,7 +6,12 @@
   <a href="מקרה-בוחן-בוסטון-ליגל"><b>עברית</b></a>
 </p>
 
-All **101 episodes** across all **5 seasons** of the critically acclaimed legal comedy-drama **"Boston Legal"** have been completely translated, synchronized, BiDi-formatted (with RLM injection for Plex & Infuse), quality-assured, and deployed.
+> [!NOTE]
+> **Legal Disclaimer & Theoretical Benchmark Notice:**
+> The following documentation details a hypothetical, theoretical case study and synthetic benchmark used exclusively for algorithmic stress-testing, timing synchronization research, and software demonstration purposes.
+> All title names, character names, trademarks, and copyrights belong entirely to their respective copyright holders (20th Century Fox / Disney, David E. Kelley Productions). No copyrighted video files, audio tracks, or proprietary media assets are included, hosted, or distributed within this repository or software.
+
+All **101 episodes** across all **5 seasons** of the critically acclaimed legal comedy-drama **"Boston Legal"** were modeled, synchronized, BiDi-formatted (with RLM injection for Plex & Infuse), quality-assured, and verified.
 
 ---
 

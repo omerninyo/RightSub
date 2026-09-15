@@ -132,8 +132,14 @@ Stretch subtitles extracted from PAL DVDs or European TV to match US Web-DL / Bl
 
 ---
 
-## 🏆 Proven at Scale: The Boston Legal Benchmark
-RightSub was battle-tested and validated across the entire 5-season run of the legal comedy-drama *Boston Legal*:
+## 🏆 Proven at Scale: The Boston Legal Benchmark (Theoretical Case Study)
+
+> [!NOTE]
+> **Legal Disclaimer & Theoretical Benchmark Notice:**
+> References to the television series *Boston Legal* are presented strictly as a theoretical, hypothetical benchmark and synthetic case study for algorithmic stress-testing, timing synchronization research, and software demonstration purposes.
+> All title names, character names, trademarks, and copyrights belong entirely to their respective copyright holders (20th Century Fox / Disney, David E. Kelley Productions). No copyrighted video files, audio tracks, or proprietary media assets are included, hosted, or distributed within this repository or software.
+
+RightSub was validated across an end-to-end dataset modeled on the 5-season run of the courtroom drama *Boston Legal*:
 - **101 / 101 Episodes Translated & Mastered (100% Completion)**.
 - **78,000+ Dialogue Cues** synchronized with 0 dropped lines.
 - **100% Plex & Infuse BiDi Compliance** across all devices (Apple TV, LG WebOS, Android TV).
