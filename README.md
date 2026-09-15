@@ -85,12 +85,18 @@ chmod +x rightsub
 ## 💻 CLI Usage & Recipes
 
 ### Recipe 1: Standalone Hebrew Fix for Plex / Infuse Library
-Fix punctuation flips, convert legacy encodings to UTF-8, and clean ads in-place:
+Fix punctuation flips, convert legacy encodings to UTF-8, and clean ads in-place. The tool automatically detects Hebrew and safely skips English/foreign subtitles:
 ```bash
-# Preview changes safely (Dry Run):
+# Option A: Fix a single file
+./rightsub fix-plex "Movie.he.srt" --in-place
+
+# Option B: Fix multiple specific files
+./rightsub fix-plex "Ep01.he.srt" "Ep02.he.srt" "Ep03.he.srt" --in-place
+
+# Option C: Preview changes safely on a whole folder (Dry Run):
 ./rightsub fix-plex /path/to/TV_Shows/ --recursive --clean-ads --dry-run
 
-# Apply in-place with automatic backups (.srt.bak):
+# Option D: Apply in-place recursively with automatic backups (.srt.bak):
 ./rightsub fix-plex /path/to/TV_Shows/ --recursive --in-place --clean-ads --backup
 ```
 

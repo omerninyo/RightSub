@@ -31,18 +31,39 @@ graph TD
 - Subtitles appear as unreadable gibberish / mojibake (legacy CP1255 encoding).
 - Subtitles are polluted with annoying hearing-impaired noise (`[DRAMATIC MUSIC PLAYING]`) or website watermark ads.
 
-### How to do it? (Just one command!)
-Open your terminal in the RightSub directory and run:
+### 3 Simple Ways to Run It:
+
+#### Option 1: Fix a Single File
+Want to fix just one specific movie or episode?
 ```bash
-./rightsub fix-plex "/path/to/your/Movies_or_TV_Shows/" --recursive --in-place --clean-ads --backup
+./rightsub fix-plex "Movie.he.srt" --in-place
 ```
 
-**What does this command do for you automatically?**
-1. Recursively scans all subtitle files in the folder (including subdirectories).
-2. Automatically creates a safety backup (`.srt.bak`) before modifying any file.
-3. Fixes reversed punctuation and injects invisible Unicode RLM marks.
-4. Cleans legacy CP1255 encoding into clean UTF-8 and strips ads and SDH noise.
-5. Produces pristine subtitles ready for Plex playback in seconds!
+#### Option 2: Fix Multiple Specific Files
+Want to fix a few specific episodes together? Pass their paths sequentially:
+```bash
+./rightsub fix-plex "Episode01.he.srt" "Episode02.he.srt" "Episode03.he.srt" --in-place
+```
+
+#### Option 3: Fix a Whole Directory or Media Library (Including Subdirectories)
+Want to organize an entire season or your complete movie library in one sweep?
+```bash
+./rightsub fix-plex "/path/to/Movies_or_TV_Shows/" --recursive --in-place --clean-ads --backup
+```
+
+---
+
+### 🛡️ Why Is It 100% Safe to Run on Any Directory? (Built-in Safety Filters)
+No need to manually sort or filter files prior to running. The script includes smart multi-layer filtering:
+1. **Automatic Language Detection (Touches Hebrew ONLY!)**:  
+   The script calculates the Hebrew character ratio in every file. If the folder contains English subtitles (`.en.srt`), Spanish, or any other foreign language — **it automatically detects and skips them**. English subtitles are never touched or modified.
+2. **Subtitle-Only File Filtering**:  
+   The script completely ignores video files (MKV, MP4), posters, or metadata files (`.nfo`), operating strictly on `.srt` subtitle files.
+3. **Idempotency & Redundancy Checks**:  
+   The script checks whether lines are already properly formatted or already have RLM marks injected. If a subtitle is already fixed, the script skips it and never duplicates hidden marks.
+4. **Comprehensive Safety Controls**:  
+   - Add `--dry-run` at any time to generate a preview report without touching any files on disk.
+   - The `--backup` flag automatically creates a `.srt.bak` backup file before modifying any file in-place.
 
 ---
 
