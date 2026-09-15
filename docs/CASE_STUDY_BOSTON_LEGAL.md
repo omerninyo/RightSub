@@ -31,7 +31,7 @@ Season 4 represents the emotional and ideological peak of the series, culminatin
 
 ## 🛠️ Architecture, Engineering & Tooling Documentation
 
-### 1. Master Subtitle Toolkit (`_Subtitle_Toolkit_Master/toolkit.py`)
+### 1. RightSub Architecture (SubRefine & SubSwarm)
 - **`split`**: Decomposes long English SRT files into chunked JSON batches (approx. 210 cues each) mapped through a `manifest.json`.
 - **`merge`**: Assembles translated Hebrew batches back into standard `.srt` format, strictly maintaining original timestamps and block IDs.
 - **BiDi Engine**: Automatically injects invisible Right-to-Left Marks (`\u200F` / RLM) at the start of every text line, ensuring proper punctuation and numeral display in Plex, Infuse, VLC, and Apple TV.

@@ -1,4 +1,4 @@
-# Hebrew Subtitle BiDi & Plex/Infuse Formatting Guide
+# Hebrew Subtitle BiDi & Plex/Infuse Formatting Guide (RightSub)
 
 ## The Core Problem: Punctuation Reversal in Modern Media Players
 Modern media players (Plex, Infuse, VLC, Apple TV, Android TV, Smart TVs) use modern subtitle rendering engines (libass, ExoPlayer, AVPlayer) that default to **Left-to-Right (LTR)** embedding levels when rendering plaintext subtitles.
@@ -10,7 +10,7 @@ When a line containing Right-to-Left (RTL) text (such as Hebrew) ends with a neu
 - **Rendered incorrectly:** `מה שלומך?` (with question mark on the right)
 - **Dialogue with hyphens:** `- כן, אני מבין.` rendered as `כן, אני מבין. -`
 
-## The Solution: Invisible Right-to-Left Mark (RLM)
+## The Solution: The SubRefine Invisible RLM Engine
 Unicode character `U+200F` (RIGHT-TO-LEFT MARK - RLM) is a non-printable, zero-width formatting character with strong RTL directionality.
 
 ### 1. Leading RLM
@@ -19,5 +19,5 @@ Injecting `\u200F` as the very first character of every line forces the text sha
 ### 2. Trailing RLM
 Injecting `\u200F` immediately before trailing punctuation (`?`, `!`, `.`, `...`, `)`) binds the punctuation strongly to the preceding Hebrew text, preventing it from flipping across the screen.
 
-## Automatic Rule Enforcement in SubtitleToolkit
-`toolkit.py merge` and `toolkit.py fix-plex` automatically apply these two golden rules to every line without requiring manual intervention.
+## Automatic Rule Enforcement in RightSub
+`./rightsub merge` and `./rightsub fix-plex` automatically apply these rules along with homoglyph normalization, CP1255 encoding conversion, and SDH noise stripping via the **SubRefine Engine**.
