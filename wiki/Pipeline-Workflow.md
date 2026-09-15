@@ -1,9 +1,9 @@
-# End-to-End Subtitle Translation & Repair Workflow (RightSub)
+# End-to-End Subtitle Translation & Repair Workflow
 
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="PIPELINE_WORKFLOW.he.md"><b>עברית</b></a>
+  <a href="תהליך-עבודה"><b>עברית</b></a>
 </p>
 
 This document describes the universal, production-tested workflow for translating or repairing subtitles for **any movie or TV series**.

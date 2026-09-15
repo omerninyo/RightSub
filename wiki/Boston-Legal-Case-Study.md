@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="CASE_STUDY_BOSTON_LEGAL.he.md"><b>עברית</b></a>
+  <a href="מקרה-בוחן-בוסטון-ליגל"><b>עברית</b></a>
 </p>
 
 All **101 episodes** across all **5 seasons** of the critically acclaimed legal comedy-drama **"Boston Legal"** have been completely translated, synchronized, BiDi-formatted (with RLM injection for Plex & Infuse), quality-assured, and deployed.
@@ -28,7 +28,7 @@ All **101 episodes** across all **5 seasons** of the critically acclaimed legal 
 Season 4 represents the emotional and ideological peak of the series, culminating in Denny and Alan's monumental courtroom clash and friendship reconciliation:
 
 | Episode | Title | Cues | Waves / Agents | Model | Backup File | Final Output | Status |
-| :--- | :--- | :---: | :---: | :---: | :--- | :--- | :---: |
+| :--- | :--- | :---: | :---: | :--- | :--- | :--- | :---: |
 | **S04E18** | Indecent Proposals | 769 | 2 waves (8 agents) | Gemini 3.5 Flash-Lite | `Season 4/Boston Legal S04E18.he.srt.bak.v25` | `Season 4/Boston Legal S04E18.he.srt` | **100% Deployed** |
 | **S04E19** | The Gods Must Be Crazy | 706 | 2 waves (8 agents) | Gemini 3.5 Flash-Lite | `Season 4/Boston Legal S04E19.he.srt.bak.v25` | `Season 4/Boston Legal S04E19.he.srt` | **100% Deployed** |
 | **S04E20** | Patriot Acts (Season Finale) | 695 | 2 waves (8 agents) | Gemini 3.5 Flash-Lite | `Season 4/Boston Legal S04E20.he.srt.bak.v25` | `Season 4/Boston Legal S04E20.he.srt` | **100% Deployed** |
@@ -57,4 +57,3 @@ Season 4 represents the emotional and ideological peak of the series, culminatin
 1. **Safety First**: Before overwriting any `.he.srt`, the original file is preserved under `.he.srt.bak.v25`.
 2. **1-to-1 Timing Verification**: Automated QA checks verify that every cue index and timing range matches the English master file exactly (`assert len(en) == len(he)`).
 3. **Plex / Infuse Validation**: Verification that 100% of subtitle lines begin with RLM, with 0 foreign glyphs or corrupt characters.
-4. **Master Skill Reference**: Full operational standards and instructions are codified in `/Users/omerninyo/.gemini/config/skills/subtitle-translator/SKILL.md`.

@@ -1,5 +1,11 @@
 # 🎬 RightSub — Universal Subtitle Mastering & Translation Suite
 
+<p align="left">
+  <b>Language / שפה:</b>
+  <b>English</b> |
+  <a href="README.he.md"><b>עברית</b></a>
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()

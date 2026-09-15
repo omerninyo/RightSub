@@ -1,9 +1,9 @@
-# Hebrew Subtitle BiDi & Plex/Infuse Formatting Guide (RightSub)
+# Hebrew Subtitle BiDi & Plex/Infuse Formatting Guide
 
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="BIDI_AND_PLEX_GUIDE.he.md"><b>עברית</b></a>
+  <a href="מדריך-BiDi-ופלקס"><b>עברית</b></a>
 </p>
 
 ## The Core Problem: Punctuation Reversal in Modern Media Players
