@@ -7,10 +7,13 @@ description: Production-grade subtitle extraction, translation, synchronization,
 
 ## Overview
 This skill equips Antigravity with a robust, modular framework for translating, synchronizing, and fixing subtitles for movies and TV series.
+Master repository: `/Volumes/Other/Antigravity/SubtitleToolkit`
+
 It features a unified CLI entrypoint (`toolkit.py`) and dedicated scripts covering:
 - **Standalone Plex/Infuse Hebrew BiDi Fixer**: Idempotent, language-verified, legacy charset conversion (CP1255 -> UTF-8), formatting tags protection, and ad stripping.
 - **Quota-Optimized Translation Pipeline**: Generates Translation Bibles, splits into ~210-line JSON chunks (saving 95% API quota with Flash-Lite), and merges with zero-discrepancy validation.
 - **Timing & Framerate Sync**: Auto-stretches 23.976 <-> 25.0 FPS and aligns web downloads to master video audio.
+- **Automated QA & Prompt Generation**: Built-in 1-to-1 cue verification, BiDi audit, homoglyph cleaning, and multi-agent wave prompt generation.
 
 ## Quick CLI Reference (`toolkit.py`)
 ```bash
@@ -27,10 +30,16 @@ python3 toolkit.py bible Season1/*.en.srt -o translation_bible.json
 # 4. Split English SRT into JSON translation batches:
 python3 toolkit.py split "video.en.srt" -o "work/batches/"
 
-# 5. Merge translated JSON batches into final Hebrew SRT with RLM & QC:
+# 5. Generate AI Translation Prompts for Subagents:
+python3 toolkit.py prompt-gen "work/batches/" -b translation_bible.json -t "Show Name" -o "work/prompts/"
+
+# 6. Merge translated JSON batches into final Hebrew SRT with RLM & QC:
 python3 toolkit.py merge "video.en.srt" "work/translated/" -o "video.he.srt"
 
-# 6. Adjust framerate or time offset:
+# 7. Comprehensive Quality Assurance Audit:
+python3 toolkit.py qa "video.he.srt" -m "video.en.srt"
+
+# 8. Adjust framerate or time offset:
 python3 toolkit.py adjust-fps "sub.srt" -o "synced.srt" --fps_from 25.0 --fps_to 23.976
 ```
 
@@ -53,11 +62,13 @@ When translating an entire season (20+ episodes, ~20,000 subtitles):
 For exhaustive details on handling VFR framerate fluctuations, SDH hearing-impaired noise stripping vs context extraction, legacy Windows-1255 charsets, Smart TV quote flips, and contextual legal homographs, refer to:
 👉 `EDGE_CASES_AND_RED_TEAM.md`
 
-## Available Scripts (in `scripts/`)
+## Available Scripts (in `/Volumes/Other/Antigravity/SubtitleToolkit/scripts/`)
 - `01_extract_subtitles.py`: Universal discovery & FFmpeg extractor (MKV/MP4/M4V/AVI/etc.) with embedded-first priority, tag sanitization, and format conversion.
 - `02_web_search_and_sync.py`: Timing delta & sync tester for external subtitles.
 - `03_generate_bible.py`: Entity, gender, and honorific scanner.
 - `04_split_batches.py`: Optimal chunker (~210 items) for LLMs.
-- `05_merge_and_validate.py`: Zero-discrepancy merger with RLM injection.
+- `05_merge_and_validate.py`: Zero-discrepancy merger with RLM injection and homoglyph normalization.
 - `06_adjust_fps_or_offset.py`: Linear time shifter and FPS stretcher.
 - `07_fix_plex_punctuation.py`: Standalone Plex punctuation fixer with encoding conversion & ad cleaner.
+- `08_quality_assurance.py`: Comprehensive Red Team QA auditor for subtitle files and libraries.
+- `09_prompt_builder.py`: Universal multi-agent wave prompt generator.
