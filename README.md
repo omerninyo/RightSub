@@ -66,6 +66,10 @@ RightSub cleanly separates high-level workflow commands from its two underlying 
 
 ## 🚀 Quick Start
 
+> [!TIP]
+> **Looking for the simplest step-by-step instructions?**  
+> Check out the **[🔰 Quickstart for Beginners](docs/QUICKSTART_FOR_BEGINNERS.md)** (covers Track A for instant Plex & BiDi repair in 30 seconds, and Track B for full movie translation).
+
 ### Installation
 ```bash
 git clone https://github.com/omerninyo/RightSub.git

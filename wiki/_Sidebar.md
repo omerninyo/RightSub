@@ -2,6 +2,7 @@
 
 #### 🇺🇸 English Documentation
 - **[Home](Home)**
+- **[🔰 Quickstart for Beginners](Quickstart-for-Beginners)**
 - **[BiDi & Plex Guide](BiDi-and-Plex-Guide)**
 - **[Pipeline Workflow](Pipeline-Workflow)**
 - **[Boston Legal Case Study](Boston-Legal-Case-Study)**
@@ -11,6 +12,7 @@
 
 #### 🇮🇱 תיעוד בעברית
 - **[דף הבית (Home HE)](Home-HE)**
+- **[🔰 מדריך פשוט למתחילים](מדריך-פשוט-למתחילים)**
 - **[מדריך BiDi ו-Plex](מדריך-BiDi-ופלקס)**
 - **[תהליך עבודה מלא](תהליך-עבודה)**
 - **[מקרה בוחן - בוסטון ליגל](מקרה-בוחן-בוסטון-ליגל)**
