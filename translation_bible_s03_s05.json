@@ -1,0 +1,668 @@
+{
+  "metadata": {
+    "title": "Translation Bible & Glossary",
+    "source_files": [
+      "Season 3/Boston Legal S03E01.en.srt",
+      "Season 3/Boston Legal S03E02.en.srt",
+      "Season 3/Boston Legal S03E03.en.srt",
+      "Season 3/Boston Legal S03E04.en.srt",
+      "Season 3/Boston Legal S03E05.en.srt",
+      "Season 3/Boston Legal S03E06.en.srt",
+      "Season 3/Boston Legal S03E07.en.srt",
+      "Season 3/Boston Legal S03E08.en.srt",
+      "Season 3/Boston Legal S03E09.en.srt",
+      "Season 3/Boston Legal S03E10.en.srt",
+      "Season 3/Boston Legal S03E11.en.srt",
+      "Season 3/Boston Legal S03E12.en.srt",
+      "Season 3/Boston Legal S03E13.en.srt",
+      "Season 3/Boston Legal S03E14.en.srt",
+      "Season 3/Boston Legal S03E15.en.srt",
+      "Season 3/Boston Legal S03E16.en.srt",
+      "Season 3/Boston Legal S03E17.en.srt",
+      "Season 3/Boston Legal S03E18.en.srt",
+      "Season 3/Boston Legal S03E19.en.srt",
+      "Season 3/Boston Legal S03E20.en.srt",
+      "Season 3/Boston Legal S03E21.en.srt",
+      "Season 3/Boston Legal S03E22.en.srt",
+      "Season 3/Boston Legal S03E23.en.srt",
+      "Season 3/Boston Legal S03E24.en.srt",
+      "Season 4/Boston Legal S04E01.en.srt",
+      "Season 4/Boston Legal S04E02.en.srt",
+      "Season 4/Boston Legal S04E03.en.srt",
+      "Season 4/Boston Legal S04E04.en.srt",
+      "Season 4/Boston Legal S04E05.en.srt",
+      "Season 4/Boston Legal S04E06.en.srt",
+      "Season 4/Boston Legal S04E07.en.srt",
+      "Season 4/Boston Legal S04E08.en.srt",
+      "Season 4/Boston Legal S04E09.en.srt",
+      "Season 4/Boston Legal S04E10.en.srt",
+      "Season 4/Boston Legal S04E11.en.srt",
+      "Season 4/Boston Legal S04E12.en.srt",
+      "Season 4/Boston Legal S04E13.en.srt",
+      "Season 4/Boston Legal S04E14.en.srt",
+      "Season 4/Boston Legal S04E15.en.srt",
+      "Season 4/Boston Legal S04E16.en.srt",
+      "Season 4/Boston Legal S04E17.en.srt",
+      "Season 4/Boston Legal S04E18.en.srt",
+      "Season 4/Boston Legal S04E19.en.srt",
+      "Season 4/Boston Legal S04E20.en.srt",
+      "Season 5/Boston Legal S05E01.en.srt",
+      "Season 5/Boston Legal S05E02.en.srt",
+      "Season 5/Boston Legal S05E03.en.srt",
+      "Season 5/Boston Legal S05E04.en.srt",
+      "Season 5/Boston Legal S05E05.en.srt",
+      "Season 5/Boston Legal S05E06.en.srt",
+      "Season 5/Boston Legal S05E07.en.srt",
+      "Season 5/Boston Legal S05E08.en.srt",
+      "Season 5/Boston Legal S05E09.en.srt",
+      "Season 5/Boston Legal S05E10.en.srt",
+      "Season 5/Boston Legal S05E11.en.srt",
+      "Season 5/Boston Legal S05E12.en.srt",
+      "Season 5/Boston Legal S05E13.en.srt"
+    ]
+  },
+  "characters": [
+    {
+      "name": "laughs",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 75
+    },
+    {
+      "name": "clears throat",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 55
+    },
+    {
+      "name": "scoffs",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 26
+    },
+    {
+      "name": "MALE ANNOUNCER",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 26
+    },
+    {
+      "name": "exhales",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 23
+    },
+    {
+      "name": "gasps",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 22
+    },
+    {
+      "name": "grunts",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 22
+    },
+    {
+      "name": "knock on door",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 17
+    },
+    {
+      "name": "elevator bell dings",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 16
+    },
+    {
+      "name": "groans",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 15
+    },
+    {
+      "name": "clicks tongue",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 14
+    },
+    {
+      "name": "WOMAN",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 14
+    },
+    {
+      "name": "man",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 13
+    },
+    {
+      "name": "chuckling",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 13
+    },
+    {
+      "name": "gavel raps",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 13
+    },
+    {
+      "name": "whispers",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 11
+    },
+    {
+      "name": "purrs",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 11
+    },
+    {
+      "name": "normal voice",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 10
+    },
+    {
+      "name": "woman",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 10
+    },
+    {
+      "name": "laughing",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 10
+    },
+    {
+      "name": "knocking",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 10
+    },
+    {
+      "name": "popping",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 10
+    },
+    {
+      "name": "door closes",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 9
+    },
+    {
+      "name": "door opens",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 9
+    },
+    {
+      "name": "FEMALE ANNOUNCER",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 9
+    },
+    {
+      "name": "giggles",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 8
+    },
+    {
+      "name": "buzzer blares",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 8
+    },
+    {
+      "name": "purring",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 8
+    },
+    {
+      "name": "KATIE",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 8
+    },
+    {
+      "name": "squeals",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "sobs",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "judge",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "grunting",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "screams",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "stammering",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "ALAN",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "reporters clamoring",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "DENNY",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 7
+    },
+    {
+      "name": "softly",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 6
+    },
+    {
+      "name": "inhales",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 6
+    },
+    {
+      "name": "Shirley",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 6
+    },
+    {
+      "name": "continues in Spanish",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 6
+    },
+    {
+      "name": "MAN",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 6
+    },
+    {
+      "name": "whimpers",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 5
+    },
+    {
+      "name": "gavel bangs",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 5
+    },
+    {
+      "name": "ring",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 5
+    },
+    {
+      "name": "quacks",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 5
+    },
+    {
+      "name": "JERRY",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 5
+    },
+    {
+      "name": "speaking in Spanish",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 5
+    },
+    {
+      "name": "indistinct chattering",
+      "hebrew_name": "",
+      "gender": "male/female",
+      "pronouns": "אתה/את",
+      "occurrences": 5
+    }
+  ],
+  "honorifics_and_terms": [
+    {
+      "term": "MR. SHORE",
+      "hebrew_translation": "",
+      "occurrences": 97
+    },
+    {
+      "term": "MR. CRANE",
+      "hebrew_translation": "",
+      "occurrences": 72
+    },
+    {
+      "term": "Mr. Shore",
+      "hebrew_translation": "",
+      "occurrences": 42
+    },
+    {
+      "term": "Mr. Washington",
+      "hebrew_translation": "",
+      "occurrences": 31
+    },
+    {
+      "term": "MR. COHO",
+      "hebrew_translation": "",
+      "occurrences": 27
+    },
+    {
+      "term": "Mr. Crane",
+      "hebrew_translation": "",
+      "occurrences": 26
+    },
+    {
+      "term": "MR. ESPENSON",
+      "hebrew_translation": "",
+      "occurrences": 24
+    },
+    {
+      "term": "MRS. HOOPER",
+      "hebrew_translation": "",
+      "occurrences": 21
+    },
+    {
+      "term": "MS. SCHMIDT",
+      "hebrew_translation": "",
+      "occurrences": 18
+    },
+    {
+      "term": "JUDGE HOOPER",
+      "hebrew_translation": "",
+      "occurrences": 13
+    },
+    {
+      "term": "DR. SIMON",
+      "hebrew_translation": "",
+      "occurrences": 11
+    },
+    {
+      "term": "MR. DIRTY",
+      "hebrew_translation": "",
+      "occurrences": 10
+    },
+    {
+      "term": "Mr. Sack",
+      "hebrew_translation": "",
+      "occurrences": 10
+    },
+    {
+      "term": "Mr. Palmer",
+      "hebrew_translation": "",
+      "occurrences": 10
+    },
+    {
+      "term": "MR. HELLMAN",
+      "hebrew_translation": "",
+      "occurrences": 10
+    },
+    {
+      "term": "JUDGE BROWN",
+      "hebrew_translation": "",
+      "occurrences": 9
+    },
+    {
+      "term": "MS. WINGER",
+      "hebrew_translation": "",
+      "occurrences": 9
+    },
+    {
+      "term": "MR. SACK",
+      "hebrew_translation": "",
+      "occurrences": 9
+    },
+    {
+      "term": "MR. SCHILLER",
+      "hebrew_translation": "",
+      "occurrences": 8
+    },
+    {
+      "term": "MR. FOREMAN",
+      "hebrew_translation": "",
+      "occurrences": 8
+    },
+    {
+      "term": "MS. HILL",
+      "hebrew_translation": "",
+      "occurrences": 8
+    },
+    {
+      "term": "MR. KALLAH",
+      "hebrew_translation": "",
+      "occurrences": 8
+    },
+    {
+      "term": "MR. POST",
+      "hebrew_translation": "",
+      "occurrences": 7
+    },
+    {
+      "term": "JUDGE MARCIA",
+      "hebrew_translation": "",
+      "occurrences": 7
+    },
+    {
+      "term": "JUDGE WELDON",
+      "hebrew_translation": "",
+      "occurrences": 7
+    },
+    {
+      "term": "Ms. Schmidt",
+      "hebrew_translation": "",
+      "occurrences": 7
+    },
+    {
+      "term": "Mr. Bell",
+      "hebrew_translation": "",
+      "occurrences": 7
+    },
+    {
+      "term": "MR. FELDCAMP",
+      "hebrew_translation": "",
+      "occurrences": 7
+    },
+    {
+      "term": "MR. WINANT",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "MR. MEYER",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "MR. AND",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "MS. LITTLE",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "JUDGE POTTS",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "MS. SIMMS",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "DR. FOLLETTE",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "MR. PALMER",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "Mrs. Rivers",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "Dr. Farrell",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "MR. MATHIS",
+      "hebrew_translation": "",
+      "occurrences": 6
+    },
+    {
+      "term": "Judge Brown",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "MR. WILKES",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "MRS. BECKETT",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "MR. BOITELLE",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "MR. SEARS",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "MR. GRIFFIN",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "MS. LOPEZ",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "JUDGE FUDD",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "Mr. Chernack",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "Mr. Maxwell",
+      "hebrew_translation": "",
+      "occurrences": 5
+    },
+    {
+      "term": "Mr. Chief",
+      "hebrew_translation": "",
+      "occurrences": 5
+    }
+  ]
+}
