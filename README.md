@@ -174,5 +174,14 @@ Tests cover:
 
 ---
 
+## 📚 Documentation & Guides
+- 🔰 **[Quickstart for Beginners (Step-by-Step)](docs/QUICKSTART_FOR_BEGINNERS.md)** — Instant 30-second fix with zero jargon.
+- 🤖 **[AI Integration & Coding Assistants Guide](docs/AI_INTEGRATION_GUIDE.md)** — What needs AI vs. what runs locally, plus Antigravity, Claude Code, Gemini, and ChatGPT setups.
+- 📐 **[Hebrew BiDi & Plex/Infuse Guide](docs/BIDI_AND_PLEX_GUIDE.md)** — Deep dive into invisible RLM marks and punctuation reversal.
+- 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
+- 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.
+
+---
+
 ## 📄 License
 Released under the [MIT License](LICENSE).

@@ -176,6 +176,15 @@ pytest -v
 
 ---
 
+## 📚 מדריכים ותיעוד מלא
+- 🔰 **[מדריך פשוט למתחילים (צעד אחר צעד)](docs/QUICKSTART_FOR_BEGINNERS.he.md)** — פתרון מהיר ב-30 שניות ללא מושגים טכניים.
+- 🤖 **[מדריך חיבור לכלי בינה מלאכותית וסייעני קוד](docs/AI_INTEGRATION_GUIDE.he.md)** — מה דורש AI ומה רץ מקומית, ואיך לחבר את Antigravity, Claude Code, Gemini ו-ChatGPT.
+- 📐 **[מדריך כיווניות (BiDi) ותיקון Plex/Infuse](docs/BIDI_AND_PLEX_GUIDE.he.md)** — הסבר מעמיק על תו ה-RLM ופתרון היפוך סימני פיסוק.
+- 🔄 **[תהליך עבודה מלא מקצה לקצה (Pipeline)](docs/PIPELINE_WORKFLOW.he.md)** — שלב אחר שלב מווידאו גולמי לכתובית מושלמת.
+- 📖 **[GitHub Wiki הרשמי](https://github.com/omerninyo/RightSub/wiki)** — תיעוד מקוון מלא ודו-לשוני.
+
+---
+
 ## 📄 רישיון
 הפרויקט מופץ תחת [רישיון MIT](LICENSE).
 

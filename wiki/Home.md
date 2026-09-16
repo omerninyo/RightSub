@@ -30,6 +30,8 @@ RightSub separates user-facing CLI operations from its two underlying algorithmi
 
 ## 📚 Wiki Documentation Index
 
+- **[🔰 Quickstart for Beginners](Quickstart-for-Beginners)**: Step-by-step beginner guide with zero technical jargon (Instant Plex repair & full translation).
+- **[🤖 AI Integration & Coding Assistants](AI-Integration-Guide)**: Understand what needs AI vs. what runs 100% locally, plus guides for Antigravity, Claude Code, Gemini, and ChatGPT.
 - **[BiDi & Plex Formatting Guide](BiDi-and-Plex-Guide)**: Deep dive into Unicode RLM (`\u200F`), BiDi rendering levels, and why Plex flips punctuation.
 - **[End-to-End Pipeline Workflow](Pipeline-Workflow)**: Step-by-step workflow from raw video file to deployed subtitles.
 - **[Boston Legal Benchmark Case Study (Theoretical)](Boston-Legal-Case-Study)**: Algorithmic validation benchmark across 101 episodes and 78,000+ dialogue cues (presented strictly as a theoretical study for stress-testing and timing research).
