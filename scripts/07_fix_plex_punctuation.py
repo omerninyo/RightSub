@@ -348,7 +348,14 @@ def apply_rlm_to_line(line):
     # Reconstruct with original tags
     return f"{ssa_prefix}{tag_prefix}{stripped}{tag_suffix}"
 
-def process_srt_content(content, clean_ads=False):
+SPEAKER_TAG_REGEX = re.compile(
+    r'^[‏\u200F\s]*(?:'
+    r'אלן|דני|שירלי|פול|בראד|לורי|טרה|סאלי|דניס|קייטי|ג\'רי|בברלי|אדווין|'
+    r'אישה|גבר|שופט|שופטת|השופט|השופטת|קול|קריין|כולם|גבר 2|אישה 2'
+    r'):\s*'
+)
+
+def process_srt_content(content, clean_ads=False, clean_speakers=True):
     blocks = re.split(r'\n\s*\n', content.strip())
     new_blocks = []
     total_subs = 0
@@ -359,30 +366,28 @@ def process_srt_content(content, clean_ads=False):
 
     for b in blocks:
         lines = b.strip().splitlines()
-        if len(lines) >= 3:
+        if len(lines) >= 2:
             timeline = lines[1]
-            text_lines = lines[2:]
+            text_lines = lines[2:] if len(lines) >= 3 else []
 
             if clean_ads and any(is_ad_line(l) for l in text_lines):
                 ads_removed += 1
                 continue
 
             total_subs += 1
-            # Unescape any literal \n and expand into individual lines
             flat_text = "\n".join(text_lines).replace(r'\n', '\n')
             expanded_lines = [l for l in flat_text.splitlines() if l.strip()]
 
             new_text_lines = []
             for tl in expanded_lines:
+                if clean_speakers:
+                    tl = SPEAKER_TAG_REGEX.sub('', tl)
                 fixed = apply_rlm_to_line(tl)
                 # Discard orphan dashes or empty lines
                 if fixed.strip() not in ['', '-', f'{RLM}-', f'{RLM} -', '—', f'{RLM}—']:
                     new_text_lines.append(fixed)
                 if fixed != tl:
                     modified_lines += 1
-
-            if not new_text_lines:
-                new_text_lines = ['']
 
             new_block = [str(idx_counter), timeline] + new_text_lines
             idx_counter += 1
