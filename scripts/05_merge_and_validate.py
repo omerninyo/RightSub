@@ -144,12 +144,20 @@ DISALLOWED_FOREIGN_SCRIPTS = (
 )
 
 def normalize_final_letters(text):
-    punct = r'[\s\.\?!,:;\-\—\)\]»]|$'
+    # Punctuation or whitespace indicating end of word, excluding hyphen attached to numbers/words (prefixes like מ-100, כ-50)
+    punct = r'(?:[\s\.\?!,:;\—\)\]»]|$)'
     text = re.sub(r'כ(?=' + punct + r')', 'ך', text)
     text = re.sub(r'מ(?=' + punct + r')', 'ם', text)
     text = re.sub(r'נ(?=' + punct + r')', 'ן', text)
     text = re.sub(r'פ(?=' + punct + r')', 'ף', text)
     text = re.sub(r'צ(?=' + punct + r')', 'ץ', text)
+
+    # Explicitly repair prefixes mistakenly normalized before hyphens (e.g. ם-100 -> מ-100, ך-50 -> כ-50)
+    text = re.sub(r'\bם-(?=\d|[א-תa-zA-Z])', 'מ-', text)
+    text = re.sub(r'\bך-(?=\d|[א-תa-zA-Z])', 'כ-', text)
+    text = re.sub(r'\bן-(?=\d|[א-תa-zA-Z])', 'נ-', text)
+    text = re.sub(r'\bף-(?=\d|[א-תa-zA-Z])', 'פ-', text)
+    text = re.sub(r'\bץ-(?=\d|[א-תa-zA-Z])', 'צ-', text)
     return text
 
 def sanitize_raw_hebrew(text):
