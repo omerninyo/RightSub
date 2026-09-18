@@ -92,3 +92,21 @@ class TestBiDiAndTextFormatting:
         assert "3545" not in fixed
         assert "index" not in fixed
         assert "hebrew" not in fixed
+
+    def test_universal_homoglyph_normalization(self):
+        # Georgian, Armenian, Greek, Tibetan, Bengali, Thai, Katakana
+        cases = [
+            ("האם ה\u10D7זת בבושם הזה", "התזת"),
+            ("קרויצפלד-י\u10D0\u10D9וב", "קרויצפלד-יאקוב"),
+            ("נכחדו בשלושים השנים האחרונ\u03B5\u03C2...", "האחרונות"),
+            ("עורך הדין האגדי מב\u0578ס\u03C4\u03BF\u03BD", "מבוסטון"),
+            ("זה יהיה הרבה יותר גרוע, כי למעשה מר מ\u0995\u09C7\u09AC\u09BE", "מר מקבה"),
+            ("לעשות פ\u0F62\u0F0Bסה מהעניין הזה", "פארסה"),
+            ("ג׳ק בוסטי\u0E34\u0E01", "בוסטיק"),
+            ("מתקד\u056B\u0574ים", "מתקדימים")
+        ]
+        for raw, expected in cases:
+            fixed = fix_plex_module.clean_and_sanitize_text(raw)
+            assert expected in fixed
+            assert not re.search(fix_plex_module.DISALLOWED_FOREIGN_SCRIPTS, fixed)
+

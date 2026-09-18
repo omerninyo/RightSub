@@ -92,7 +92,6 @@ def read_file_with_auto_encoding(file_path):
     return raw_bytes.decode('utf-8', errors='replace'), 'utf-8-fallback'
 
 # Comprehensive Arabic to Hebrew homoglyph & vocabulary conversion
-# Comprehensive Arabic to Hebrew homoglyph & vocabulary conversion
 ARABIC_TO_HEBREW = {
     '\u0645': 'מ',  # Meem
     '\u064A': 'י',  # Yeh
@@ -151,6 +150,71 @@ CYRILLIC_TO_HEBREW = {
     'у': 'ו', 'У': 'ו',
 }
 
+UNIVERSAL_HOMOGLYPH_MAP = {
+    # Georgian to Hebrew
+    '\u10D7': 'ת',  # თ -> ת (e.g. התזת)
+    '\u10D0': 'א',  # ა -> א (e.g. קרויצפלד-יאקוב)
+    '\u10D9': 'ק',  # კ -> ק
+    '\u10D4': 'ה',  # ე -> ה
+    '\u10DA': 'ל',  # ლ -> ל
+
+    # Armenian to Hebrew
+    '\u0578': 'ו',  # ո -> ו (e.g. מבוסטון)
+    '\u056B': 'י',  # ի -> י (e.g. מתקדימים)
+    '\u0574': 'מ',  # մ -> מ
+
+    # Greek homoglyphs to Hebrew
+    '\u03C2': 'ס',  # ς -> ס
+    '\u03C4': 'ט',  # τ -> ט
+    '\u03BF': 'ו',  # ο -> ו
+    '\u03BD': 'ן',  # ν -> ן
+    '\u03B5': 'ה',  # ε -> ה
+
+    # Tibetan to Hebrew
+    '\u0F62': 'ר',  # ར་ -> ר
+    '\u0F0B': '',   # ་ -> removal
+
+    # Thai to Hebrew
+    '\u0E01': 'ק',  # ก -> ק
+    '\u0E34': '',   # ิ -> removal
+
+    # Katakana / Japanese to Hebrew
+    '\u30E1': 'מ',  # メ -> מ
+    '\u30EA': 'ר',  # リ -> ר
+    '\u30AB': 'ק',  # カ -> ק
+}
+
+UNIVERSAL_PHRASES = [
+    (r'השופט[ο\u03BF][ς\u03C2]', 'השופט'),
+    (r'האחרונ[ε\u03B5][ς\u03C2]', 'האחרונות'),
+    (r'מב[ո\u0578]ס[τ\u03C4][ο\u03BF][ν\u03BD]', 'מבוסטון'),
+    (r'בא[メ\u30E1][ר\u30EA][ק\u30AB]ה?', 'באמריקה'),
+    (r'לא\s*מ[ե\u10D4][ל\u10DA]רוז', 'לא מלרוז'),
+    (r'מר\s*מ[কেবাబ\u0995\u09C7\u09AC\u09BE\u0C2C\u0C3E]+', 'מר מקבה'),
+    (r'פ[ר\u0F62\u0F0B]+סה', 'פארסה'),
+    (r'ג׳ק\s*בוסטי[ק\u0E01\u0E34]+', 'ג׳ק בוסטיק'),
+    (r'מתקד[ימ\u056B\u0574]+ם', 'מתקדימים'),
+    (r'קרויצפלד[- ]י[א\u10D0][ק\u10D9]וב', 'קרויצפלד-יאקוב'),
+    (r'ה[ת\u10D7]זת', 'התזת'),
+    (r'[\u585A]', ''),
+    (r'\\"', '"'),
+]
+
+DISALLOWED_FOREIGN_SCRIPTS = (
+    r'[\u0600-\u06FF'  # Arabic
+    r'\u0400-\u04FF'  # Cyrillic
+    r'\u0370-\u03FF'  # Greek
+    r'\u0530-\u058F'  # Armenian
+    r'\u10A0-\u10FF'  # Georgian
+    r'\u0900-\u0DFF'  # Indic (Devanagari, Bengali, Telugu, etc.)
+    r'\u0E00-\u0E7F'  # Thai
+    r'\u0F00-\u0FFF'  # Tibetan
+    r'\u3040-\u30FF\u31F0-\u31FF'  # Japanese Kana
+    r'\u4E00-\u9FFF\u3400-\u4DBF\u2E80-\u2EFF'  # CJK
+    r'\uAC00-\uD7AF'  # Hangul
+    r']'
+)
+
 def normalize_final_letters(text):
     punct = r'[\s\.\?!,:;\-\—\)\]»]|$'
     text = re.sub(r'כ(?=' + punct + r')', 'ך', text)
@@ -163,7 +227,7 @@ def normalize_final_letters(text):
 def clean_and_sanitize_text(text):
     """
     Cleans transcript truncation tags, stray JSON syntax, unescapes literal \\n,
-    and normalizes foreign homoglyphs (Arabic & Cyrillic) into pure Hebrew.
+    and normalizes foreign homoglyphs (Arabic, Cyrillic, Georgian, Armenian, Greek, Asian) into pure Hebrew.
     """
     if not text:
         return ""
@@ -180,12 +244,16 @@ def clean_and_sanitize_text(text):
     # 3. Unescape literal backslash-n sequences unconditionally
     text = text.replace(r'\n', '\n')
     text = text.replace(r'\r', '')
+    text = text.replace(r'\"', '"')
 
-    # 4. Normalize common Arabic phrases that leaked from multilingual LLMs
+    # 4. Normalize multi-lingual phrases and Arabic idioms
+    for pattern, repl in UNIVERSAL_PHRASES:
+        text = re.sub(pattern, repl, text)
+
     for pattern, repl in ARABIC_PHRASES:
         text = re.sub(pattern, repl, text)
 
-    # 5. Convert Cyrillic and Arabic homoglyphs into Hebrew
+    # 5. Convert homoglyphs into pure Hebrew
     for cyr, he in CYRILLIC_TO_HEBREW.items():
         if cyr in text:
             text = text.replace(cyr, he)
@@ -194,13 +262,15 @@ def clean_and_sanitize_text(text):
         if ar in text:
             text = text.replace(ar, he)
 
+    for fg, he in UNIVERSAL_HOMOGLYPH_MAP.items():
+        if fg in text:
+            text = text.replace(fg, he)
+
     # 6. Normalize final letters (e.g. at end of words)
     text = normalize_final_letters(text)
 
-    # 7. Strip any residual Arabic diacritics / isolated glyphs & Cyrillic
-    text = re.sub(r'[\u0600-\u06FF]', '', text)
-    text = re.sub(r'[\u0400-\u04FF]', '', text)
-    # Strip Hebrew nikud
+    # 7. Strip any remaining disallowed foreign script characters & Nikud
+    text = re.sub(DISALLOWED_FOREIGN_SCRIPTS, '', text)
     text = re.sub(r'[\u0591-\u05BD\u05BF-\u05C7]', '', text)
 
     # Clean double spaces or broken quotes

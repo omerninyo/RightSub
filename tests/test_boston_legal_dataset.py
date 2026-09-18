@@ -62,9 +62,9 @@ class TestBostonLegalFullDataset:
             assert he_srt.exists()
             content = he_srt.read_text(encoding="utf-8", errors="ignore")
             
-            # Assert zero Arabic characters
-            arabic_chars = re.findall(r'[\u0600-\u06FF]', content)
-            assert len(arabic_chars) == 0, f"Found {len(arabic_chars)} Arabic characters in {he_srt.name}"
+            # Assert zero Arabic or disallowed foreign script characters
+            foreign_chars = re.findall(r'[\u0600-\u06FF\u0400-\u04FF\u0370-\u03FF\u0530-\u058F\u10A0-\u10FF\u0900-\u0DFF\u0E00-\u0E7F\u0F00-\u0FFF\u3040-\u30FF\u4E00-\u9FFF]', content)
+            assert len(foreign_chars) == 0, f"Found {len(foreign_chars)} foreign script characters in {he_srt.name}: {set(foreign_chars)}"
 
             # Assert zero literal \n sequences
             assert r"\n" not in content, f"Found literal '\\n' string in {he_srt.name}"

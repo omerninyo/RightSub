@@ -62,12 +62,19 @@ def main():
     p_prompt.add_argument("-t", "--title", default="", help="Title of movie or series episode")
     p_prompt.add_argument("-c", "--context", default="", help="Plot description, character names and notes")
     p_prompt.add_argument("-g", "--genre", default="", help="Genre or tone (e.g. Drama, Comedy, Sci-Fi)")
+    p_prompt.add_argument("-b", "--bible", default="", help="Path to translation_bible.json")
+    p_prompt.add_argument("--overlap", type=int, default=5, help="Context overlap cues from previous batch (default: 5)")
+    p_prompt.add_argument("-s", "--chunk-size", type=int, default=88, help="Cues per agent (default: 88)")
+    p_prompt.add_argument("-m", "--model", default="flash_lite", help="Model tier (default: flash_lite)")
     p_prompt.add_argument("-o", "--output-dir", default="", help="Output directory")
 
     # Command: qa
     p_qa = subparsers.add_parser("qa", help="Run comprehensive QA audit on subtitle files or directory")
     p_qa.add_argument("en_srt", help="Master English SRT or directory path")
     p_qa.add_argument("he_srt", nargs="?", help="Hebrew SRT file (optional if auditing a folder)")
+    p_qa.add_argument("-b", "--bible", default="", help="Path to translation_bible.json for character gender checks")
+    p_qa.add_argument("--strict-gender", action="store_true", help="Fail QA audit if gender mismatches are found")
+    p_qa.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
     # Command: fix-plex
     p_fix = subparsers.add_parser("fix-plex", help="Fix Hebrew punctuation & BiDi for Plex/Infuse (standalone)")

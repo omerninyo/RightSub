@@ -12,6 +12,8 @@ Features:
 
 import os
 import sys
+import os
+import sys
 import re
 import json
 import argparse
@@ -26,10 +28,16 @@ CRITICAL RULES:
 - Title: {title}
 {genre_line}
 {context_block}
-4. If a cue is purely SDH or sound effects (e.g. ♪♪♪, [Music], (sighs), (sobs), [crying], [screaming], [gunshot], [buzzer blares], ***), return an empty string "" for hebrew, but KEEP ITS EXACT INDEX. Remove inline audio descriptions from dialogue.
-5. Use Hebrew gershayim (״ \\u05F4) or single quotes for acronyms (e.g. עו״ד, ארה״ב, ד״ר, FBI, CIA, DNA). NEVER use standard double quotes inside Hebrew strings.
-6. DO NOT VOCALIZE (ללא ניקוד): Write standard modern Hebrew spelling.
-7. Return ONLY a valid JSON array in a single ```json ``` block:
+{bible_block}
+4. GENDER ACCURACY & VOCATIVE (DIRECT ADDRESS) RULES:
+- Hebrew grammar strictly distinguishes 2nd person gender ("אתה" vs "את") and verb conjugations ("אתה רוצה" vs "את רוצה").
+- Direct Address (Vocative): When dialogue addresses a female character by name or title (e.g. 'Shirley, you...', 'Tara, did you...', 'Judge (female), you...'), conjugate all verbs, pronouns, and adjectives in the feminine ("שירלי, את...", "טרה, ראית...", "כבוד השופטת, את...").
+- Speaker & Listener Continuity: Use dialogue context to track who is in the room. When speaking to a woman, address her as female.
+- SDH & Speaker Tags: Tags like [Tara], [Alan], or 'DENNY:' are context indicators for YOU. Use them to know who speaks and to whom, but STRIP them completely from the final Hebrew text (translate dialogue only).
+5. If a cue is purely SDH or sound effects (e.g. ♪♪♪, [Music], (sighs), (sobs), [crying], [screaming], [gunshot], [buzzer blares], ***), return an empty string "" for hebrew, but KEEP ITS EXACT INDEX. Remove inline audio descriptions from dialogue.
+6. Use Hebrew gershayim (״ \\u05F4) or single quotes for acronyms (e.g. עו״ד, ארה״ב, ד״ר, FBI, CIA, DNA). NEVER use standard double quotes inside Hebrew strings.
+7. DO NOT VOCALIZE (ללא ניקוד): Write standard modern Hebrew spelling.
+8. Return ONLY a valid JSON array in a single ```json ``` block:
 ```json
 [
   {{"index": {start}, "hebrew": "..."}},
@@ -38,8 +46,41 @@ CRITICAL RULES:
 ```
 Do NOT call any tools. Do NOT run commands. Return the JSON directly.
 
+{overlap_block}
 INPUT CUES TO TRANSLATE:
 {cues_json}"""
+
+def load_bible(bible_path):
+    """Loads character and glossary metadata from a Translation Bible JSON."""
+    if not bible_path or not os.path.exists(bible_path):
+        return ""
+    try:
+        with open(bible_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        lines = ["- Character Roster & Gender Mapping (Mandatory Consistency):"]
+        characters = data.get("characters", [])
+        for ch in characters[:30]:
+            name = ch.get("name", "")
+            he_name = ch.get("hebrew_name", "")
+            gender = ch.get("gender", "")
+            pronouns = ch.get("pronouns", "")
+            display_he = f" ({he_name})" if he_name else ""
+            lines.append(f"  * {name}{display_he}: Gender={gender}, Pronouns={pronouns}")
+        
+        terms = data.get("honorifics_and_terms", [])
+        if terms:
+            lines.append("- Recurring Terms & Honorifics:")
+            for t in terms[:25]:
+                term = t.get("term", "")
+                trans = t.get("hebrew_translation", "")
+                if trans:
+                    lines.append(f"  * {term} -> {trans}")
+                else:
+                    lines.append(f"  * {term}")
+        return "\n".join(lines)
+    except Exception as e:
+        print(f"[!] Warning: Could not parse bible {bible_path}: {e}")
+        return ""
 
 def parse_srt(path):
     with open(path, 'r', encoding='utf-8-sig', errors='replace') as f:
@@ -57,7 +98,7 @@ def parse_srt(path):
                 continue
     return res
 
-def build_prompts(srt_path, title, context="", genre="", chunk_size=88, output_dir=None, model="flash_lite"):
+def build_prompts(srt_path, title="", context="", genre="", bible_path="", overlap=5, chunk_size=88, output_dir=None, model="flash_lite"):
     cues = parse_srt(srt_path)
     total_cues = len(cues)
     if total_cues == 0:
@@ -66,6 +107,20 @@ def build_prompts(srt_path, title, context="", genre="", chunk_size=88, output_d
 
     if not title:
         title = os.path.splitext(os.path.basename(srt_path))[0]
+
+    # Look for default bible in same directory or parent if not explicitly supplied
+    if not bible_path:
+        candidates = [
+            os.path.join(os.path.dirname(srt_path), "translation_bible.json"),
+            os.path.join(os.path.dirname(srt_path), "..", "translation_bible.json"),
+            os.path.join(os.getcwd(), "translation_bible.json")
+        ]
+        for cand in candidates:
+            if os.path.exists(cand):
+                bible_path = cand
+                break
+
+    bible_block = load_bible(bible_path)
 
     if not output_dir:
         output_dir = os.path.join(os.path.dirname(srt_path), f"prompts_{title}")
@@ -86,6 +141,19 @@ def build_prompts(srt_path, title, context="", genre="", chunk_size=88, output_d
         end_num = chunk_cues[-1]["index"]
         count = len(chunk_cues)
 
+        # Build context overlap window from previous chunk
+        overlap_block = ""
+        if i > 0 and overlap > 0:
+            overlap_start = max(0, start_idx - overlap)
+            prev_cues = cues[overlap_start:start_idx]
+            if prev_cues:
+                overlap_lines = [f"[{c['index']}] {c['text']}" for c in prev_cues]
+                overlap_block = (
+                    "PREVIOUS DIALOGUE CONTEXT (Reference only to track speakers/gender - do NOT re-translate or include in JSON):\n"
+                    + "\n".join(overlap_lines)
+                    + "\n--- END PREVIOUS CONTEXT ---\n"
+                )
+
         cues_json = json.dumps(chunk_cues, ensure_ascii=False, indent=1)
         prompt_text = PROMPT_TEMPLATE.format(
             title=title,
@@ -94,6 +162,8 @@ def build_prompts(srt_path, title, context="", genre="", chunk_size=88, output_d
             end=end_num,
             genre_line=genre_line,
             context_block=context_block,
+            bible_block=bible_block,
+            overlap_block=overlap_block,
             cues_json=cues_json
         )
 
@@ -123,6 +193,8 @@ def build_prompts(srt_path, title, context="", genre="", chunk_size=88, output_d
         "title": title,
         "total_cues": total_cues,
         "chunk_size": chunk_size,
+        "overlap_cues": overlap,
+        "bible_path": bible_path if bible_block else None,
         "total_agents": len(agents),
         "total_waves": len(waves),
         "model": model,
@@ -133,6 +205,9 @@ def build_prompts(srt_path, title, context="", genre="", chunk_size=88, output_d
 
     print(f"[✓] Successfully generated prompts for '{title}':")
     print(f"    - Total Cues: {total_cues}")
+    print(f"    - Overlap: {overlap} cues per boundary")
+    if bible_block:
+        print(f"    - Bible Roster Injected: {bible_path}")
     print(f"    - Total Agents: {len(agents)} (in {len(waves)} waves of up to 4)")
     print(f"    - Output Directory: {output_dir}")
     return True
@@ -143,6 +218,8 @@ def main():
     parser.add_argument("--title", "-t", default="", help="Title of movie or series episode")
     parser.add_argument("--context", "-c", default="", help="Plot description, character names and notes")
     parser.add_argument("--genre", "-g", default="", help="Genre / dialogue tone (e.g. Legal comedy, Sci-Fi)")
+    parser.add_argument("--bible", "-b", default="", help="Path to translation_bible.json")
+    parser.add_argument("--overlap", type=int, default=5, help="Number of previous cues to inject as context (default: 5)")
     parser.add_argument("--chunk-size", "-s", type=int, default=88, help="Cues per agent (default: 88)")
     parser.add_argument("--output-dir", "-o", default="", help="Output directory for prompt JSON files")
     parser.add_argument("--model", "-m", default="flash_lite", help="Model tier (default: flash_lite)")
@@ -153,6 +230,8 @@ def main():
         title=args.title,
         context=args.context,
         genre=args.genre,
+        bible_path=args.bible,
+        overlap=args.overlap,
         chunk_size=args.chunk_size,
         output_dir=args.output_dir,
         model=args.model
@@ -160,3 +239,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

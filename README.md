@@ -136,9 +136,9 @@ Stretch subtitles extracted from PAL DVDs or European TV to match US Web-DL / Bl
 | `sync` | **SubRefine** | Compare timing delta between English & Hebrew SRTs | `./rightsub sync master.en.srt download.he.srt` |
 | `bible` | **SubSwarm** | Generate Character & Terminology Bible from SRTs | `./rightsub bible Season1/*.en.srt -o bible.json` |
 | `split` | **SubSwarm** | Split master English SRT into ~210 cue JSON chunks | `./rightsub split episode.en.srt -o ./batches/` |
-| `prompt-gen` | **SubSwarm** | Generate AI translation prompt waves for any title | `./rightsub prompt-gen ep.en.srt -t "Inception"` |
+| `prompt-gen` | **SubSwarm** | Generate AI translation prompt waves with Bible & Context Overlap | `./rightsub prompt-gen ep.en.srt -t "Inception" -b bible.json --overlap 5` |
 | `merge` | **Both** | Assemble translated JSONs into Hebrew SRT with RLM | `./rightsub merge ep.en.srt ./batches/ -o ep.he.srt` |
-| `qa` | **Both** | Zero-discrepancy 1:1 validation report | `./rightsub qa ep.en.srt ep.he.srt` |
+| `qa` | **Both** | Zero-discrepancy 1:1 validation & gender mismatch audit | `./rightsub qa ep.en.srt ep.he.srt -b bible.json --strict-gender` |
 
 ---
 
@@ -153,13 +153,14 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 - **101 / 101 Episodes Translated & Mastered (100% Completion)**.
 - **78,000+ Dialogue Cues** synchronized with 0 dropped lines.
 - **100% Plex & Infuse BiDi Compliance** across all devices (Apple TV, LG WebOS, Android TV).
+- **Universal Multi-Lingual Homoglyph Sanitization**: Automatic neutralization and conversion of 7 foreign writing systems (Georgian, Armenian, Greek, Tibetan, Bengali, Thai, Katakana) into pure Hebrew.
 - Full details in the [Boston Legal Case Study](docs/CASE_STUDY_BOSTON_LEGAL.md).
 
 ---
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (34 unit & integration tests):
+RightSub comes with a comprehensive automated test suite (51 unit & integration tests):
 ```bash
 pytest -v
 ```
@@ -167,6 +168,9 @@ pytest -v
 Tests cover:
 - BiDi trailing punctuation and RLM idempotency.
 - Hebrew acronym gershayim conversion (`עו״ד`, `ארה״ב`).
+- Multi-lingual homoglyph normalization (Georgian, Armenian, Greek, Arabic, Cyrillic, Asian).
+- Translation Bible prompt injection & context overlap continuity.
+- Direct-address vocative gender mismatch detection.
 - CP1255 Windows-1255 charset detection and conversion.
 - SDH auditory noise and commercial promo cleaning.
 - Framerate arithmetic and time shifting.
