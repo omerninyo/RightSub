@@ -18,18 +18,55 @@ import argparse
 
 RLM = "\u200F"
 
+# Comprehensive Arabic to Hebrew homoglyph & vocabulary conversion
 ARABIC_TO_HEBREW = {
-    'م': 'מ', 'ي': 'י', 'و': 'ו', 'ه': 'ה',
-    'ن': 'נ', 'ر': 'ר', 'د': 'ד', 'ס': 'ס',
-    'ك': 'כ', 'ب': 'ב', 'ת': 'ת', 'ل': 'ל',
-    'ק': 'ק', 'ص': 'צ', 'ט': 'ט', 'ع': 'ע',
-    'ح': 'ח', 'خ': 'ח', 'ج': 'ג', 'ז': 'ז',
-    'ف': 'פ', 'ش': 'ש', 'أ': 'א', 'ء': 'א',
-    'ئ': 'י', 'ؤ': 'ו', 'إ': 'א', 'آ': 'א',
-    'ة': 'ה', 'ى': 'י', 'ً': '',  'ٌ': '',
-    'ٍ': '',  'َ': '',  'ُ': '',  'ِ': '',
-    'ّ': '',  'ْ': '',
+    '\u0645': 'מ',  # Meem
+    '\u064A': 'י',  # Yeh
+    '\u0648': 'ו',  # Waw
+    '\u0647': 'ה',  # Heh
+    '\u0646': 'נ',  # Noon
+    '\u0631': 'ר',  # Reh
+    '\u062F': 'ד',  # Dal
+    '\u0633': 'ס',  # Seen
+    '\u0643': 'כ',  # Kaf
+    '\u0628': 'ב',  # Beh
+    '\u062A': 'ת',  # Teh
+    '\u0644': 'ל',  # Lam
+    '\u0642': 'ק',  # Qaf
+    '\u0635': 'צ',  # Sad
+    '\u0637': 'ט',  # Tah
+    '\u0639': 'ע',  # Ain
+    '\u062D': 'ח',  # Hah
+    '\u062E': 'ח',  # Khah
+    '\u062C': 'ג',  # Jeem
+    '\u0632': 'ז',  # Zain
+    '\u0641': 'פ',  # Feh
+    '\u0634': 'ש',  # Sheen
+    '\u0627': 'א',  # Alef
+    '\u0623': 'א',  # Alef with Hamza Above
+    '\u0621': 'א',  # Hamza
+    '\u0626': 'י',  # Yeh with Hamza
+    '\u0624': 'ו',  # Waw with Hamza
+    '\u0625': 'א',  # Alef with Hamza Below
+    '\u0622': 'א',  # Alef with Madda
+    '\u0629': 'ה',  # Teh Marbuta
+    '\u0649': 'י',  # Alef Maksura
+    '\u0630': 'ד',  # Thal
+    '\u0636': 'צ',  # Dad
+    '\u0638': 'ט',  # Zah
+    '\u063A': 'ג',  # Ghain
 }
+
+ARABIC_PHRASES = [
+    (r'\bכל\s*ما\b', 'כל מה'),
+    (r'\bما\b', 'מה'),
+    (r'\bכל\s+מה\b', 'כל מה'),
+    (r'\bכל\s+ما\b', 'כל מה'),
+    (r'\bتكون\b', 'תהיה'),
+    (r'\bيكون\b', 'יהיה'),
+    (r'\bاكون\b', 'אהיה'),
+    (r'\bأكون\b', 'אהיה'),
+]
 
 CYRILLIC_TO_HEBREW = {
     'м': 'מ', 'М': 'מ', 'а': 'א', 'А': 'א',
@@ -41,29 +78,53 @@ CYRILLIC_TO_HEBREW = {
     'у': 'ו', 'У': 'ו',
 }
 
+def normalize_final_letters(text):
+    punct = r'[\s\.\?!,:;\-\—\)\]»]|$'
+    text = re.sub(r'כ(?=' + punct + r')', 'ך', text)
+    text = re.sub(r'מ(?=' + punct + r')', 'ם', text)
+    text = re.sub(r'נ(?=' + punct + r')', 'ן', text)
+    text = re.sub(r'פ(?=' + punct + r')', 'ף', text)
+    text = re.sub(r'צ(?=' + punct + r')', 'ץ', text)
+    return text
+
 def sanitize_raw_hebrew(text):
     if not text:
         return ""
     
-    # Handle literal backslash-n string
-    if "\\n" in text and "\n" not in text:
-        text = text.replace("\\n", "\n")
+    # 1. Clean transcript truncation tags and leaked tool artifacts
+    text = re.sub(r'<truncated\s+\d+\s+bytes>', '', text)
+
+    # 2. Clean leaked JSON key/value syntax if dialogue got contaminated
+    text = re.sub(r'["\']?hebrew["\']?\s*:\s*["\']?', '', text)
+    text = re.sub(r'["\']?index["\']?\s*:\s*\d+,?', '', text)
+    text = re.sub(r'^\s*[\{\}\[\]]+\s*', '', text)
+    text = re.sub(r'\s*[\{\}\[\]]+\s*$', '', text)
+
+    # 3. Handle literal backslash-n string unconditionally
+    text = text.replace(r'\n', '\n')
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
     
-    # Replace Cyrillic homoglyphs before stripping
+    # 4. Normalize common Arabic phrases that leaked from multilingual LLMs
+    for pattern, repl in ARABIC_PHRASES:
+        text = re.sub(pattern, repl, text)
+
+    # 5. Replace Cyrillic homoglyphs before stripping
     for cyr, he in CYRILLIC_TO_HEBREW.items():
         if cyr in text:
             text = text.replace(cyr, he)
             
-    # Replace Arabic homoglyphs before stripping
+    # 6. Replace Arabic homoglyphs before stripping
     for ar, he in ARABIC_TO_HEBREW.items():
         if ar in text:
             text = text.replace(ar, he)
+
+    # 7. Normalize final letters
+    text = normalize_final_letters(text)
             
-    # Strip remaining Arabic / Cyrillic / Nikud
+    # 8. Strip remaining Arabic / Cyrillic / Nikud
     text = re.sub(r'[\u0600-\u06FF]', '', text)
     text = re.sub(r'[\u0400-\u04FF]', '', text)
     text = re.sub(r'[\u0591-\u05BD\u05BF-\u05C7]', '', text)
-    text = text.replace('\r\n', '\n').replace('\r', '\n')
     return text.strip()
 
 def apply_rlm_punctuation_fix(line):
@@ -119,8 +180,23 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
                 sanitized = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', raw)
                 data = json.loads(sanitized)
             
-            for item in data:
-                he_translations[int(item["index"])] = item.get("hebrew", item.get("text", "")).strip()
+            # Handle multiple batch JSON schemas:
+            # a) {"cues": [{"index": 1, "text": "..."}]}
+            # b) [{"index": 1, "hebrew": "..."}]
+            # c) {"1": "...", "2": "..."}
+            if isinstance(data, dict) and "cues" in data:
+                items = data["cues"]
+            elif isinstance(data, list):
+                items = data
+            elif isinstance(data, dict):
+                items = [{"index": k, "hebrew": v} for k, v in data.items() if str(k).isdigit()]
+            else:
+                items = []
+
+            for item in items:
+                idx_val = int(item["index"])
+                he_text = item.get("hebrew", item.get("text", ""))
+                he_translations[idx_val] = str(he_text).strip()
 
     # 3. Discrepancy & Validation Check
     missing = [idx for idx in en_subs if idx not in he_translations]
@@ -139,7 +215,8 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
         out_lines.append(en_subs[idx])
         he_text = he_translations.get(idx, "")
         
-        # Apply line-by-line RLM formatting
+        # Unescape literal \n and split into lines
+        he_text = he_text.replace(r'\n', '\n')
         formatted_lines = []
         for l in he_text.splitlines():
             clean_l = apply_rlm_punctuation_fix(l)

@@ -91,6 +91,122 @@ def read_file_with_auto_encoding(file_path):
 
     return raw_bytes.decode('utf-8', errors='replace'), 'utf-8-fallback'
 
+# Comprehensive Arabic to Hebrew homoglyph & vocabulary conversion
+# Comprehensive Arabic to Hebrew homoglyph & vocabulary conversion
+ARABIC_TO_HEBREW = {
+    '\u0645': 'מ',  # Meem
+    '\u064A': 'י',  # Yeh
+    '\u0648': 'ו',  # Waw
+    '\u0647': 'ה',  # Heh
+    '\u0646': 'נ',  # Noon
+    '\u0631': 'ר',  # Reh
+    '\u062F': 'ד',  # Dal
+    '\u0633': 'ס',  # Seen
+    '\u0643': 'כ',  # Kaf
+    '\u0628': 'ב',  # Beh
+    '\u062A': 'ת',  # Teh
+    '\u0644': 'ל',  # Lam
+    '\u0642': 'ק',  # Qaf
+    '\u0635': 'צ',  # Sad
+    '\u0637': 'ט',  # Tah
+    '\u0639': 'ע',  # Ain
+    '\u062D': 'ח',  # Hah
+    '\u062E': 'ח',  # Khah
+    '\u062C': 'ג',  # Jeem
+    '\u0632': 'ז',  # Zain
+    '\u0641': 'פ',  # Feh
+    '\u0634': 'ש',  # Sheen
+    '\u0627': 'א',  # Alef
+    '\u0623': 'א',  # Alef with Hamza Above
+    '\u0621': 'א',  # Hamza
+    '\u0626': 'י',  # Yeh with Hamza
+    '\u0624': 'ו',  # Waw with Hamza
+    '\u0625': 'א',  # Alef with Hamza Below
+    '\u0622': 'א',  # Alef with Madda
+    '\u0629': 'ה',  # Teh Marbuta
+    '\u0649': 'י',  # Alef Maksura
+    '\u0630': 'ד',  # Thal
+    '\u0636': 'צ',  # Dad
+    '\u0638': 'ט',  # Zah
+    '\u063A': 'ג',  # Ghain
+}
+
+ARABIC_PHRASES = [
+    (r'\bכל\s*ما\b', 'כל מה'),
+    (r'\bما\b', 'מה'),
+    (r'\bكل\s+ما\b', 'כל מה'),
+    (r'\bتكون\b', 'תהיה'),
+    (r'\bيكون\b', 'יהיה'),
+    (r'\bاكون\b', 'אהיה'),
+    (r'\bأكون\b', 'אהיה'),
+]
+
+CYRILLIC_TO_HEBREW = {
+    'м': 'מ', 'М': 'מ', 'а': 'א', 'А': 'א',
+    'р': 'ר', 'Р': 'ר', 'с': 'ס', 'С': 'ס',
+    'т': 'ת', 'Т': 'ת', 'х': 'ח', 'Х': 'ח',
+    'о': 'ס', 'О': 'ס', 'е': 'ה', 'Е': 'ה',
+    'в': 'ב', 'В': 'ב', 'н': 'נ', 'Н': 'נ',
+    'и': 'י', 'И': 'י', 'к': 'כ', 'К': 'כ',
+    'у': 'ו', 'У': 'ו',
+}
+
+def normalize_final_letters(text):
+    punct = r'[\s\.\?!,:;\-\—\)\]»]|$'
+    text = re.sub(r'כ(?=' + punct + r')', 'ך', text)
+    text = re.sub(r'מ(?=' + punct + r')', 'ם', text)
+    text = re.sub(r'נ(?=' + punct + r')', 'ן', text)
+    text = re.sub(r'פ(?=' + punct + r')', 'ף', text)
+    text = re.sub(r'צ(?=' + punct + r')', 'ץ', text)
+    return text
+
+def clean_and_sanitize_text(text):
+    """
+    Cleans transcript truncation tags, stray JSON syntax, unescapes literal \\n,
+    and normalizes foreign homoglyphs (Arabic & Cyrillic) into pure Hebrew.
+    """
+    if not text:
+        return ""
+
+    # 1. Clean transcript truncation tags and leaked tool artifacts
+    text = re.sub(r'<truncated\s+\d+\s+bytes>', '', text)
+
+    # 2. Clean leaked JSON key/value syntax if dialogue got contaminated
+    text = re.sub(r'["\']?hebrew["\']?\s*:\s*["\']?', '', text)
+    text = re.sub(r'["\']?index["\']?\s*:\s*\d+,?', '', text)
+    text = re.sub(r'^\s*[\{\}\[\]]+\s*', '', text)
+    text = re.sub(r'\s*[\{\}\[\]]+\s*$', '', text)
+
+    # 3. Unescape literal backslash-n sequences unconditionally
+    text = text.replace(r'\n', '\n')
+    text = text.replace(r'\r', '')
+
+    # 4. Normalize common Arabic phrases that leaked from multilingual LLMs
+    for pattern, repl in ARABIC_PHRASES:
+        text = re.sub(pattern, repl, text)
+
+    # 5. Convert Cyrillic and Arabic homoglyphs into Hebrew
+    for cyr, he in CYRILLIC_TO_HEBREW.items():
+        if cyr in text:
+            text = text.replace(cyr, he)
+
+    for ar, he in ARABIC_TO_HEBREW.items():
+        if ar in text:
+            text = text.replace(ar, he)
+
+    # 6. Normalize final letters (e.g. at end of words)
+    text = normalize_final_letters(text)
+
+    # 7. Strip any residual Arabic diacritics / isolated glyphs & Cyrillic
+    text = re.sub(r'[\u0600-\u06FF]', '', text)
+    text = re.sub(r'[\u0400-\u04FF]', '', text)
+    # Strip Hebrew nikud
+    text = re.sub(r'[\u0591-\u05BD\u05BF-\u05C7]', '', text)
+
+    # Clean double spaces or broken quotes
+    text = re.sub(r'[ \t]+', ' ', text)
+    return text.strip()
+
 def detect_hebrew(content, min_chars=15, min_ratio=0.15):
     """
     Checks if content has a valid ratio of Hebrew letters.
@@ -115,6 +231,8 @@ def apply_rlm_to_line(line):
     """
     Applies RLM formatting safely around tags (<i>, <b>, <u>, {\\anX}).
     """
+    # Sanitize and normalize line first
+    line = clean_and_sanitize_text(line)
     stripped = line.strip()
     if not stripped:
         return line
@@ -126,7 +244,7 @@ def apply_rlm_to_line(line):
     # Convert standard double quotes in Hebrew acronyms to Hebrew gershayim (״)
     stripped = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', stripped)
 
-    # Separate SSA coordinate prefix if present, e.g. "{\an8}..."
+    # Separate SSA coordinate prefix if present, e.g. "{\\an8}..."
     ssa_prefix = ""
     ssa_match = re.match(r'^(\{\\an\d+\})(.*)$', stripped)
     if ssa_match:
@@ -180,12 +298,21 @@ def process_srt_content(content, clean_ads=False):
                 continue
 
             total_subs += 1
+            # Unescape any literal \n and expand into individual lines
+            flat_text = "\n".join(text_lines).replace(r'\n', '\n')
+            expanded_lines = [l for l in flat_text.splitlines() if l.strip()]
+
             new_text_lines = []
-            for tl in text_lines:
+            for tl in expanded_lines:
                 fixed = apply_rlm_to_line(tl)
+                # Discard orphan dashes or empty lines
+                if fixed.strip() not in ['', '-', f'{RLM}-', f'{RLM} -', '—', f'{RLM}—']:
+                    new_text_lines.append(fixed)
                 if fixed != tl:
                     modified_lines += 1
-                new_text_lines.append(fixed)
+
+            if not new_text_lines:
+                new_text_lines = ['']
 
             new_block = [str(idx_counter), timeline] + new_text_lines
             idx_counter += 1

@@ -53,3 +53,42 @@ class TestBiDiAndTextFormatting:
         fixed = fix_plex_module.apply_rlm_to_line(raw)
         assert "<i>" in fixed
         assert "</i>" in fixed
+
+    def test_arabic_homoglyph_normalization(self):
+        # Arabic letters (Yeh \u064A, Waw \u0648, Noon \u0646) should be normalized to Hebrew
+        raw = "זה לא יפתיע אותي ولמחץ אותם نכון."
+        fixed = fix_plex_module.apply_rlm_to_line(raw)
+        assert "אותי" in fixed
+        assert "ולמחץ" in fixed
+        assert "נכון" in fixed
+        assert not re.search(r'[\u0600-\u06FF]', fixed)
+
+    def test_arabic_phrase_normalization(self):
+        # Arabic phrases like كل ما should be converted to כל מה
+        raw = "כל ما עשית היה להרחיק אותם."
+        fixed = fix_plex_module.apply_rlm_to_line(raw)
+        assert "כל מה" in fixed
+        assert not re.search(r'[\u0600-\u06FF]', fixed)
+
+    def test_cyrillic_homoglyph_normalization(self):
+        # Cyrillic lookalike m (\u043C) should be normalized to Hebrew mem
+        raw = "שלום חבריм."
+        fixed = fix_plex_module.apply_rlm_to_line(raw)
+        assert "חברים" in fixed
+        assert not re.search(r'[\u0400-\u04FF]', fixed)
+
+    def test_literal_slash_n_unescaping(self):
+        # Literal \n string should be unescaped into real newlines and processed cleanly
+        raw = "שלום\\nמה שלומך?"
+        fixed = fix_plex_module.clean_and_sanitize_text(raw)
+        assert "\\n" not in fixed
+        assert "\n" in fixed
+
+    def test_transcript_truncation_and_json_artifact_cleaning(self):
+        # Stray transcript truncation and leaked JSON should be stripped cleanly
+        raw = 'אני כמעט שם <truncated 3545 bytes> {"index": 231, "hebrew": "ראית בזה'
+        fixed = fix_plex_module.clean_and_sanitize_text(raw)
+        assert "<truncated" not in fixed
+        assert "3545" not in fixed
+        assert "index" not in fixed
+        assert "hebrew" not in fixed

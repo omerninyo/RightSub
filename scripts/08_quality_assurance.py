@@ -68,6 +68,8 @@ def audit_pair(en_path, he_path, verbose=False):
     cyrillic_matches = re.findall(r'[\u0400-\u04FF]', he_raw)
     nikud_matches = re.findall(r'[\u0591-\u05BD\u05BF-\u05C2\u05C4-\u05C7]', he_raw)
     literal_n_count = he_raw.count('\\n')
+    trunc_count = len(re.findall(r'<truncated\s+\d+\s+bytes>', he_raw))
+    json_artifacts = len(re.findall(r'["\']?hebrew["\']?\s*:\s*|["\']?index["\']?\s*:\s*\d+', he_raw))
 
     if len(arabic_matches) > 0:
         errors.append(f"Found {len(arabic_matches)} Arabic characters in Hebrew file")
@@ -77,6 +79,10 @@ def audit_pair(en_path, he_path, verbose=False):
         errors.append(f"Found {len(nikud_matches)} Nikud / vocalization marks in Hebrew file")
     if literal_n_count > 0:
         errors.append(f"Found {literal_n_count} literal '\\n' string occurrences in Hebrew file")
+    if trunc_count > 0:
+        errors.append(f"Found {trunc_count} transcript '<truncated ...>' markers in Hebrew file")
+    if json_artifacts > 0:
+        errors.append(f"Found {json_artifacts} leaked JSON syntax artifacts in Hebrew file")
     if rlm_count == 0 and len(he_subs) > 0:
         warnings.append("Zero RLM characters found (Plex/Infuse punctuation might be reversed)")
 

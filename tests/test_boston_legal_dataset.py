@@ -50,3 +50,28 @@ class TestBostonLegalFullDataset:
             assert he_srt.exists()
             content = he_srt.read_text(encoding="utf-8", errors="ignore")
             assert "\u200F" in content, f"File {he_srt.name} missing RLM marks"
+
+    @pytest.mark.parametrize("season", SEASONS)
+    def test_hebrew_subtitles_zero_anomalies(self, season):
+        import re
+        season_dir = BASE_REPO / season
+        mp4_files = sorted(season_dir.glob("*.mp4"))
+        
+        for mp4 in mp4_files:
+            he_srt = mp4.with_suffix(".he.srt")
+            assert he_srt.exists()
+            content = he_srt.read_text(encoding="utf-8", errors="ignore")
+            
+            # Assert zero Arabic characters
+            arabic_chars = re.findall(r'[\u0600-\u06FF]', content)
+            assert len(arabic_chars) == 0, f"Found {len(arabic_chars)} Arabic characters in {he_srt.name}"
+
+            # Assert zero literal \n sequences
+            assert r"\n" not in content, f"Found literal '\\n' string in {he_srt.name}"
+
+            # Assert zero <truncated markers
+            assert "<truncated" not in content, f"Found '<truncated' marker in {he_srt.name}"
+
+            # Assert zero leaked JSON syntax artifacts
+            json_artifacts = re.findall(r'["\']?hebrew["\']?\s*:\s*|["\']?index["\']?\s*:\s*\d+', content)
+            assert len(json_artifacts) == 0, f"Found {len(json_artifacts)} JSON artifacts in {he_srt.name}"
