@@ -11,7 +11,7 @@
 [![רישיון: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![גרסת פייתון: 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![מאומת ל-Plex ו-Infuse](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-34%2F34%20Passing-success.svg)]()
+[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-51%2F51%20Passing-success.svg)]()
 [![בנצ׳מרק: 101/101 פרקים](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **כתוביות כמו שצריך — מתיקון BiDi וניקוי SDH ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**

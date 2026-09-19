@@ -17,14 +17,14 @@ All **101 episodes** across all **5 seasons** of the critically acclaimed legal 
 
 ## 📊 Complete Series Summary Statistics
 
-| Season | Total Episodes | Completed Episodes | Completion % | Original Backup (`.bak.v25`) | 1:1 Timing Sync | Plex / Infuse BiDi (RLM) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Season 1** | 17 | 17 | **100.0%** | 17 / 17 Verified | 100% Matched | Applied |
-| **Season 2** | 27 | 27 | **100.0%** | 27 / 27 Verified | 100% Matched | Applied |
-| **Season 3** | 24 | 24 | **100.0%** | 24 / 24 Verified | 100% Matched | Applied |
-| **Season 4** | 20 | 20 | **100.0%** | 20 / 20 Verified | 100% Matched | Applied |
-| **Season 5** | 13 | 13 | **100.0%** | 13 / 13 Verified | 100% Matched | Applied |
-| **TOTAL** | **101** | **101** | **100.0%** | **101 / 101 Backed Up** | **100% (0 Mismatches)** | **100% Compliant** |
+| Season | Total Episodes | Completed Episodes | Completion % | Original Backup (`.bak.v25`) | 1:1 Timing Sync | Strict Gender QA (`--strict-gender`) | Plex / Infuse BiDi (RLM) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Season 1** | 17 | 17 | **100.0%** | 17 / 17 Verified | 100% Matched | **100% Passed (0 Errors)** | Applied |
+| **Season 2** | 27 | 27 | **100.0%** | 27 / 27 Verified | 100% Matched | **100% Passed (0 Errors)** | Applied |
+| **Season 3** | 24 | 24 | **100.0%** | 24 / 24 Verified | 100% Matched | **100% Passed (0 Errors)** | Applied |
+| **Season 4** | 20 | 20 | **100.0%** | 20 / 20 Verified | 100% Matched | **100% Passed (0 Errors)** | Applied |
+| **Season 5** | 13 | 13 | **100.0%** | 13 / 13 Verified | 100% Matched | **100% Passed (0 Errors)** | Applied |
+| **TOTAL** | **101** | **101** | **100.0%** | **101 / 101 Backed Up** | **100% (0 Mismatches)** | **101 / 101 PASSED (100%)** | **100% Compliant** |
 
 ---
 
