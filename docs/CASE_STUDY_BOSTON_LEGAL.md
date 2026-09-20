@@ -62,4 +62,4 @@ Season 4 represents the emotional and ideological peak of the series, culminatin
 1. **Safety First**: Before overwriting any `.he.srt`, the original file is preserved under `.he.srt.bak.v25`.
 2. **1-to-1 Timing Verification**: Automated QA checks verify that every cue index and timing range matches the English master file exactly (`assert len(en) == len(he)`).
 3. **Plex / Infuse Validation**: Verification that 100% of subtitle lines begin with RLM, with 0 foreign glyphs or corrupt characters.
-4. **Master Skill Reference**: Full operational standards and instructions are codified in `/Users/omerninyo/.gemini/config/skills/subtitle-translator/SKILL.md`.
+4. **Master Skill Reference**: Full operational standards and instructions are codified in `SKILL.md` (and the `subtitle-translator` AI skill).
