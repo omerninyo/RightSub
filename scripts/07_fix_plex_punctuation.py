@@ -297,7 +297,7 @@ def detect_hebrew(content, min_chars=15, min_ratio=0.15):
         return False, 0.0, "No alphabetic characters found"
 
     ratio = hebrew_chars / total_alpha
-    is_hebrew = (hebrew_chars >= min_chars) and (ratio >= min_ratio)
+    is_hebrew = ((hebrew_chars >= min_chars) or (latin_chars == 0 and hebrew_chars >= 3)) and (ratio >= min_ratio)
     details = f"Hebrew chars: {hebrew_chars}, Latin chars: {latin_chars} (Hebrew ratio: {ratio:.1%})"
     return is_hebrew, ratio, details
 

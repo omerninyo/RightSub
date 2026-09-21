@@ -94,6 +94,22 @@ chmod +x rightsub
 
 ## 💻 מתכוני שימוש ב-CLI
 
+### מתכון 0: הפעלה אוטונומית בפקודה אחת (ללא דגלים / ללא סיבוך)
+פשוט גררו קובץ או תיקייה ישירות לחלון הטרמינל אחרי הפקודה:
+```bash
+# טיפול אוטומטי בקובץ כתוביות (תיקון BiDi, פרסומות, גיבוי):
+./rightsub auto "Movie.he.srt"
+
+# טיפול אוטומטי בקובץ וידאו (חילוץ/תמלול כתוביות והכנת מנות):
+./rightsub auto "Movie.mkv"
+
+# תרגום מלא 100% מקומי וחינמי עם מודל שפה מקומי (Ollama):
+./rightsub auto "Movie.mkv" --ollama
+
+# סריקה וטיפול בעונה שלמה או ספרייה מלאה:
+./rightsub auto "/path/to/Season 01/"
+```
+
 ### מתכון 1: תיקון כתוביות עבריות עבור ספריית Plex / Infuse
 תיקון סימני פיסוק, המרת ג'יבריש מ-CP1255 ל-UTF-8 וניקוי פרסומות ישירות בספרייה. הסקריפט מזהה ומסנן אוטומטית כתוביות בעברית בלבד (ומדלג לחלוטין על כתוביות באנגלית ושפות זרות):
 ```bash
@@ -140,11 +156,15 @@ chmod +x rightsub
 
 | פקודה | מנוע אחראי | תיאור | דוגמה להפעלה |
 | :--- | :---: | :--- | :--- |
+| `auto` | **הכל** | הפעלה אוטונומית שלמה (קובץ בודד, עונה או תיקייה) באפס דגלים | `./rightsub auto "Movie.mkv"` |
+| `translate-ollama` | **SubSwarm** | תרגום מקומי 100% חינמי ואופליין דרך Ollama (Llama 3, Qwen) | `./rightsub translate-ollama prompts_Movie` |
 | `fix-plex` | **SubRefine** | תיקון פיסוק, RLM, קידוד CP1255, ניקוי SDH וספאם | `./rightsub fix-plex ./Season1/ -r -i --clean-ads` |
 | `adjust-fps` | **SubRefine** | מתיחת פריימים (25 <-> 23.976) או הזזת אופסט | `./rightsub adjust-fps in.srt -o out.srt` |
 | `extract` | **SubRefine** | חילוץ כתוביות מווידאו (MKV/MP4) בעזרת FFmpeg | `./rightsub extract video.mp4 -o video.en.srt` |
+| `transcribe` | **quicksubs** | תמלול קולי מהיר ישירות מהשמע (Apple Speech / Whisper) | `./rightsub transcribe video.mp4 -e apple` |
+| `audio-sync` | **quicksubs** | סנכרון וכיול כתוביות מוסטות על בסיס ציר השמע | `./rightsub audio-sync bad.srt -v video.mp4 -o fixed.srt` |
 | `sync` | **SubRefine** | השוואת תזמונים בין כתובית מקור לכתובית חיצונית | `./rightsub sync master.en.srt download.he.srt` |
-| `bible` | **SubSwarm** | הפקת Translation Bible (דמויות, מונחים ומגדר) | `./rightsub bible Season1/*.en.srt -o bible.json` |
+| `bible` | **SubSwarm** | הפקת Translation Bible (דמויות, מונחים ומגדר מ-TMDb) | `./rightsub bible Season1/*.en.srt -o bible.json --tmdb` |
 | `split` | **SubSwarm** | פיצול SRT באנגלית למנות JSON של כ-210 שורות | `./rightsub split episode.en.srt -o ./batches/` |
 | `prompt-gen` | **SubSwarm** | מחולל פרומפטים וגלי סוכנים עם מילון דמויות וחפיפת הקשר | `./rightsub prompt-gen ep.en.srt -t "Inception" -b bible.json --overlap 5` |
 | `merge` | **שניהם** | מיזוג מנות תרגום ל-SRT סופי עם הזרקת RLM מלאה | `./rightsub merge ep.en.srt ./batches/ -o ep.he.srt` |
@@ -170,7 +190,7 @@ RightSub נבחנה ואומתה על גבי מערך נתונים הממודל 
 
 ## 🧪 בדיקות יחידה ואימות אוטומטי
 
-RightSub מגיעה עם סוויטת בדיקות מקיפה של 66 בדיקות יחידה ואינטגרציה:
+RightSub מגיעה עם סוויטת בדיקות מקיפה של 74 בדיקות יחידה ואינטגרציה:
 ```bash
 pytest -v
 ```

@@ -198,6 +198,12 @@ def build_prompts(srt_path, title="", context="", genre="", bible_path="", overl
         with open(os.path.join(output_dir, f"agent_{i+1:02d}.json"), 'w', encoding='utf-8') as f:
             json.dump(agent_obj, f, ensure_ascii=False, indent=2)
 
+        with open(os.path.join(output_dir, f"batch_{i+1:02d}_input.json"), 'w', encoding='utf-8') as f:
+            json.dump(chunk_cues, f, ensure_ascii=False, indent=2)
+
+        with open(os.path.join(output_dir, f"batch_{i+1:02d}_prompt.txt"), 'w', encoding='utf-8') as f:
+            f.write(prompt_text)
+
     # Split into waves of 4 agents
     waves = []
     for w in range(0, len(agents), 4):

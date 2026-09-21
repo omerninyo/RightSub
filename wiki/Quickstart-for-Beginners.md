@@ -1,118 +1,109 @@
-# 🔰 Quickstart for Beginners (Step-by-Step Guide)
+# 🔰 Quickstart for Beginners — RightSub (The Zero-Jargon Guide)
 
-<p align="left">
-  <b>Language / שפה:</b>
-  <b>English</b> |
-  <a href="מדריך-פשוט-למתחילים"><b>עברית</b></a>
-</p>
-
-Welcome to **RightSub**!
-If you want quick, straightforward instructions without dealing with complex technical jargon, this guide is designed specifically for you.
+Welcome to **RightSub**!  
+If you are unfamiliar with command-line tools, do not know what CLI "flags" are, or simply want perfect Plex subtitles with zero hassle — **this guide was written specifically for you.**
 
 ---
 
-## 🧭 Which Track Fits Your Needs?
+## 🚀 The Ultimate Workflow: One Single Command (`./rightsub auto`)
+
+Forget about remembering complex flags or chained commands. In this version of RightSub, a single smart command handles everything automatically:
+
+```bash
+./rightsub auto "Drag and drop your file or directory here"
+```
+
+### 💡 How to run it using Drag & Drop:
+1. Open your Terminal inside the RightSub project folder.
+2. Type: `./rightsub auto ` *(make sure to include a space after auto)*.
+3. Open **Finder**, click and drag your movie file, subtitle file, or entire TV season folder — **and drop it right onto the Terminal window**.
+4. Press **Enter**.
+
+---
+
+## 🧭 What RightSub Does Automatically Based on What You Dragged
 
 ```mermaid
 graph TD
-    Start["What do you want to achieve?"] --> Q1{"Do you already have Hebrew subtitles and just want them fixed?"}
-    Q1 -- "Yes!" --> TrackA["Track A: Quick Plex & BiDi Fix in 30 Seconds"]
-    Q1 -- "No, I want to translate from English to Hebrew" --> Q2{"Do you have English subtitles (as an SRT or embedded in the video)?"}
-    Q2 -- "Yes, English subtitles are present" --> TrackB["Track B: Full Translation Pipeline for Movies or Seasons"]
-    Q2 -- "There are NO subtitles at all in the video" --> TrackC["Important Notice: What to do when no subtitles exist?"]
+    Start["Dragged an item into ./rightsub auto"] --> Check{"What did you drop?"}
+    
+    Check -- "Hebrew subtitle file (.he.srt)" --> Action1["Plex BiDi & RLM Punctuation Fix<br/>+ Ad & credit spam stripping<br/>+ Automatic .bak backup"]
+    
+    Check -- "Video file (MKV / MP4)" --> VideoCheck{"Does a Hebrew subtitle exist?"}
+    VideoCheck -- "Hebrew subtitle exists" --> Action1
+    VideoCheck -- "No Hebrew subtitle" --> Action2["Extracts English subtitles from video<br/>(If missing: transcribes audio on-device!)<br/>+ Prepares translation batches & Bible"]
+    
+    Check -- "Entire Directory (Season / Library)" --> Action3["Deep Directory Scan:<br/>1. Repairs all Hebrew subtitles found<br/>2. Prepares English subtitles & batches for new titles"]
 ```
 
 ---
 
-## ⚡ Track A: "I Just Want to Fix My Subtitles for Plex" (Instant Repair)
+## ⚡ 3 Common Everyday Scenarios
 
-### When to use this?
-- Question marks (`?`), periods, or dialogue dashes jump to the wrong side of the screen in Plex, Infuse, or Apple TV.
-- Subtitles appear as unreadable gibberish / mojibake (legacy CP1255 encoding).
-- Subtitles are polluted with annoying hearing-impaired noise (`[DRAMATIC MUSIC PLAYING]`) or website watermark ads.
+### 1. Fix Hebrew Subtitles for Plex / Infuse / Apple TV
+- **The Issue**: Question marks (`?`), periods, or dashes jump to the wrong end of lines, characters are mojibake gibberish, or lines are cluttered with website ads.
+- **The Solution**:
+  ```bash
+  ./rightsub auto "Movie.he.srt"
+  ```
+  *The file is fixed in-place, ads are stripped, and a safe `.srt.bak` backup is created automatically.*
 
-### 3 Simple Ways to Run It:
+### 2. Fix an Entire TV Season or Complete Library
+- **The Issue**: You have a folder with 24 episodes or dozens of movies and want them all mastered at once.
+- **The Solution**:
+  ```bash
+  ./rightsub auto "/path/to/TV_Season_or_Movie_Folder/"
+  ```
+  *The system scans all subdirectories, automatically detects Hebrew files to repair them, and safely ignores English subtitles so they are never corrupted.*
 
-#### Option 1: Fix a Single File
-Want to fix just one specific movie or episode?
-```bash
-./rightsub fix-plex "Movie.he.srt" --in-place
-```
-
-#### Option 2: Fix Multiple Specific Files
-Want to fix a few specific episodes together? Pass their paths sequentially:
-```bash
-./rightsub fix-plex "Episode01.he.srt" "Episode02.he.srt" "Episode03.he.srt" --in-place
-```
-
-#### Option 3: Fix a Whole Directory or Media Library (Including Subdirectories)
-Want to organize an entire season or your complete movie library in one sweep?
-```bash
-./rightsub fix-plex "/path/to/Movies_or_TV_Shows/" --recursive --in-place --clean-ads --backup
-```
-
----
-
-### 🛡️ Why Is It 100% Safe to Run on Any Directory? (Built-in Safety Filters)
-No need to manually sort or filter files prior to running. The script includes smart multi-layer filtering:
-1. **Automatic Language Detection (Touches Hebrew ONLY!)**:  
-   The script calculates the Hebrew character ratio in every file. If the folder contains English subtitles (`.en.srt`), Spanish, or any other foreign language — **it automatically detects and skips them**. English subtitles are never touched or modified.
-2. **Subtitle-Only File Filtering**:  
-   The script completely ignores video files (MKV, MP4), posters, or metadata files (`.nfo`), operating strictly on `.srt` subtitle files.
-3. **Idempotency & Redundancy Checks**:  
-   The script checks whether lines are already properly formatted or already have RLM marks injected. If a subtitle is already fixed, the script skips it and never duplicates hidden marks.
-4. **Comprehensive Safety Controls**:  
-   - Add `--dry-run` at any time to generate a preview report without touching any files on disk.
-   - The `--backup` flag automatically creates a `.srt.bak` backup file before modifying any file in-place.
+### 3. Translate a Movie from English to Hebrew
+- **The Issue**: You downloaded a media file with English subtitles and want a high-grade Hebrew translation.
+- **The Solution**:
+  ```bash
+  ./rightsub auto "Movie.mkv"
+  ```
+  *The system extracts the English stream, pulls plot & character genders from TMDb, and prepares translation batches.*
 
 ---
 
-## 🎬 Track B: "I Have English Subtitles and Want a Perfect Hebrew Translation"
+## 🎙️ What If the Video Has No Subtitles at All? (Automatic Speech-to-Text!)
 
-### When to use this?
-- You have an MKV or MP4 video with embedded English subtitles.
-- Or you have an English subtitle file (`movie.en.srt`) alongside your video.
-
-### The 3 Simple Steps:
-
-#### Step 1: Extract English Subtitles (If embedded in the video)
-If the subtitles are packed inside an `.mkv` or `.mp4` container, extract them with one command:
-```bash
-./rightsub extract "Movie.mkv" -o "Movie.en.srt"
-```
-*(If you already have a `.en.srt` file, skip directly to Step 2).*
-
-#### Step 2: Prepare Translation Chunks & Prompts
-RightSub breaks the dialogue down into optimal chunks and prepares context-aware prompts:
-```bash
-./rightsub prompt-gen "Movie.en.srt" -t "Movie Name"
-```
-This generates a folder named `prompts_Movie Name` with pre-split batch files ready for AI translation.
-
-#### Step 3: Merge into Final Hebrew SRT
-Once translated, assemble the batches into a master `.he.srt` file with 100% timing synchronization and Plex BiDi formatting:
-```bash
-./rightsub merge "Movie.en.srt" "prompts_Movie Name" -o "Movie.he.srt"
-```
-**That's it!** You now have a flawless `Movie.he.srt` ready for streaming.
+Unlike traditional subtitle tools that fail when subtitles are missing, RightSub has built-in on-device Speech-to-Text powered by **quicksubs** (Apple SpeechAnalyzer and Whisper):
+- If you run `./rightsub auto "Movie.mkv"` on a video with no subtitles, RightSub **will not crash or stop!**
+- It automatically invokes the on-device transcription engine, processes the audio stream, and produces a complete, perfectly timed English master subtitle.
 
 ---
 
-## ⚠️ Important Notice: What If the Video Has No Subtitles at All?
+## 🦙 100% Free, Offline Local Translation (Via Ollama)
 
-### Current Status:
-RightSub is a text-based subtitle translation, synchronization, and mastering suite.  
-**It does NOT currently perform raw audio Speech-to-Text (Whisper/transcription).**  
-Why? Audio speech-to-text often hallucinates or drifts in noisy scenes. Relying on an official English master subtitle ensures **100.0% timing accuracy and zero dropped dialogue cues**.
+Want to translate your subtitles without paying for API keys or sending dialogue to external cloud servers?  
+You can run an open-source LLM (such as Llama 3.2 or Qwen 2.5) locally on your Mac or PC for free!
 
-**What should you do right now if your video has no subtitles?**
-1. Visit a subtitle repository (e.g., Subscene, OpenSubtitles, or Addic7ed).
-2. Download an English subtitle matching your exact release (e.g., `1080p Web-DL` or `BluRay`).
-3. Place it next to your video named `Movie.en.srt`.
-4. Proceed directly with **Track B** above!
+### Getting started with Ollama in 2 steps:
+1. Install Ollama from [ollama.com](https://ollama.com) (or via Homebrew: `brew install ollama`).
+2. Download a fast model (one time only):
+   ```bash
+   ollama pull llama3.2
+   ```
+
+### End-to-end local translation in one command:
+```bash
+./rightsub auto "Movie.mkv" --ollama
+```
+RightSub will extract or transcribe the dialogue, translate every line on your local hardware for free, apply Plex BiDi RLM formatting, and output the final `Movie.he.srt`.
 
 ---
 
-## 🔮 Future Roadmap
-Planned for upcoming releases:
-- **Automated Web Subtitle Fetcher**: RightSub will inspect the video container's release name and file hash, automatically discover and download the matching master English subtitle from web repositories, and feed it directly into the translation pipeline in a single click.
+## 🤖 Want Your AI Agent to Do Everything for You?
+
+If you work with AI agents such as **Google Antigravity**, **Claude Code**, **Cursor**, or **ChatGPT**, you don't even have to touch the terminal yourself!  
+Simply copy and paste this single prompt to your AI assistant:
+
+> *"Please use RightSub to inspect, fix, and translate the subtitles in my directory [path], ensure 100% Plex compliance, and report back when finished."*
+
+---
+
+## 🛡️ Built-in Safety & Protection
+1. **Foreign Language Protection**: RightSub checks the Hebrew character ratio in every file. English subtitles are never touched or modified.
+2. **Idempotency**: Running repeatedly on the same file never duplicates RLM marks or degrades formatting.
+3. **Automatic Backups**: Creates a `.srt.bak` file before making changes to any file.

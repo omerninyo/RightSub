@@ -7,6 +7,8 @@ RightSub — Universal Subtitle Mastering & Translation Suite for Movies & TV Se
 Powered by the SubRefine Algorithmic Engine & SubSwarm Multi-Agent Orchestrator.
 
 Commands:
+  auto          Zero-flag autonomous runner: processes single file, season, or directory.
+  translate-ollama 100% offline, free local subtitle translation using Ollama (LLaMA 3, Qwen).
   split         Split master English SRT into JSON batches (~210 items) for translation.
   merge         Merge translated JSON batches into master Hebrew SRT with automated RLM & QC.
   prompt-gen    Generate wave-based AI translation prompts (Gemini Flash/Flash-Lite) for any title.
@@ -16,6 +18,8 @@ Commands:
   sync          Compare & test synchronization of external Hebrew subtitles against master English.
   bible         Generate character & terminology Translation Bible from English subtitles.
   adjust-fps    Shift timestamps or stretch framerate (e.g. 25.0 -> 23.976 FPS).
+  transcribe    On-Device Speech-to-Subtitle transcription via quicksubs.
+  audio-sync    Audio-guided subtitle synchronization & retiming via quicksubs.
 """
 
 import os
@@ -125,6 +129,24 @@ def main():
     p_async.add_argument("-r", "--reference-srt", help="Reference SRT file")
     p_async.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="Speech engine")
 
+    # Command: auto (Zero-flag autonomous runner)
+    p_auto = subparsers.add_parser("auto", help="Zero-flag autonomous subtitle mastering & translation pipeline")
+    p_auto.add_argument("target", help="Path to video file, subtitle file, or directory")
+    p_auto.add_argument("--ollama", action="store_true", help="Perform 100%% offline local translation using Ollama")
+    p_auto.add_argument("--model", help="Ollama model name (default: llama3.2 / llama3:8b)")
+    p_auto.add_argument("--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="quicksubs speech engine")
+    p_auto.add_argument("--no-clean-ads", action="store_true", help="Do not strip promo spam/credits")
+    p_auto.add_argument("--no-backup", action="store_true", help="Do not create .srt.bak before in-place modifications")
+    p_auto.add_argument("--dry-run", action="store_true", help="Preview mode without writing changes")
+
+    # Command: translate-ollama (Offline local translation)
+    p_ollama = subparsers.add_parser("translate-ollama", help="Offline local subtitle translation using Ollama")
+    p_ollama.add_argument("prompts_dir", help="Directory containing batch_*_input.json files")
+    p_ollama.add_argument("-m", "--model", help="Ollama model name (default: llama3.2 / llama3:8b)")
+    p_ollama.add_argument("--url", default="http://localhost:11434", help="Ollama server URL")
+    p_ollama.add_argument("--en-srt", help="Original English master SRT for automatic merge")
+    p_ollama.add_argument("-o", "--output", help="Output .he.srt path after merge")
+
     args, unknown = parser.parse_known_args()
 
     if not args.command:
@@ -132,6 +154,8 @@ def main():
         sys.exit(0)
 
     script_mapping = {
+        "auto": "18_auto_pipeline.py",
+        "translate-ollama": "17_translate_ollama.py",
         "split": "04_split_batches.py",
         "merge": "05_merge_and_validate.py",
         "prompt-gen": "09_prompt_builder.py",

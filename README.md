@@ -90,7 +90,23 @@ chmod +x rightsub
 
 ---
 
-## 💻 CLI Usage & Recipes
+### 💻 CLI Usage Recipes
+
+### Recipe 0: Autonomous One-Command Runner (Zero Flags / Zero Hassle)
+Simply drag and drop a file or directory into the terminal after the command:
+```bash
+# Auto-repair Hebrew subtitle (BiDi RLM, ad stripping, automatic backup):
+./rightsub auto "Movie.he.srt"
+
+# Auto-process video file (extract/transcribe subtitles and build batches):
+./rightsub auto "Movie.mkv"
+
+# 100% offline, free local translation using Ollama (Llama 3, Qwen):
+./rightsub auto "Movie.mkv" --ollama
+
+# Auto-scan and process entire TV season or complete media library:
+./rightsub auto "/path/to/Season 01/"
+```
 
 ### Recipe 1: Standalone Hebrew Fix for Plex / Infuse Library
 Fix punctuation flips, convert legacy encodings to UTF-8, and clean ads in-place. The tool automatically detects Hebrew and safely skips English/foreign subtitles:
@@ -138,11 +154,15 @@ Stretch subtitles extracted from PAL DVDs or European TV to match US Web-DL / Bl
 
 | Command | Engine | Description | Example |
 | :--- | :---: | :--- | :--- |
+| `auto` | **All** | Zero-flag autonomous runner for single files, seasons, or directories | `./rightsub auto "Movie.mkv"` |
+| `translate-ollama` | **SubSwarm** | 100% offline local subtitle translation via Ollama (Llama 3, Qwen) | `./rightsub translate-ollama prompts_Movie` |
 | `fix-plex` | **SubRefine** | Fix BiDi, RLM, punctuation, CP1255 encoding & ads | `./rightsub fix-plex ./Season1/ -r -i --clean-ads` |
 | `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `./rightsub adjust-fps in.srt -o out.srt` |
 | `extract` | **SubRefine** | Extract subtitle tracks from MKV/MP4 using FFmpeg | `./rightsub extract video.mp4 -o video.en.srt` |
+| `transcribe` | **quicksubs** | On-device Speech-to-Subtitle transcription (Apple Speech / Whisper) | `./rightsub transcribe video.mp4 -e apple` |
+| `audio-sync` | **quicksubs** | Subtitle retiming and calibration guided by authoritative audio | `./rightsub audio-sync bad.srt -v video.mp4 -o fixed.srt` |
 | `sync` | **SubRefine** | Compare timing delta between English & Hebrew SRTs | `./rightsub sync master.en.srt download.he.srt` |
-| `bible` | **SubSwarm** | Generate Character & Terminology Bible from SRTs | `./rightsub bible Season1/*.en.srt -o bible.json` |
+| `bible` | **SubSwarm** | Generate Character & Terminology Bible from SRTs & TMDb | `./rightsub bible Season1/*.en.srt -o bible.json --tmdb` |
 | `split` | **SubSwarm** | Split master English SRT into ~210 cue JSON chunks | `./rightsub split episode.en.srt -o ./batches/` |
 | `prompt-gen` | **SubSwarm** | Generate AI translation prompt waves with Bible & Context Overlap | `./rightsub prompt-gen ep.en.srt -t "Inception" -b bible.json --overlap 5` |
 | `merge` | **Both** | Assemble translated JSONs into Hebrew SRT with RLM | `./rightsub merge ep.en.srt ./batches/ -o ep.he.srt` |
@@ -168,7 +188,7 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (66 unit & integration tests):
+RightSub comes with a comprehensive automated test suite (74 unit & integration tests):
 ```bash
 pytest -v
 ```
