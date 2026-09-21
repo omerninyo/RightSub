@@ -74,23 +74,28 @@ Unlike traditional subtitle tools that fail when subtitles are missing, RightSub
 
 ---
 
-## 🦙 100% Free, Offline Local Translation (Via Ollama)
+## 🦙 Offline Local Translation via Ollama (Emergency Fallback / Experimental)
 
-Want to translate your subtitles without paying for API keys or sending dialogue to external cloud servers?  
-You can run an open-source LLM (such as Llama 3.2 or Qwen 2.5) locally on your Mac or PC for free!
+> [!WARNING]
+> **Critical Hebrew Quality Limitation:**  
+> Small open-weight models (Llama 3.2, Qwen, Mistral 7B/8B) suffer from **severe degradation when translating into Hebrew**:
+> 1. **Gender & Grammar Collapse**: Frequent confusion between masculine ("אתה") and feminine ("את") address, corrupted verb conjugations, and wrong plurals.
+> 2. **Byte-Level Tokenization**: Hebrew characters are fragmented into raw UTF-8 bytes, leading to slow inference and context degradation.
+> 3. **Unnatural / Literal Phrasing**: Slang and cultural idioms are translated literally, resulting in awkward dialogue.
+> 
+> **Recommendation:** Local Ollama translation is intended **strictly as an offline fallback or experimental feature**. For broadcast-quality subtitles, you must use high-parameter cloud models (**Gemini Flash / Pro**, **Claude 3.5**, or **GPT-4o**).
 
-### Getting started with Ollama in 2 steps:
+### Running in emergency/offline mode (in 2 steps):
 1. Install Ollama from [ollama.com](https://ollama.com) (or via Homebrew: `brew install ollama`).
-2. Download a fast model (one time only):
+2. Download a model (one time only):
    ```bash
    ollama pull llama3.2
    ```
 
-### End-to-end local translation in one command:
+### Running local offline translation:
 ```bash
 ./rightsub auto "Movie.mkv" --ollama
 ```
-RightSub will extract or transcribe the dialogue, translate every line on your local hardware for free, apply Plex BiDi RLM formatting, and output the final `Movie.he.srt`.
 
 ---
 

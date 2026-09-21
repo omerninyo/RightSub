@@ -112,7 +112,13 @@ def handle_single_srt(srt_file, args):
 
         # 3. Optional Ollama local translation
         if args.ollama:
-            print(f"[i] --ollama requested: Starting 100% offline local translation...")
+            print("\n[!] ==============================================================")
+            print("[!] WARNING: LOCAL LLM HEBREW TRANSLATION LIMITATION")
+            print("[!] Local models (Llama 3 / Qwen) have very low Hebrew token accuracy.")
+            print("[!] Grammatical gender, verb conjugations and slang will be degraded.")
+            print("[!] Use local Ollama for offline fallback only. Use Gemini for quality.")
+            print("[!] ==============================================================\n")
+            print(f"[i] --ollama requested: Starting offline local translation...")
             ollama_script = SCRIPT_DIR / "17_translate_ollama.py"
             out_he = parent_dir / f"{stem}.he.srt"
             cmd_ollama = [

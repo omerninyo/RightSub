@@ -173,6 +173,14 @@ def run_ollama_pipeline(prompts_dir, model=None, url=DEFAULT_OLLAMA_URL, en_srt=
     chosen_model = select_best_model(installed, model)
     print(f"[+] Connected to Ollama at {url}")
     print(f"[+] Active translation model: {chosen_model}")
+    print("==================================================================")
+    print("[!] WARNING: LOCAL LLM HEBREW QUALITY LIMITATION")
+    print("    Local 7B/8B models (Llama 3, Qwen) have severe limitations in Hebrew:")
+    print("    • Token fragmentation: Hebrew characters are split into raw UTF-8 bytes.")
+    print("    • Poor gender inflection & syntax: High rate of 'את/אתה' grammatical errors.")
+    print("    • Local translation is intended as an OFFLINE FALLBACK / EXPERIMENTAL only.")
+    print("    • For broadcast-quality subtitles, use cloud models (Gemini Flash/Pro, Claude).")
+    print("==================================================================")
 
     # Discover batch input files
     batch_inputs = sorted(list(pdir.glob("batch_*_input.json")) or list(pdir.glob("batch_*_en.json")))

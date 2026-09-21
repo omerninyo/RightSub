@@ -94,16 +94,24 @@ Rules:
 
 ---
 
-## 🦙 Running 100% Free Local Translation with Ollama
+## 🦙 Local Translation with Ollama (Offline Fallback / Experimental)
 
-If you do not want to use commercial cloud models, RightSub natively supports local translation via Ollama:
+> [!WARNING]
+> **Technical Analysis: Why Local Open-Weight Models (7B/8B) Fall Short in Hebrew:**
+> 
+> While RightSub includes local Ollama integration, open-weight consumer models have fundamental architectural bottlenecks with Hebrew:
+> 1. **Byte-Fallback Fragmentation**: The tokenizers of Llama 3, Mistral, and similar models lack Hebrew vocabulary representation. Hebrew characters are split into raw UTF-8 bytes (2–3 tokens per character), destroying syntax tracking and slowing generation.
+> 2. **Negligible Training Corpus (<0.1%)**: The models lack grasp over Hebrew idioms, slang, and subtitle register, resulting in wooden, literal machine translations.
+> 3. **Gender Agreement Collapse**: Hebrew morphology strictly differentiates between masculine ("אתה") and feminine ("את") address across verbs, adjectives, and pronouns. 8B models consistently mix up genders in fast dialogue.
+> 
+> **Bottom Line:** Local models are suitable only as a fully offline emergency fallback. For broadcast-quality subtitles, **multilingual cloud models (Gemini Flash / Pro, Claude 3.5 Sonnet, GPT-4o) are strictly recommended**.
 
+### Running Local Translation (Offline Fallback):
 1. Ensure Ollama is running (`ollama serve`).
-2. Run translation directly on a prepared prompts folder:
+2. Run translation on a prepared prompts folder:
    ```bash
    ./rightsub translate-ollama "prompts_Movie" --en-srt "Movie.en.srt" -o "Movie.he.srt"
    ```
-   *The script connects to local Ollama, translates the JSON chunks, validates indices, and merges directly to a Plex-compliant Hebrew subtitle.*
 
 ---
 
