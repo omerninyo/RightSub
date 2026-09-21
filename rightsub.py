@@ -97,14 +97,33 @@ def main():
     p_sync.add_argument("he_srt", help="External Hebrew SRT to compare")
 
     # Command: bible
-    p_bible = subparsers.add_parser("bible", help="Generate Translation Bible skeleton from English SRTs")
+    p_bible = subparsers.add_parser("bible", help="Generate Translation Bible skeleton from English SRTs & TMDb")
     p_bible.add_argument("srts", nargs="+", help="English SRT files to analyze")
     p_bible.add_argument("-o", "--output", default="translation_bible.json", help="Output JSON path")
+    p_bible.add_argument("-t", "--title", help="Movie or TV show title")
+    p_bible.add_argument("-s", "--season", type=int, help="Season number")
+    p_bible.add_argument("-e", "--episode", type=int, help="Episode number")
+    p_bible.add_argument("--tmdb", action="store_true", help="Enrich Bible with TMDb characters, genders, and plot")
+    p_bible.add_argument("--tmdb-key", help="TMDb API Key / Read Access Token")
 
     # Command: adjust-fps
     p_fps = subparsers.add_parser("adjust-fps", help="Stretch framerate or shift time offsets")
     p_fps.add_argument("input", help="Input SRT file")
     p_fps.add_argument("-o", "--output", required=True, help="Output SRT file")
+
+    # Command: transcribe (quicksubs)
+    p_trans = subparsers.add_parser("transcribe", help="On-Device Speech-to-Subtitle transcription via quicksubs")
+    p_trans.add_argument("input", help="Media video/audio file")
+    p_trans.add_argument("-o", "--output-dir", help="Output directory")
+    p_trans.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="Speech engine")
+
+    # Command: audio-sync (quicksubs)
+    p_async = subparsers.add_parser("audio-sync", help="Audio-guided subtitle synchronization & retiming via quicksubs")
+    p_async.add_argument("unsynced_srt", help="Desynced subtitle file")
+    p_async.add_argument("-o", "--output", required=True, help="Aligned output SRT file")
+    p_async.add_argument("-v", "--video", help="Video file containing authoritative audio")
+    p_async.add_argument("-r", "--reference-srt", help="Reference SRT file")
+    p_async.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="Speech engine")
 
     args, unknown = parser.parse_known_args()
 
@@ -121,7 +140,9 @@ def main():
         "extract": "01_extract_subtitles.py",
         "sync": "02_web_search_and_sync.py",
         "bible": "03_generate_bible.py",
-        "adjust-fps": "06_adjust_fps_or_offset.py"
+        "adjust-fps": "06_adjust_fps_or_offset.py",
+        "transcribe": "00_transcribe_audio.py",
+        "audio-sync": "16_audio_align_sync.py"
     }
 
     script_name = script_mapping[args.command]

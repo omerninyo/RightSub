@@ -6,6 +6,7 @@
 - **[BiDi & Plex Guide](BiDi-and-Plex-Guide)**
 - **[Pipeline Workflow](Pipeline-Workflow)**
 - **[On-Device STT & Sync (quicksubs)](Quicksubs-Integration)**
+- **[TMDb Metadata & Entity Resolution](TMDb-Integration)**
 - **[AI Assistants & Integration](AI-Integration-Guide)**
 - **[Boston Legal Case Study](Boston-Legal-Case-Study)**
 - **[CLI Reference](Home#cli-commands-reference)**
@@ -18,6 +19,7 @@
 - **[מדריך BiDi ו-Plex](מדריך-BiDi-ופלקס)**
 - **[תהליך עבודה מלא](תהליך-עבודה)**
 - **[תמלול וסנכרון מקומי (quicksubs)](תמלול-וסנכרון-מקומי-quicksubs)**
+- **[אינטגרציית TMDb (עלילה ומגדר)](אינטגרציית-TMDb)**
 - **[חיבור לכלי בינה מלאכותית (AI)](מדריך-חיבור-לכלי-בינה-מלאכותית)**
 - **[מקרה בוחן - בוסטון ליגל](מקרה-בוחן-בוסטון-ליגל)**
 - **[מדריך פקודות CLI](Home-HE#מדריך-פקודות-cli-מלא)**

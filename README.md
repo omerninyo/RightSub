@@ -66,6 +66,10 @@ RightSub cleanly separates high-level workflow commands from its two underlying 
 - **Zero-Cloud STT Ingestion**: Powered by **[quicksubs](https://github.com/mattbirchler/quicksubs)** (by Matt Birchler). Transcribes raw media on-device using Apple SpeechAnalyzer (Apple Silicon Neural Engine), OpenAI Whisper, or NVIDIA Parakeet with zero bandwidth and zero API costs.
 - **Audio-Guided Retiming**: Extracts authoritative dialogue speech timestamps directly from the video file's audio track to re-align drifted, cut, or framerate-mismatched subtitles automatically.
 
+### 4. 🎬 Ground-Truth Entity & Gender Resolution (`TMDb` Integration)
+- **Deterministic Gender Mapping**: Automatically resolves character genders and episodic guest stars via **[The Movie Database (TMDb)](https://www.themoviedb.org)** API, guaranteeing 100% accurate second-person Hebrew pronouns (`את/היא` vs `אתה/הוא`) with zero hallucinations.
+- **Narrative Context & Dialect Priming**: Injects episodic plot synopses, genre terms, and regional dialect guidance (e.g. British English idioms) directly into the translation prompts.
+
 ---
 
 ## 🚀 Quick Start
@@ -164,7 +168,7 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (58 unit & integration tests):
+RightSub comes with a comprehensive automated test suite (66 unit & integration tests):
 ```bash
 pytest -v
 ```
@@ -179,6 +183,7 @@ Tests cover:
 - SDH auditory noise and commercial promo cleaning.
 - Framerate arithmetic and time shifting.
 - On-device STT CLI wrappers, fallback handlers, and audio-guided retiming algorithms.
+- TMDb API metadata resolution, smart media filename parsing, and deterministic gender mapping.
 - Live verification of all 101 episodes in the media dataset.
 
 ---
@@ -186,6 +191,7 @@ Tests cover:
 ## 📚 Documentation & Guides
 - 🔰 **[Quickstart for Beginners (Step-by-Step)](docs/QUICKSTART_FOR_BEGINNERS.md)** — Instant 30-second fix with zero jargon.
 - 🎙️ **[On-Device STT & Audio Alignment (`quicksubs`)](docs/QUICKSUBS_INTEGRATION.md)** — Speech-to-subtitle extraction and audio-grounded alignment.
+- 🎬 **[TMDb Metadata & Entity Resolution](docs/TMDB_INTEGRATION.md)** — Deterministic gender mapping, episodic guest stars, and dialect priming.
 - 🤖 **[AI Integration & Coding Assistants Guide](docs/AI_INTEGRATION_GUIDE.md)** — What needs AI vs. what runs locally, plus Antigravity, Claude Code, Gemini, and ChatGPT setups.
 - 📐 **[Hebrew BiDi & Plex/Infuse Guide](docs/BIDI_AND_PLEX_GUIDE.md)** — Deep dive into invisible RLM marks and punctuation reversal.
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
@@ -196,6 +202,7 @@ Tests cover:
 ## 🤝 Acknowledgements & Credits
 - **[quicksubs](https://github.com/mattbirchler/quicksubs)** by **[Matt Birchler](https://birchtree.me)** — High-performance on-device macOS speech-to-text CLI engine powering local transcription and audio-guided subtitle retiming.
 - **[Quick Subtitles](https://quickstuff.app)** — The companion Mac application for desktop subtitle and transcript workflows.
+- **[The Movie Database (TMDb)](https://www.themoviedb.org)** — Community-built movie and TV database providing the rich metadata, cast, episodic guest star, and gender APIs (*This product uses the TMDb API but is not endorsed or certified by TMDb*).
 
 ---
 

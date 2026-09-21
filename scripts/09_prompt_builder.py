@@ -50,22 +50,25 @@ Do NOT call any tools. Do NOT run commands. Return the JSON directly.
 INPUT CUES TO TRANSLATE:
 {cues_json}"""
 
-def load_bible(bible_path):
-    """Loads character and glossary metadata from a Translation Bible JSON."""
+def load_bible_data(bible_path):
+    """Loads character, glossary, and TMDb production metadata from a Translation Bible JSON."""
     if not bible_path or not os.path.exists(bible_path):
-        return ""
+        return "", {}
     try:
         with open(bible_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
+        
+        meta = data.get("metadata", {})
         lines = ["- Character Roster & Gender Mapping (Mandatory Consistency):"]
         characters = data.get("characters", [])
-        for ch in characters[:30]:
+        for ch in characters[:40]:
             name = ch.get("name", "")
             he_name = ch.get("hebrew_name", "")
-            gender = ch.get("gender", "")
+            gender = ch.get("gender", "unknown")
             pronouns = ch.get("pronouns", "")
+            guest = " [Guest]" if ch.get("is_guest") else ""
             display_he = f" ({he_name})" if he_name else ""
-            lines.append(f"  * {name}{display_he}: Gender={gender}, Pronouns={pronouns}")
+            lines.append(f"  * {name}{display_he}{guest}: Gender={gender}, Pronouns={pronouns}")
         
         terms = data.get("honorifics_and_terms", [])
         if terms:
@@ -77,10 +80,21 @@ def load_bible(bible_path):
                     lines.append(f"  * {term} -> {trans}")
                 else:
                     lines.append(f"  * {term}")
-        return "\n".join(lines)
+        
+        # Add dialect notes if detected
+        origin_country = meta.get("origin_country", [])
+        if any(c in ["GB", "UK"] for c in origin_country):
+            lines.append("- Source Dialect: British English (UK). Note British idioms, regional slang (e.g. 'pissed'=drunk, 'mate', 'cheers'=thanks, 'rubbish', 'chap'), and British cultural references.")
+        
+        return "\n".join(lines), meta
     except Exception as e:
         print(f"[!] Warning: Could not parse bible {bible_path}: {e}")
-        return ""
+        return "", {}
+
+def load_bible(bible_path):
+    """Backward compatible wrapper returning only formatted string."""
+    text, _ = load_bible_data(bible_path)
+    return text
 
 def parse_srt(path):
     with open(path, 'r', encoding='utf-8-sig', errors='replace') as f:
@@ -120,7 +134,12 @@ def build_prompts(srt_path, title="", context="", genre="", bible_path="", overl
                 bible_path = cand
                 break
 
-    bible_block = load_bible(bible_path)
+    bible_block, bible_meta = load_bible_data(bible_path)
+
+    if not genre and bible_meta.get("genres"):
+        genre = ", ".join(bible_meta["genres"])
+    if not context and bible_meta.get("overview"):
+        context = bible_meta["overview"]
 
     if not output_dir:
         output_dir = os.path.join(os.path.dirname(srt_path), f"prompts_{title}")
