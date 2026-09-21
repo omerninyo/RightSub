@@ -58,9 +58,13 @@ RightSub cleanly separates high-level workflow commands from its two underlying 
 - **Ad & Spam Stripper**: Cleans watermark lines from release groups, Torec, OpenSubtitles, Wizdom, and Telegram channels.
 
 ### 2. 🐝 The SubSwarm Engine (High-Throughput AI Translation)
-- **Multi-Agent Parallel Waves**: Breaks episodes down into optimal batches (~210 cues) and translates entire seasons (20+ episodes, 20,000+ subtitles) across concurrent autonomous agents in minutes.
-- **Locked Translation Bibles**: Generates entity dictionaries, character gender maps, and legal/medical terminology glossaries upfront to guarantee naming consistency across all episodes.
-- **1-to-1 Cue Parity Guarantee**: Enforces an unbroken 1:1 index and millisecond timestamp match with source audio. Zero dropped cues, zero merged timestamps, and zero hallucinations.
+- **Concurrent Agent Waves**: Splits subtitles into optimal batches (~210 cues per batch) to translate entire seasons (20+ episodes, 20,000+ lines) in minutes.
+- **Pre-Locked Translation Bible**: Pre-extracts character names, legal/technical terms, and gender assignments to eliminate intra-season inconsistencies.
+- **1:1 Alignment Guarantee**: Every index and timing range matches the audio and English master file. Zero dropped cues, zero hallucinations.
+
+### 3. 🎙️ On-Device Speech & Audio Alignment (`quicksubs` Integration)
+- **Zero-Cloud STT Ingestion**: Powered by **[quicksubs](https://github.com/mattbirchler/quicksubs)** (by Matt Birchler). Transcribes raw media on-device using Apple SpeechAnalyzer (Apple Silicon Neural Engine), OpenAI Whisper, or NVIDIA Parakeet with zero bandwidth and zero API costs.
+- **Audio-Guided Retiming**: Extracts authoritative dialogue speech timestamps directly from the video file's audio track to re-align drifted, cut, or framerate-mismatched subtitles automatically.
 
 ---
 
@@ -160,7 +164,7 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (51 unit & integration tests):
+RightSub comes with a comprehensive automated test suite (58 unit & integration tests):
 ```bash
 pytest -v
 ```
@@ -174,16 +178,24 @@ Tests cover:
 - CP1255 Windows-1255 charset detection and conversion.
 - SDH auditory noise and commercial promo cleaning.
 - Framerate arithmetic and time shifting.
+- On-device STT CLI wrappers, fallback handlers, and audio-guided retiming algorithms.
 - Live verification of all 101 episodes in the media dataset.
 
 ---
 
 ## 📚 Documentation & Guides
 - 🔰 **[Quickstart for Beginners (Step-by-Step)](docs/QUICKSTART_FOR_BEGINNERS.md)** — Instant 30-second fix with zero jargon.
+- 🎙️ **[On-Device STT & Audio Alignment (`quicksubs`)](docs/QUICKSUBS_INTEGRATION.md)** — Speech-to-subtitle extraction and audio-grounded alignment.
 - 🤖 **[AI Integration & Coding Assistants Guide](docs/AI_INTEGRATION_GUIDE.md)** — What needs AI vs. what runs locally, plus Antigravity, Claude Code, Gemini, and ChatGPT setups.
 - 📐 **[Hebrew BiDi & Plex/Infuse Guide](docs/BIDI_AND_PLEX_GUIDE.md)** — Deep dive into invisible RLM marks and punctuation reversal.
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.
+
+---
+
+## 🤝 Acknowledgements & Credits
+- **[quicksubs](https://github.com/mattbirchler/quicksubs)** by **[Matt Birchler](https://birchtree.me)** — High-performance on-device macOS speech-to-text CLI engine powering local transcription and audio-guided subtitle retiming.
+- **[Quick Subtitles](https://quickstuff.app)** — The companion Mac application for desktop subtitle and transcript workflows.
 
 ---
 
