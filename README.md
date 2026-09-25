@@ -72,21 +72,29 @@ RightSub cleanly separates high-level workflow commands from its two underlying 
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Global Installation
 
 > [!TIP]
-> **Looking for the simplest step-by-step instructions?**  
-> Check out the **[🔰 Quickstart for Beginners](docs/QUICKSTART_FOR_BEGINNERS.md)** (covers Track A for instant Plex & BiDi repair in 30 seconds, and Track B for full movie translation).
+> For the comprehensive guide on setting up a personal **Homebrew Tap** (`brew install`), see the **[📦 Global Installation Guide](docs/INSTALLATION_GUIDE.md)**.  
+> For the simplest step-by-step beginner guide, see the **[🔰 Quickstart for Beginners](docs/QUICKSTART_FOR_BEGINNERS.md)**.
 
-### Installation
+### Option 1: Fast Local Install (Recommended for Mac users):
 ```bash
 git clone https://github.com/omerninyo/RightSub.git
 cd RightSub
-pip install -r requirements.txt
-chmod +x rightsub
+./install.sh
+```
+*The installer checks Python 3 & FFmpeg, installs dependencies, and links `rightsub` globally to `~/.local/bin/rightsub`. You can now run `rightsub` from any terminal directory!*
+
+### Option 2: Remote One-Liner Install:
+```bash
+curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh | bash
 ```
 
-*(Optional: Add `RightSub` to your system PATH or create an alias `alias rightsub="/path/to/RightSub/rightsub"`)*
+### Option 3: Official Homebrew Tap Install:
+```bash
+brew install omerninyo/tap/rightsub
+```
 
 ---
 

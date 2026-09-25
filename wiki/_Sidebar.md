@@ -2,6 +2,7 @@
 
 #### 🇺🇸 English Documentation
 - **[Home](Home)**
+- **[📦 Global Installation Guide](Installation-Guide)**
 - **[🔰 Quickstart for Beginners](Quickstart-for-Beginners)**
 - **[BiDi & Plex Guide](BiDi-and-Plex-Guide)**
 - **[Pipeline Workflow](Pipeline-Workflow)**
@@ -15,6 +16,7 @@
 
 #### 🇮🇱 תיעוד בעברית
 - **[דף הבית (Home HE)](Home-HE)**
+- **[📦 מדריך התקנה גלובלית והפצה](מדריך-התקנה-והפצה)**
 - **[🔰 מדריך פשוט למתחילים](מדריך-פשוט-למתחילים)**
 - **[מדריך BiDi ו-Plex](מדריך-BiDi-ופלקס)**
 - **[תהליך עבודה מלא](תהליך-עבודה)**

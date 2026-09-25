@@ -75,20 +75,29 @@ RightSub מפרידה באופן מודולרי וברור בין ממשק הפ�
 
 ---
 
-## 🚀 התקנה מהירה
+## 🚀 התקנה גלובלית מהירה
 
 > [!TIP]
-> **מחפשים את המדריך הפשוט ביותר צעד-אחר-צעד?**  
-> קראו את **[🔰 המדריך הפשוט למתחילים](docs/QUICKSTART_FOR_BEGINNERS.he.md)** (כולל את מסלול א' לתיקון מהיר ב-30 שניות לפלקס, ואת מסלול ב' לתרגום מלא של סרט או עונה).
+> למדריך התקנה מלא הכולל יצירת **Homebrew Tap** רשמי (`brew install`), קראו את **[📦 מדריך ההתקנה הגלובלית וההפצה](docs/INSTALLATION_GUIDE.he.md)**.  
+> למדריך פשוט צעד-אחר-צעד, קראו את **[🔰 המדריך הפשוט למתחילים](docs/QUICKSTART_FOR_BEGINNERS.he.md)**.
 
+### אפשרות א': התקנה מהירה מקומית בפקודה אחת (מומלץ למשתמשי Mac):
 ```bash
 git clone https://github.com/omerninyo/RightSub.git
 cd RightSub
-pip install -r requirements.txt
-chmod +x rightsub
+./install.sh
+```
+*הסקריפט מוודא קיום של Python 3 ו-FFmpeg, מתקין את התלויות, ומקשר את הפקודה `rightsub` ישירות לנתיב הגלובלי (`~/.local/bin/rightsub`). מרגע זה תוכלו להקליד `rightsub` מכל מקום בטרמינל!*
+
+### אפשרות ב': התקנה מרחוק בפקודה אחת:
+```bash
+curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh | bash
 ```
 
-*(מומלץ להוסיף את RightSub ל-PATH או להגדיר alias ב-shell: `alias rightsub="/path/to/RightSub/rightsub"`)*
+### אפשרות ג': התקנה רשמית דרך Homebrew Tap:
+```bash
+brew install omerninyo/tap/rightsub
+```
 
 ---
 

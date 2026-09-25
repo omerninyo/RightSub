@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rightsub"
+version = "1.1.0"
+description = "Universal Subtitle Mastering & Translation Suite for Movies & TV Series (Plex/Infuse BiDi & AI SubSwarm)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Omer Ninyo", email = "omer@example.com" }
+]
+keywords = [
+    "subtitles",
+    "bidi",
+    "plex",
+    "infuse",
+    "translation",
+    "hebrew",
+    "srt",
+    "ffmpeg",
+    "ollama",
+    "quicksubs"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Text Processing :: Linguistic"
+]
+dependencies = [
+    "srt>=3.5.3",
+    "pysubs2>=1.6.1",
+    "requests>=2.31.0",
+    "regex>=2023.12.25"
+]
+
+[project.scripts]
+rightsub = "rightsub:main"
+
+[project.urls]
+Homepage = "https://github.com/omerninyo/RightSub"
+Repository = "https://github.com/omerninyo/RightSub.git"
+Documentation = "https://github.com/omerninyo/RightSub/wiki"
