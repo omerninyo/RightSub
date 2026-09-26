@@ -285,7 +285,7 @@ def clean_and_sanitize_text(text):
     text = re.sub(r'[ \t]+', ' ', text)
     return text.strip()
 
-def detect_hebrew(content, min_chars=15, min_ratio=0.15):
+def detect_hebrew(content, min_chars=6, min_ratio=0.15):
     """
     Checks if content has a valid ratio of Hebrew letters.
     """

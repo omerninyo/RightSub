@@ -147,3 +147,87 @@ class TestAutoPipeline:
 
         assert "\u200F" in ep1.read_text(encoding="utf-8")
         assert "\u200F" in ep2.read_text(encoding="utf-8")
+
+    def test_is_hebrew_file_cp1255_detection(self, tmp_path):
+        heb_cp1255 = tmp_path / "movie.srt"
+        content = "1\n00:00:01,000 --> 00:00:03,000\nשלום עולם, זהו תרגום בעברית\n"
+        heb_cp1255.write_bytes(content.encode("cp1255"))
+        assert auto_mod.is_hebrew_file(heb_cp1255) is True
+
+    def test_find_companion_hebrew_subtitle(self, tmp_path):
+        vid = tmp_path / "Rocky.1976.2160p.mkv"
+        vid.touch()
+
+        # 1. No subtitle yet
+        assert auto_mod.find_companion_hebrew_subtitle(vid) is None
+
+        # 2. Add CP1255 Hebrew subtitle with non-.he name
+        sub = tmp_path / "Rocky.1976.2160p.srt"
+        content = "1\n00:00:01,000 --> 00:00:03,000\nשלום רוקי, בהצלחה בקרב!\n"
+        sub.write_bytes(content.encode("cp1255"))
+
+        found = auto_mod.find_companion_hebrew_subtitle(vid)
+        assert found == sub
+
+    def test_find_companion_hebrew_subtitle_single_video_fallback(self, tmp_path):
+        movie_dir = tmp_path / "MovieFolder"
+        movie_dir.mkdir()
+        vid = movie_dir / "FeatureFilm.mkv"
+        vid.touch()
+
+        # Subtitle named differently in Subs folder
+        subs_dir = movie_dir / "Subs"
+        subs_dir.mkdir()
+        sub = subs_dir / "hebrew_subs.srt"
+        sub.write_text("1\n00:00:01,000 --> 00:00:03,000\nתרגום לסרט המלא בעברית\n", encoding="utf-8")
+
+        found = auto_mod.find_companion_hebrew_subtitle(vid)
+        assert found == sub
+
+    def test_handle_single_srt_standardizes_hebrew_filename(self, tmp_path):
+        srt_file = tmp_path / "MyMovie.srt"
+        srt_file.write_text("1\n00:00:01,000 --> 00:00:03,000\nערב טוב לכולם!\n", encoding="utf-8")
+
+        args = MagicMock()
+        args.no_clean_ads = False
+        args.no_backup = False
+        args.dry_run = False
+
+        success = auto_mod.handle_single_srt(srt_file, args)
+        assert success is True
+
+        # Standardized file should now exist
+        standard_file = tmp_path / "MyMovie.he.srt"
+        assert standard_file.exists()
+        assert "\u200F" in standard_file.read_text(encoding="utf-8")
+
+    def test_handle_directory_with_cp1255_hebrew_skips_translation(self, tmp_path):
+        movie_dir = tmp_path / "Rocky_Test"
+        movie_dir.mkdir()
+
+        vid = movie_dir / "Rocky.1976.mkv"
+        vid.touch()
+
+        sub = movie_dir / "Rocky.1976.srt"
+        content = "1\n00:00:01,000 --> 00:00:05,000\nTornado :סנכרון\n\n2\n00:00:28,429 --> 00:00:33,350\nרוקי\n"
+        sub.write_bytes(content.encode("cp1255"))
+
+        args = MagicMock()
+        args.no_clean_ads = False
+        args.no_backup = False
+        args.dry_run = False
+        args.ollama = False
+
+        success = auto_mod.handle_directory(movie_dir, args)
+        assert success is True
+
+        # Must not generate translation batches
+        prompts = list(movie_dir.glob("prompts_*"))
+        assert len(prompts) == 0
+
+        # Subtitle must be standardized to .he.srt and contain RLM
+        he_srt = movie_dir / "Rocky.1976.he.srt"
+        assert he_srt.exists()
+        he_content = he_srt.read_text(encoding="utf-8")
+        assert "רוקי" in he_content
+        assert "\u200F" in he_content

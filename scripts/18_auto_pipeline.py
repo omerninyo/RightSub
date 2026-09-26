@@ -45,19 +45,181 @@ def run_cmd(cmd):
     res = subprocess.run(cmd)
     return res.returncode
 
-def is_hebrew_file(srt_path):
-    """Quickly inspects if an SRT file is Hebrew."""
+def read_srt_sample_auto_encoding(srt_path, max_bytes=65536):
+    """
+    Reads raw bytes from srt_path and decodes text, detecting UTF-8, UTF-8-BOM,
+    Windows-1255 / CP1255, ISO-8859-8, or UTF-16.
+    """
     try:
-        with open(srt_path, "r", encoding="utf-8", errors="ignore") as f:
-            sample = f.read(4096)
-        he_chars = sum(1 for c in sample if '\u0590' <= c <= '\u05FF')
-        en_chars = sum(1 for c in sample if ('a' <= c <= 'z') or ('A' <= c <= 'Z'))
-        total_alpha = he_chars + en_chars
-        if total_alpha == 0:
-            return False
-        return (he_chars >= 3 and en_chars == 0) or (he_chars >= 10 and (he_chars / total_alpha >= 0.15))
+        with open(srt_path, "rb") as f:
+            raw = f.read(max_bytes)
+        if not raw:
+            return ""
+
+        # 1. UTF-16 BOM
+        if raw.startswith(b'\xff\xfe') or raw.startswith(b'\xfe\xff'):
+            try:
+                return raw.decode('utf-16', errors='replace')
+            except Exception:
+                pass
+
+        # 2. Check UTF-8 / UTF-8-SIG
+        try:
+            text = raw.decode('utf-8-sig')
+            he_chars = sum(1 for c in text if '\u0590' <= c <= '\u05FF')
+            cp1255_hebrew_bytes = sum(1 for b in raw if 0xE0 <= b <= 0xFA)
+            # If valid UTF-8 has zero Hebrew, but contains extensive CP1255 Hebrew bytes
+            if cp1255_hebrew_bytes > 15 and he_chars == 0:
+                try:
+                    return raw.decode('cp1255', errors='replace')
+                except Exception:
+                    pass
+            return text
+        except UnicodeDecodeError:
+            pass
+
+        # 3. Check CP1255 (Hebrew ANSI - bytes 0xE0..0xFA)
+        cp1255_bytes = sum(1 for b in raw if 0xE0 <= b <= 0xFA)
+        if cp1255_bytes >= 5:
+            try:
+                return raw.decode('cp1255', errors='replace')
+            except Exception:
+                pass
+
+        # 4. Fallbacks
+        for enc in ['cp1255', 'iso-8859-8', 'utf-8', 'latin1']:
+            try:
+                return raw.decode(enc, errors='replace')
+            except Exception:
+                continue
+
+        return raw.decode('utf-8', errors='replace')
     except Exception:
+        return ""
+
+def is_hebrew_file(srt_path):
+    """
+    Quickly and reliably inspects if an SRT file is Hebrew.
+    Supports legacy Windows-1255 (CP1255), ISO-8859-8, and UTF-8.
+    """
+    text = read_srt_sample_auto_encoding(srt_path)
+    if not text:
         return False
+    he_chars = sum(1 for c in text if '\u0590' <= c <= '\u05FF')
+    en_chars = sum(1 for c in text if ('a' <= c <= 'z') or ('A' <= c <= 'Z'))
+    total_alpha = he_chars + en_chars
+    if total_alpha == 0:
+        return False
+    return (he_chars >= 3 and en_chars == 0) or (he_chars >= 5 and (he_chars / total_alpha >= 0.12))
+
+def find_companion_hebrew_subtitle(video_path):
+    """
+    Finds existing Hebrew subtitle for video_path.
+    Checks:
+    1. Standard Plex naming: video_stem.he.srt, video_stem.heb.srt, video_stem.hebrew.srt
+    2. Alternate naming: video_stem.srt (if content is detected as Hebrew)
+    3. Single video directory fallback: if directory has only one video file,
+       checks any .srt in the directory (excluding .bak, .en.srt, .eng.srt)
+       or within Subs/Subtitles folders for Hebrew content.
+    Returns Path to the Hebrew subtitle, or None.
+    """
+    video_path = Path(video_path).resolve()
+    parent_dir = video_path.parent
+    stem = video_path.stem
+
+    # 1. Direct standard stem matches
+    for ext in [".he.srt", ".heb.srt", ".hebrew.srt"]:
+        cand = parent_dir / f"{stem}{ext}"
+        if cand.is_file():
+            return cand
+
+    # 2. Direct stem.srt match (content check)
+    alt_srt = parent_dir / f"{stem}.srt"
+    if alt_srt.is_file() and is_hebrew_file(alt_srt):
+        return alt_srt
+
+    # 3. Directory fallback: if this is the only video in parent_dir
+    try:
+        videos_in_dir = [
+            f for f in parent_dir.iterdir()
+            if f.is_file() and f.suffix.lower() in VIDEO_EXTENSIONS
+        ]
+    except Exception:
+        videos_in_dir = []
+
+    if len(videos_in_dir) == 1:
+        search_dirs = [parent_dir]
+        for sub_name in ["Subs", "subs", "Subtitles", "subtitles"]:
+            sub_dir = parent_dir / sub_name
+            if sub_dir.is_dir():
+                search_dirs.append(sub_dir)
+
+        for s_dir in search_dirs:
+            for srt in s_dir.glob("*.srt"):
+                if not srt.is_file():
+                    continue
+                name_lower = srt.name.lower()
+                if (
+                    name_lower.endswith(".bak") or
+                    name_lower.endswith(".en.srt") or
+                    name_lower.endswith(".eng.srt") or
+                    name_lower.endswith(".english.srt") or
+                    "prompts_" in str(srt)
+                ):
+                    continue
+                if (
+                    name_lower.endswith(".he.srt") or
+                    name_lower.endswith(".heb.srt") or
+                    name_lower.endswith(".hebrew.srt") or
+                    is_hebrew_file(srt)
+                ):
+                    return srt
+
+    return None
+
+def find_companion_english_subtitle(video_path):
+    """
+    Finds existing English / source subtitle for video_path.
+    """
+    video_path = Path(video_path).resolve()
+    parent_dir = video_path.parent
+    stem = video_path.stem
+
+    for ext in [".en.srt", ".eng.srt", ".english.srt"]:
+        cand = parent_dir / f"{stem}{ext}"
+        if cand.is_file():
+            return cand
+
+    alt_srt = parent_dir / f"{stem}.srt"
+    if alt_srt.is_file() and not is_hebrew_file(alt_srt):
+        return alt_srt
+
+    # Directory fallback if single video in parent
+    try:
+        videos_in_dir = [
+            f for f in parent_dir.iterdir()
+            if f.is_file() and f.suffix.lower() in VIDEO_EXTENSIONS
+        ]
+    except Exception:
+        videos_in_dir = []
+
+    if len(videos_in_dir) == 1:
+        for srt in parent_dir.glob("*.srt"):
+            if not srt.is_file():
+                continue
+            name_lower = srt.name.lower()
+            if (
+                name_lower.endswith(".bak") or
+                name_lower.endswith(".he.srt") or
+                name_lower.endswith(".heb.srt") or
+                name_lower.endswith(".hebrew.srt") or
+                "prompts_" in str(srt)
+            ):
+                continue
+            if not is_hebrew_file(srt):
+                return srt
+
+    return None
 
 def handle_single_srt(srt_file, args):
     """Processes a single subtitle file."""
@@ -83,6 +245,26 @@ def handle_single_srt(srt_file, args):
         if args.dry_run:
             cmd.append("--dry-run")
         run_cmd(cmd)
+
+        # Standardize naming to .he.srt for Plex & Infuse recognition
+        target_name = srt_path.name
+        if name_lower.endswith(".heb.srt"):
+            target_name = srt_path.name[:-8] + ".he.srt"
+        elif name_lower.endswith(".hebrew.srt"):
+            target_name = srt_path.name[:-11] + ".he.srt"
+        elif not name_lower.endswith(".he.srt"):
+            target_name = f"{srt_path.stem}.he.srt"
+
+        if target_name != srt_path.name:
+            target_path = srt_path.with_name(target_name)
+            if not target_path.exists() and not args.dry_run:
+                try:
+                    srt_path.rename(target_path)
+                    print(f"[i] Standardized subtitle filename for Plex: {srt_path.name} -> {target_path.name}")
+                    srt_path = target_path
+                except Exception as e:
+                    print(f"[!] Note: Could not rename to {target_path.name}: {e}")
+
         print(f"[✓] Hebrew subtitle {srt_path.name} is now 100% Plex & Infuse compliant!\n")
         return True
     else:
@@ -149,24 +331,26 @@ def handle_single_video(video_file, args):
     stem = video_path.stem
 
     # Check if Hebrew subtitle already exists
-    companion_he = parent_dir / f"{stem}.he.srt"
-    alt_he = parent_dir / f"{stem}.srt"
-    if companion_he.exists():
+    companion_he = find_companion_hebrew_subtitle(video_path)
+    if companion_he:
         print(f"[i] Found existing Hebrew subtitle: {companion_he.name}")
-        return handle_single_srt(companion_he, args)
-    elif alt_he.exists() and is_hebrew_file(alt_he):
-        print(f"[i] Found existing Hebrew subtitle: {alt_he.name}")
-        return handle_single_srt(alt_he, args)
+        success = handle_single_srt(companion_he, args)
+        target_he = parent_dir / f"{stem}.he.srt"
+        if not target_he.exists() and not args.dry_run:
+            current_he = companion_he if companion_he.exists() else (companion_he.with_name(f"{companion_he.stem}.he.srt"))
+            if current_he.exists() and current_he != target_he:
+                try:
+                    current_he.rename(target_he)
+                    print(f"[i] Standardized Hebrew subtitle for video: {current_he.name} -> {target_he.name}")
+                except Exception as e:
+                    pass
+        return success
 
     # Check if English subtitle already exists
-    companion_en = parent_dir / f"{stem}.en.srt"
-    if not companion_en.exists():
-        alt_en = parent_dir / f"{stem}.srt"
-        if alt_en.exists() and not is_hebrew_file(alt_en):
-            companion_en = alt_en
+    companion_en = find_companion_english_subtitle(video_path)
 
     # If no English subtitle exists on disk, attempt extraction or transcription
-    if not companion_en.exists():
+    if not companion_en or not companion_en.exists():
         target_en = parent_dir / f"{stem}.en.srt"
         print(f"[i] No external English subtitle found. Attempting extraction from {video_path.name}...")
         extract_script = SCRIPT_DIR / "01_extract_subtitles.py"
@@ -194,7 +378,7 @@ def handle_single_video(video_file, args):
                     gen_srt.rename(target_en)
                     companion_en = target_en
 
-    if companion_en.exists():
+    if companion_en and companion_en.exists():
         return handle_single_srt(companion_en, args)
     else:
         print(f"[-] Could not extract or transcribe subtitles for {video_path.name}")
@@ -210,7 +394,7 @@ def handle_directory(dir_path, args):
     # 1. Discover all Hebrew subtitles and batch-fix them
     he_srts = []
     for srt in dir_path.rglob("*.srt"):
-        if srt.name.endswith(".bak"):
+        if srt.name.endswith(".bak") or "prompts_" in str(srt):
             continue
         name_lower = srt.name.lower()
         if (
@@ -240,12 +424,18 @@ def handle_directory(dir_path, args):
 
     processed_vids = 0
     for vid in sorted(video_files):
-        stem = vid.stem
-        comp_he = vid.parent / f"{stem}.he.srt"
-        alt_he = vid.parent / f"{stem}.srt"
-        if comp_he.exists() or (alt_he.exists() and is_hebrew_file(alt_he)):
+        he_sub = find_companion_hebrew_subtitle(vid)
+        if he_sub:
+            # Video already has a Hebrew subtitle! Ensure Plex .he.srt standard naming
+            target_he = vid.parent / f"{vid.stem}.he.srt"
+            if he_sub != target_he and not target_he.exists() and not args.dry_run:
+                try:
+                    he_sub.rename(target_he)
+                    print(f"[i] Standardized Hebrew subtitle for Plex: {he_sub.name} -> {target_he.name}")
+                except Exception as e:
+                    pass
             continue  # Already has Hebrew subtitle
-        
+
         print(f"\n---> Video missing Hebrew subtitles: {vid.name}")
         handle_single_video(vid, args)
         processed_vids += 1

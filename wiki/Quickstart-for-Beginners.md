@@ -27,13 +27,13 @@ Forget about remembering complex flags or chained commands. In this version of R
 graph TD
     Start["Dragged an item into ./rightsub auto"] --> Check{"What did you drop?"}
     
-    Check -- "Hebrew subtitle file (.he.srt)" --> Action1["Plex BiDi & RLM Punctuation Fix<br/>+ Ad & credit spam stripping<br/>+ Automatic .bak backup"]
+    Check -- "Hebrew subtitle file (.he.srt / .srt in Hebrew encoding)" --> Action1["Plex BiDi & RLM Punctuation Fix<br/>+ Automatic CP1255 to UTF-8 Conversion<br/>+ Automatic Plex .he.srt standardization<br/>+ Ad & credit spam stripping + .bak backup"]
     
-    Check -- "Video file (MKV / MP4)" --> VideoCheck{"Does a Hebrew subtitle exist?"}
-    VideoCheck -- "Hebrew subtitle exists" --> Action1
+    Check -- "Video file (MKV / MP4)" --> VideoCheck{"Does a Hebrew subtitle exist in folder?"}
+    VideoCheck -- "Hebrew subtitle exists (any encoding/name)" --> Action1
     VideoCheck -- "No Hebrew subtitle" --> Action2["Extracts English subtitles from video<br/>(If missing: transcribes audio on-device!)<br/>+ Prepares translation batches & Bible"]
     
-    Check -- "Entire Directory (Season / Library)" --> Action3["Deep Directory Scan:<br/>1. Repairs all Hebrew subtitles found<br/>2. Prepares English subtitles & batches for new titles"]
+    Check -- "Entire Directory (Season / Library)" --> Action3["Deep Directory Scan:<br/>1. Repairs all Hebrew subtitles & standardizes to .he.srt<br/>2. Prepares English subtitles & batches for new titles"]
 ```
 
 ---
@@ -41,12 +41,12 @@ graph TD
 ## ⚡ 3 Common Everyday Scenarios
 
 ### 1. Fix Hebrew Subtitles for Plex / Infuse / Apple TV
-- **The Issue**: Question marks (`?`), periods, or dashes jump to the wrong end of lines, characters are mojibake gibberish, or lines are cluttered with website ads.
+- **The Issue**: Question marks (`?`), periods, or dashes jump to the wrong end of lines, characters are mojibake gibberish (legacy Windows-1255 / Torec encoding), or `.he` suffix is missing so Plex displays the track as "Unknown".
 - **The Solution**:
   ```bash
-  ./rightsub auto "Movie.he.srt"
+  ./rightsub auto "Movie.srt"   # or "Movie.he.srt"
   ```
-  *The file is fixed in-place, ads are stripped, and a safe `.srt.bak` backup is created automatically.*
+  *The system detects Hebrew across encodings, converts to clean UTF-8, applies BiDi with RLM, strips promo ads, and standardizes the filename to `Movie.he.srt` for Plex/Infuse recognition.*
 
 ### 2. Fix an Entire TV Season or Complete Library
 - **The Issue**: You have a folder with 24 episodes or dozens of movies and want them all mastered at once.
