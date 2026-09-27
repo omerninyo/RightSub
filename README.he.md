@@ -99,6 +99,14 @@ curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh 
 brew install omerninyo/tap/rightsub
 ```
 
+### למשתמשי Windows (CMD / PowerShell):
+RightSub כולל קובצי הפעלה ייעודיים ל-Windows (`rightsub.bat` ו-`rightsub.cmd`). ניתן להריץ ישירות ב-Command Prompt או ב-PowerShell:
+```cmd
+rightsub auto "Movie.mkv"
+# או:
+python rightsub.py auto "Movie.mkv"
+```
+
 ---
 
 ## 💻 מתכוני שימוש ב-CLI

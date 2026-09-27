@@ -28,6 +28,15 @@ import subprocess
 import argparse
 from pathlib import Path
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+default_engine = "apple" if sys.platform == "darwin" else "whisper"
+
 BASE_DIR = Path(__file__).resolve().parent
 SCRIPTS_DIR = BASE_DIR / "scripts"
 
@@ -119,7 +128,7 @@ def main():
     p_trans = subparsers.add_parser("transcribe", help="On-Device Speech-to-Subtitle transcription via quicksubs")
     p_trans.add_argument("input", help="Media video/audio file")
     p_trans.add_argument("-o", "--output-dir", help="Output directory")
-    p_trans.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="Speech engine")
+    p_trans.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default=default_engine, help="Speech engine")
 
     # Command: audio-sync (quicksubs)
     p_async = subparsers.add_parser("audio-sync", help="Audio-guided subtitle synchronization & retiming via quicksubs")
@@ -127,7 +136,7 @@ def main():
     p_async.add_argument("-o", "--output", required=True, help="Aligned output SRT file")
     p_async.add_argument("-v", "--video", help="Video file containing authoritative audio")
     p_async.add_argument("-r", "--reference-srt", help="Reference SRT file")
-    p_async.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="Speech engine")
+    p_async.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default=default_engine, help="Speech engine")
 
     # Command: auto (Zero-flag autonomous runner)
     p_auto = subparsers.add_parser("auto", help="Zero-flag autonomous subtitle mastering & translation pipeline")
@@ -135,7 +144,7 @@ def main():
     p_auto.add_argument("--replace-original", action="store_true", help="Replace/rename original subtitle instead of seed-safe duplication")
     p_auto.add_argument("--ollama", action="store_true", help="Perform 100%% offline local translation using Ollama")
     p_auto.add_argument("--model", help="Ollama model name (default: llama3.2 / llama3:8b)")
-    p_auto.add_argument("--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="quicksubs speech engine")
+    p_auto.add_argument("--engine", choices=["apple", "whisper", "parakeet"], default=default_engine, help="quicksubs speech engine")
     p_auto.add_argument("--no-clean-ads", action="store_true", help="Do not strip promo spam/credits")
     p_auto.add_argument("--no-backup", action="store_true", help="Do not create .srt.bak before in-place modifications")
     p_auto.add_argument("--dry-run", action="store_true", help="Preview mode without writing changes")

@@ -36,6 +36,15 @@ import shutil
 from pathlib import Path
 import argparse
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+default_engine = "apple" if sys.platform == "darwin" else "whisper"
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 VIDEO_EXTENSIONS = {".mp4", ".mkv", ".m4v", ".avi", ".ts", ".mov", ".webm"}
 SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass", ".ssa", ".sub"}
@@ -311,8 +320,13 @@ def handle_single_srt(srt_file, args):
         # 1. Bible generation
         bible_script = SCRIPT_DIR / "03_generate_bible.py"
         cmd_bible = [sys.executable, str(bible_script), str(srt_path), "-o", str(bible_path)]
-        if os.environ.get("TMDB_API_KEY"):
-            cmd_bible.append("--tmdb")
+        try:
+            from tmdb_client import is_tmdb_available
+            if is_tmdb_available():
+                cmd_bible.append("--tmdb")
+        except Exception:
+            if os.environ.get("TMDB_API_KEY"):
+                cmd_bible.append("--tmdb")
         run_cmd(cmd_bible)
 
         # 2. Prompt builder
@@ -351,10 +365,16 @@ def handle_single_srt(srt_file, args):
                 run_cmd([sys.executable, str(fix_script), str(out_he), "--in-place", "--clean-ads"])
                 print(f"[✓] End-to-end local translation complete! Created: {out_he.name}")
         else:
-            print(f"\n[✓] Translation batches ready in: {prompts_dir}/")
-            print("[i] Next steps:")
-            print(f"    • With an AI Agent (Antigravity/Claude Code): 'Translate batches in {prompts_dir.name} and merge to {stem}.he.srt'")
-            print(f"    • With 100% Free Local LLM: './rightsub translate-ollama \"{prompts_dir}\" --en-srt \"{srt_path}\"'")
+            final_he = parent_dir / f"{stem}.he.srt"
+            print(f"\n[✓] Translation batches & prompts ready in: {prompts_dir}/")
+            print("==================================================================")
+            print("[i] Next steps to translate into Hebrew:")
+            print(f"    • With your AI Agent (Antigravity / Claude Code / Cursor / ChatGPT):")
+            print(f"      Copy & paste this prompt into your AI chat:")
+            print(f"      \"Translate all batches in {prompts_dir.name} to natural, broadcast-quality Hebrew dialogue. Maintain all cue numbers and timestamps, then merge using: python rightsub.py merge '{srt_path.name}' '{prompts_dir.name}' -o '{final_he.name}'\"")
+            print(f"    • Free Local AI Fallback (Ollama - Experimental):")
+            print(f"      python rightsub.py translate-ollama \"{prompts_dir}\" --en-srt \"{srt_path}\"")
+            print("==================================================================")
         return True
 
 def handle_single_video(video_file, args):
@@ -585,14 +605,15 @@ def main():
     )
     parser.add_argument("--ollama", action="store_true", help="Perform 100% offline local translation using Ollama")
     parser.add_argument("--model", help="Ollama model name (default: llama3.2 / llama3:8b)")
-    parser.add_argument("--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="quicksubs speech engine")
+    parser.add_argument("--engine", choices=["apple", "whisper", "parakeet"], default=default_engine, help="quicksubs speech engine")
     parser.add_argument("--no-clean-ads", action="store_true", help="Do not strip promo spam/credits")
     parser.add_argument("--no-backup", action="store_true", help="Do not create .srt.bak before in-place modifications")
     parser.add_argument("--dry-run", action="store_true", help="Preview mode without writing changes")
 
     args = parser.parse_args()
 
-    target_path = Path(args.target).resolve()
+    target_str = args.target.strip().strip("'\"")
+    target_path = Path(target_str).resolve()
     if not target_path.exists():
         print(f"[-] Target not found: {target_path}")
         sys.exit(1)

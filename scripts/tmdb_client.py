@@ -27,13 +27,21 @@ TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
 def get_tmdb_auth(api_key: str = None) -> tuple:
     """
-    Returns (token, is_bearer) from provided key or environment variables:
-    TMDB_API_KEY or TMDB_READ_TOKEN.
+    Returns (token, is_bearer) from provided key, environment variables
+    (TMDB_API_KEY, TMDB_READ_TOKEN), or local config file (~/.config/rightsub/config.json).
     """
     key = api_key or os.environ.get("TMDB_API_KEY") or os.environ.get("TMDB_READ_TOKEN")
     if not key:
+        config_path = Path.home() / ".config" / "rightsub" / "config.json"
+        if config_path.is_file():
+            try:
+                data = json.loads(config_path.read_text(encoding="utf-8"))
+                key = data.get("tmdb_api_key") or data.get("TMDB_API_KEY") or data.get("tmdb_token")
+            except Exception:
+                pass
+    if not key:
         return None, False
-    key = key.strip()
+    key = str(key).strip()
     # If key starts with 'ey' it is likely a v4 JWT Bearer Read Access Token
     is_bearer = key.startswith("ey") and len(key) > 50
     return key, is_bearer

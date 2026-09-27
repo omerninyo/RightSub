@@ -53,6 +53,18 @@ class TestTMDbIntegration:
         assert is_bearer is False
         assert token == v3_key
 
+    def test_auth_detection_from_config_file(self, tmp_path):
+        fake_home = tmp_path / "user_home"
+        cfg_dir = fake_home / ".config" / "rightsub"
+        cfg_dir.mkdir(parents=True)
+        (cfg_dir / "config.json").write_text(json.dumps({"tmdb_api_key": "cfg_key_9999"}), encoding="utf-8")
+
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("pathlib.Path.home", return_value=fake_home):
+                token, is_bearer = tmdb_mod.get_tmdb_auth()
+                assert token == "cfg_key_9999"
+                assert is_bearer is False
+
     def test_missing_api_key_graceful_handling(self):
         with patch.dict(os.environ, {}, clear=True):
             res = tmdb_mod.fetch_show_or_movie_metadata(title="Boston Legal")

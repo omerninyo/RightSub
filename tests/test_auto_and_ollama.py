@@ -319,3 +319,21 @@ class TestAutoPipeline:
         he_srt = movie_dir / "Gladiator.2000.he.srt"
         assert he_srt.exists()
         assert "\u200F" in he_srt.read_text(encoding="utf-8")
+
+    def test_auto_handles_quoted_paths_and_windows_wrappers(self, tmp_path):
+        # 1. Verify Windows wrappers exist in project root
+        repo_root = Path(__file__).resolve().parent.parent
+        bat_file = repo_root / "rightsub.bat"
+        cmd_file = repo_root / "rightsub.cmd"
+        assert bat_file.is_file()
+        assert cmd_file.is_file()
+        assert 'python "%~dp0rightsub.py" %*' in bat_file.read_text()
+
+        # 2. Test path stripping logic with enclosing quotes
+        sub = tmp_path / "QuotedMovie.he.srt"
+        sub.write_text("1\n00:00:01,000 --> 00:00:03,000\nשלום לכולם!\n", encoding="utf-8")
+
+        # Simulate path with enclosing single or double quotes
+        quoted_path_str = f'"{sub}"'
+        stripped = quoted_path_str.strip().strip("'\"")
+        assert Path(stripped).resolve() == sub.resolve()

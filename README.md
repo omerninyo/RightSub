@@ -96,6 +96,14 @@ curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh 
 brew install omerninyo/tap/rightsub
 ```
 
+### Windows Users (CMD / PowerShell):
+RightSub includes native Windows batch wrappers (`rightsub.bat` and `rightsub.cmd`). Run directly in Command Prompt or PowerShell:
+```cmd
+rightsub auto "Movie.mkv"
+# Or:
+python rightsub.py auto "Movie.mkv"
+```
+
 ---
 
 ### 💻 CLI Usage Recipes
