@@ -1,0 +1,34 @@
+name: Feature Request
+description: Suggest an enhancement or new feature for RightSub
+title: "[FEATURE]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target Component
+      description: Which engine or module would this enhancement improve?
+      options:
+        - "SubRefine Core (Plex BiDi, Punctuation, Charsets, Ad Stripping, Retiming)"
+        - "SubSwarm Translation (AI Workflows, Ollama Local Models, TMDb Metadata, Prompts)"
+        - "Audio & Speech (quicksubs, Audio-aligned subtitle sync)"
+        - "CLI & Automation (Command-line UX, Multi-file batching, Packaging)"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem or limitation?
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: A clear and concise description of what you would like RightSub to do.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.

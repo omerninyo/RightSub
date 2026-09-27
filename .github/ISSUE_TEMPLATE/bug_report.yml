@@ -1,0 +1,63 @@
+name: Bug Report
+description: Report an error, unexpected behavior, or subtitle processing issue
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue! Please provide as much detail as possible to help us diagnose and resolve it quickly.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component Affected
+      description: Which engine or module does this issue relate to?
+      options:
+        - "SubRefine Core (Plex BiDi, Punctuation, CP1255 Charset, Ad Stripping, Sync)"
+        - "SubSwarm Translation (AI Prompts, Ollama Local LLM, Gemini, TMDb Bible, Split/Merge)"
+        - "Audio & Transcription (quicksubs, Whisper, Speech-to-Subtitle)"
+        - "CLI & Installation (rightsub CLI, Homebrew Formula, install.sh)"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what went wrong.
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command Executed
+      description: The exact terminal command you ran.
+      placeholder: rightsub auto "Movie.mkv"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal Output / Error Traceback
+      description: Copy and paste the relevant terminal output or traceback.
+      render: shell
+  - type: textarea
+    id: media_details
+    attributes:
+      label: Subtitle & Media Details
+      description: File container, language, encoding, and target player.
+      value: |
+        - Container / File: (e.g. MKV, MP4, or standalone .srt)
+        - Subtitle language & encoding: (e.g. Hebrew CP1255 / UTF-8 / English)
+        - Target player affected: (e.g. Plex Apple TV, Infuse, VLC, Kodi)
+  - type: textarea
+    id: environment
+    attributes:
+      label: System Environment
+      description: Operating system, Python version, and tool availability.
+      value: |
+        - OS: macOS / Ubuntu / Debian
+        - Python Version: (`python3 --version`)
+        - RightSub Version: (`rightsub --help` or git commit)
+        - FFmpeg Installed: Yes / No
+    validations:
+      required: true
