@@ -116,6 +116,11 @@ Simply drag and drop a file or directory into the terminal after the command:
 ./rightsub auto "/path/to/Season 01/"
 ```
 
+> [!TIP]
+> **Seed-Safe By Default (Torrent Seeding Protection)**:
+> When RightSub encounters non-standard Hebrew subtitles (like `Movie.srt` or `Movie.heb.srt`), it **duplicates** them to `Movie.he.srt` and masters the copy for Plex/Infuse. The original file remains 100% bit-for-bit intact so active torrent seeding and file hashes are never broken.
+> To replace and rename the original subtitle file instead of duplicating, pass `--replace-original`.
+
 ### Recipe 1: Standalone Hebrew Fix for Plex / Infuse Library
 Fix punctuation flips, convert legacy encodings to UTF-8, and clean ads in-place. The tool automatically detects Hebrew and safely skips English/foreign subtitles:
 ```bash

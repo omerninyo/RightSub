@@ -12,6 +12,7 @@ import sys
 import json
 import pytest
 import tempfile
+import hashlib
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -186,20 +187,74 @@ class TestAutoPipeline:
 
     def test_handle_single_srt_standardizes_hebrew_filename(self, tmp_path):
         srt_file = tmp_path / "MyMovie.srt"
-        srt_file.write_text("1\n00:00:01,000 --> 00:00:03,000\nערב טוב לכולם!\n", encoding="utf-8")
+        original_text = "1\n00:00:01,000 --> 00:00:03,000\nערב טוב לכולם!\n"
+        srt_file.write_text(original_text, encoding="utf-8")
+        orig_hash = hashlib.sha256(srt_file.read_bytes()).hexdigest()
 
         args = MagicMock()
         args.no_clean_ads = False
         args.no_backup = False
         args.dry_run = False
+        args.replace_original = False
 
         success = auto_mod.handle_single_srt(srt_file, args)
         assert success is True
 
-        # Standardized file should now exist
+        # Standardized file should now exist and have RLM markers
         standard_file = tmp_path / "MyMovie.he.srt"
         assert standard_file.exists()
         assert "\u200F" in standard_file.read_text(encoding="utf-8")
+
+        # Crucial Seed-Safe assertion: original file must exist and remain 100% bit-for-bit unchanged
+        assert srt_file.exists()
+        assert hashlib.sha256(srt_file.read_bytes()).hexdigest() == orig_hash
+        assert "\u200F" not in srt_file.read_text(encoding="utf-8")
+
+    def test_handle_single_srt_replace_original_renames_source(self, tmp_path):
+        srt_file = tmp_path / "OldMovie.srt"
+        srt_file.write_text("1\n00:00:01,000 --> 00:00:03,000\nשלום רב!\n", encoding="utf-8")
+
+        args = MagicMock()
+        args.no_clean_ads = False
+        args.no_backup = False
+        args.dry_run = False
+        args.replace_original = True
+
+        success = auto_mod.handle_single_srt(srt_file, args)
+        assert success is True
+
+        # In replace-original mode, original non-standard file is renamed/moved
+        assert not srt_file.exists()
+        standard_file = tmp_path / "OldMovie.he.srt"
+        assert standard_file.exists()
+        assert "\u200F" in standard_file.read_text(encoding="utf-8")
+
+    def test_handle_single_video_seed_safe_preserves_companion(self, tmp_path):
+        vid = tmp_path / "Avatar.2009.mkv"
+        vid.touch()
+
+        companion = tmp_path / "Avatar.2009.srt"
+        raw_cp1255 = "1\n00:00:01,000 --> 00:00:04,000\nשלום לפנדורה!\n".encode("cp1255")
+        companion.write_bytes(raw_cp1255)
+        orig_hash = hashlib.sha256(raw_cp1255).hexdigest()
+
+        args = MagicMock()
+        args.no_clean_ads = False
+        args.no_backup = False
+        args.dry_run = False
+        args.replace_original = False
+
+        success = auto_mod.handle_single_video(vid, args)
+        assert success is True
+
+        # Seed-Safe: original companion .srt is preserved bit-for-bit
+        assert companion.exists()
+        assert hashlib.sha256(companion.read_bytes()).hexdigest() == orig_hash
+
+        # Standard .he.srt was created and mastered with RLM
+        he_srt = tmp_path / "Avatar.2009.he.srt"
+        assert he_srt.exists()
+        assert "\u200F" in he_srt.read_text(encoding="utf-8")
 
     def test_handle_directory_with_cp1255_hebrew_skips_translation(self, tmp_path):
         movie_dir = tmp_path / "Rocky_Test"
@@ -210,13 +265,15 @@ class TestAutoPipeline:
 
         sub = movie_dir / "Rocky.1976.srt"
         content = "1\n00:00:01,000 --> 00:00:05,000\nTornado :סנכרון\n\n2\n00:00:28,429 --> 00:00:33,350\nרוקי\n"
-        sub.write_bytes(content.encode("cp1255"))
+        raw_bytes = content.encode("cp1255")
+        sub.write_bytes(raw_bytes)
 
         args = MagicMock()
         args.no_clean_ads = False
         args.no_backup = False
         args.dry_run = False
         args.ollama = False
+        args.replace_original = False
 
         success = auto_mod.handle_directory(movie_dir, args)
         assert success is True
@@ -231,3 +288,34 @@ class TestAutoPipeline:
         he_content = he_srt.read_text(encoding="utf-8")
         assert "רוקי" in he_content
         assert "\u200F" in he_content
+
+        # Crucial Seed-Safe assertion: original torrent .srt remains untouched bit-for-bit
+        assert sub.exists()
+        assert sub.read_bytes() == raw_bytes
+
+    def test_handle_directory_replace_original_renames_source(self, tmp_path):
+        movie_dir = tmp_path / "Gladiator_Test"
+        movie_dir.mkdir()
+
+        vid = movie_dir / "Gladiator.2000.mkv"
+        vid.touch()
+
+        sub = movie_dir / "Gladiator.2000.srt"
+        content = "1\n00:00:01,000 --> 00:00:05,000\nשלום מקסימוס!\n"
+        sub.write_text(content, encoding="utf-8")
+
+        args = MagicMock()
+        args.no_clean_ads = False
+        args.no_backup = False
+        args.dry_run = False
+        args.ollama = False
+        args.replace_original = True
+
+        success = auto_mod.handle_directory(movie_dir, args)
+        assert success is True
+
+        # Original source should have been renamed
+        assert not sub.exists()
+        he_srt = movie_dir / "Gladiator.2000.he.srt"
+        assert he_srt.exists()
+        assert "\u200F" in he_srt.read_text(encoding="utf-8")

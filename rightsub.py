@@ -132,6 +132,7 @@ def main():
     # Command: auto (Zero-flag autonomous runner)
     p_auto = subparsers.add_parser("auto", help="Zero-flag autonomous subtitle mastering & translation pipeline")
     p_auto.add_argument("target", help="Path to video file, subtitle file, or directory")
+    p_auto.add_argument("--replace-original", action="store_true", help="Replace/rename original subtitle instead of seed-safe duplication")
     p_auto.add_argument("--ollama", action="store_true", help="Perform 100%% offline local translation using Ollama")
     p_auto.add_argument("--model", help="Ollama model name (default: llama3.2 / llama3:8b)")
     p_auto.add_argument("--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="quicksubs speech engine")

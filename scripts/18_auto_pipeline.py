@@ -32,6 +32,7 @@ Workflow Logic:
 import os
 import sys
 import subprocess
+import shutil
 from pathlib import Path
 import argparse
 
@@ -235,17 +236,6 @@ def handle_single_srt(srt_file, args):
     )
 
     if is_he:
-        print("[i] Detected Hebrew subtitle. Applying Plex BiDi & Punctuation mastering...")
-        fix_script = SCRIPT_DIR / "07_fix_plex_punctuation.py"
-        cmd = [sys.executable, str(fix_script), str(srt_path), "--in-place"]
-        if not args.no_clean_ads:
-            cmd.append("--clean-ads")
-        if not args.no_backup:
-            cmd.append("--backup")
-        if args.dry_run:
-            cmd.append("--dry-run")
-        run_cmd(cmd)
-
         # Standardize naming to .he.srt for Plex & Infuse recognition
         target_name = srt_path.name
         if name_lower.endswith(".heb.srt"):
@@ -255,17 +245,61 @@ def handle_single_srt(srt_file, args):
         elif not name_lower.endswith(".he.srt"):
             target_name = f"{srt_path.stem}.he.srt"
 
-        if target_name != srt_path.name:
-            target_path = srt_path.with_name(target_name)
+        target_path = srt_path.with_name(target_name)
+        replace_orig = getattr(args, "replace_original", False)
+        fix_script = SCRIPT_DIR / "07_fix_plex_punctuation.py"
+
+        if target_path == srt_path:
+            print("[i] Detected Hebrew subtitle (.he.srt). Applying Plex BiDi & Punctuation mastering...")
+            cmd = [sys.executable, str(fix_script), str(srt_path), "--in-place"]
+            if not args.no_clean_ads:
+                cmd.append("--clean-ads")
+            if not args.no_backup:
+                cmd.append("--backup")
+            if args.dry_run:
+                cmd.append("--dry-run")
+            run_cmd(cmd)
+            final_path = srt_path
+        elif replace_orig:
+            print(f"[i] Detected Hebrew subtitle. Applying Plex BiDi mastering and renaming (--replace-original)...")
+            cmd = [sys.executable, str(fix_script), str(srt_path), "--in-place"]
+            if not args.no_clean_ads:
+                cmd.append("--clean-ads")
+            if not args.no_backup:
+                cmd.append("--backup")
+            if args.dry_run:
+                cmd.append("--dry-run")
+            run_cmd(cmd)
+
             if not target_path.exists() and not args.dry_run:
                 try:
                     srt_path.rename(target_path)
-                    print(f"[i] Standardized subtitle filename for Plex: {srt_path.name} -> {target_path.name}")
-                    srt_path = target_path
+                    print(f"[i] Renamed original subtitle for Plex: {srt_path.name} -> {target_path.name}")
+                    final_path = target_path
                 except Exception as e:
                     print(f"[!] Note: Could not rename to {target_path.name}: {e}")
+                    final_path = srt_path
+            else:
+                final_path = target_path
+        else:
+            print(f"[i] Detected Hebrew subtitle. Seed-Safe mode: duplicating to {target_name} (original file left untouched)...")
+            if not args.dry_run:
+                try:
+                    shutil.copy2(srt_path, target_path)
+                    print(f"[✓] Seed-Safe duplicate created: {target_path.name} (original {srt_path.name} left 100% untouched)")
+                except Exception as e:
+                    print(f"[-] Failed to copy to {target_path.name}: {e}")
+                    return False
 
-        print(f"[✓] Hebrew subtitle {srt_path.name} is now 100% Plex & Infuse compliant!\n")
+                cmd = [sys.executable, str(fix_script), str(target_path), "--in-place"]
+                if not args.no_clean_ads:
+                    cmd.append("--clean-ads")
+                run_cmd(cmd)
+            else:
+                print(f"[i] [Dry-Run] Would copy {srt_path.name} -> {target_path.name} and apply Plex mastering.")
+            final_path = target_path
+
+        print(f"[✓] Hebrew subtitle {final_path.name} is now 100% Plex & Infuse compliant!\n")
         return True
     else:
         print("[i] Detected English/source subtitle. Generating Translation Bible & Batches...")
@@ -334,17 +368,36 @@ def handle_single_video(video_file, args):
     companion_he = find_companion_hebrew_subtitle(video_path)
     if companion_he:
         print(f"[i] Found existing Hebrew subtitle: {companion_he.name}")
-        success = handle_single_srt(companion_he, args)
         target_he = parent_dir / f"{stem}.he.srt"
-        if not target_he.exists() and not args.dry_run:
-            current_he = companion_he if companion_he.exists() else (companion_he.with_name(f"{companion_he.stem}.he.srt"))
-            if current_he.exists() and current_he != target_he:
+        replace_orig = getattr(args, "replace_original", False)
+
+        if companion_he == target_he:
+            return handle_single_srt(companion_he, args)
+
+        if replace_orig:
+            success = handle_single_srt(companion_he, args)
+            if not target_he.exists() and not args.dry_run:
+                current_he = companion_he if companion_he.exists() else (companion_he.with_name(f"{companion_he.stem}.he.srt"))
+                if current_he.exists() and current_he != target_he:
+                    try:
+                        current_he.rename(target_he)
+                        print(f"[i] Standardized Hebrew subtitle for video (--replace-original): {current_he.name} -> {target_he.name}")
+                    except Exception as e:
+                        pass
+            return success
+        else:
+            # Seed-Safe mode: duplicate companion_he directly to target_he
+            print(f"[i] Seed-Safe mode: copying {companion_he.name} -> {target_he.name} (original left untouched)")
+            if not args.dry_run:
                 try:
-                    current_he.rename(target_he)
-                    print(f"[i] Standardized Hebrew subtitle for video: {current_he.name} -> {target_he.name}")
+                    shutil.copy2(companion_he, target_he)
                 except Exception as e:
-                    pass
-        return success
+                    print(f"[-] Failed to copy to {target_he.name}: {e}")
+                    return False
+                return handle_single_srt(target_he, args)
+            else:
+                print(f"[i] [Dry-Run] Would copy {companion_he.name} -> {target_he.name} and apply Plex mastering.")
+                return True
 
     # Check if English subtitle already exists
     companion_en = find_companion_english_subtitle(video_path)
@@ -391,8 +444,12 @@ def handle_directory(dir_path, args):
     print(f"=== RightSub Auto: Scanning Directory {dir_path.name} ===")
     print(f"==================================================================")
 
-    # 1. Discover all Hebrew subtitles and batch-fix them
-    he_srts = []
+    replace_orig = getattr(args, "replace_original", False)
+    fix_script = SCRIPT_DIR / "07_fix_plex_punctuation.py"
+
+    # 1. Discover all Hebrew subtitles
+    srts_to_master = []
+    discovered_he_srts = []
     for srt in dir_path.rglob("*.srt"):
         if srt.name.endswith(".bak") or "prompts_" in str(srt):
             continue
@@ -403,20 +460,74 @@ def handle_directory(dir_path, args):
             name_lower.endswith(".hebrew.srt") or
             is_hebrew_file(srt)
         ):
-            he_srts.append(srt)
+            discovered_he_srts.append(srt)
 
-    if he_srts:
-        print(f"[+] Found {len(he_srts)} Hebrew subtitle(s). Running automated Plex BiDi mastering...")
-        fix_script = SCRIPT_DIR / "07_fix_plex_punctuation.py"
-        cmd = [sys.executable, str(fix_script)] + [str(s) for s in he_srts] + ["--in-place"]
-        if not args.no_clean_ads:
-            cmd.append("--clean-ads")
-        if not args.no_backup:
-            cmd.append("--backup")
-        if args.dry_run:
-            cmd.append("--dry-run")
-        run_cmd(cmd)
-        print(f"[✓] Successfully repaired all {len(he_srts)} Hebrew subtitle files!")
+    if discovered_he_srts:
+        if replace_orig:
+            print(f"[+] Found {len(discovered_he_srts)} Hebrew subtitle(s). Running automated Plex BiDi mastering (--replace-original)...")
+            cmd = [sys.executable, str(fix_script)] + [str(s) for s in discovered_he_srts] + ["--in-place"]
+            if not args.no_clean_ads:
+                cmd.append("--clean-ads")
+            if not args.no_backup:
+                cmd.append("--backup")
+            if args.dry_run:
+                cmd.append("--dry-run")
+            run_cmd(cmd)
+
+            # Standardize names
+            for srt in discovered_he_srts:
+                name_lower = srt.name.lower()
+                if not name_lower.endswith(".he.srt"):
+                    if name_lower.endswith(".heb.srt"):
+                        target_name = srt.name[:-8] + ".he.srt"
+                    elif name_lower.endswith(".hebrew.srt"):
+                        target_name = srt.name[:-11] + ".he.srt"
+                    else:
+                        target_name = f"{srt.stem}.he.srt"
+                    target_path = srt.with_name(target_name)
+                    if not target_path.exists() and not args.dry_run and srt.exists():
+                        try:
+                            srt.rename(target_path)
+                            print(f"[i] Renamed Hebrew subtitle for Plex: {srt.name} -> {target_path.name}")
+                        except Exception:
+                            pass
+        else:
+            print(f"[+] Found {len(discovered_he_srts)} Hebrew subtitle(s). Seed-Safe mode active (originals preserved)...")
+            for srt in discovered_he_srts:
+                name_lower = srt.name.lower()
+                if name_lower.endswith(".he.srt"):
+                    srts_to_master.append(srt)
+                else:
+                    if name_lower.endswith(".heb.srt"):
+                        target_name = srt.name[:-8] + ".he.srt"
+                    elif name_lower.endswith(".hebrew.srt"):
+                        target_name = srt.name[:-11] + ".he.srt"
+                    else:
+                        target_name = f"{srt.stem}.he.srt"
+                    target_path = srt.with_name(target_name)
+
+                    if not target_path.exists():
+                        if not args.dry_run:
+                            try:
+                                shutil.copy2(srt, target_path)
+                                print(f"[i] Seed-Safe duplicate created: {srt.name} -> {target_path.name} (original left untouched)")
+                            except Exception as e:
+                                print(f"[!] Warning: Could not duplicate {srt.name}: {e}")
+                                continue
+                        else:
+                            print(f"[i] [Dry-Run] Would duplicate {srt.name} -> {target_path.name}")
+                    if target_path not in srts_to_master:
+                        srts_to_master.append(target_path)
+
+            if srts_to_master:
+                cmd = [sys.executable, str(fix_script)] + [str(s) for s in srts_to_master] + ["--in-place"]
+                if not args.no_clean_ads:
+                    cmd.append("--clean-ads")
+                if args.dry_run:
+                    cmd.append("--dry-run")
+                run_cmd(cmd)
+
+        print(f"[✓] Successfully processed {len(discovered_he_srts)} Hebrew subtitle file(s)!")
 
     # 2. Discover video files
     video_files = [f for f in dir_path.rglob("*") if f.suffix.lower() in VIDEO_EXTENSIONS]
@@ -428,12 +539,25 @@ def handle_directory(dir_path, args):
         if he_sub:
             # Video already has a Hebrew subtitle! Ensure Plex .he.srt standard naming
             target_he = vid.parent / f"{vid.stem}.he.srt"
-            if he_sub != target_he and not target_he.exists() and not args.dry_run:
-                try:
-                    he_sub.rename(target_he)
-                    print(f"[i] Standardized Hebrew subtitle for Plex: {he_sub.name} -> {target_he.name}")
-                except Exception as e:
-                    pass
+            if he_sub != target_he:
+                if replace_orig:
+                    if not target_he.exists() and not args.dry_run:
+                        try:
+                            he_sub.rename(target_he)
+                            print(f"[i] Standardized Hebrew subtitle for Plex (--replace-original): {he_sub.name} -> {target_he.name}")
+                        except Exception:
+                            pass
+                else:
+                    if not target_he.exists() and not args.dry_run:
+                        try:
+                            shutil.copy2(he_sub, target_he)
+                            print(f"[i] Seed-Safe standardized Hebrew subtitle for Plex: {he_sub.name} -> {target_he.name} (original left untouched)")
+                            cmd = [sys.executable, str(fix_script), str(target_he), "--in-place"]
+                            if not args.no_clean_ads:
+                                cmd.append("--clean-ads")
+                            run_cmd(cmd)
+                        except Exception:
+                            pass
             continue  # Already has Hebrew subtitle
 
         print(f"\n---> Video missing Hebrew subtitles: {vid.name}")
@@ -442,7 +566,7 @@ def handle_directory(dir_path, args):
 
     print("\n==================================================================")
     print(f"=== RightSub Auto Execution Summary ===")
-    print(f"  • Hebrew subtitles mastered: {len(he_srts)}")
+    print(f"  • Hebrew subtitles mastered: {len(srts_to_master if not replace_orig else discovered_he_srts)}")
     print(f"  • Total video files scanned:  {len(video_files)}")
     print(f"  • New videos prepared:        {processed_vids}")
     print(f"==================================================================\n")
@@ -454,6 +578,11 @@ def main():
         description="Universal Autonomous Pipeline Runner — Zero flags needed. Handles single files or full seasons."
     )
     parser.add_argument("target", help="Path to video file, subtitle file, or directory")
+    parser.add_argument(
+        "--replace-original",
+        action="store_true",
+        help="In-place rename mode: replace and rename original non-standard subtitle files instead of duplicating (breaks torrent seeding)"
+    )
     parser.add_argument("--ollama", action="store_true", help="Perform 100% offline local translation using Ollama")
     parser.add_argument("--model", help="Ollama model name (default: llama3.2 / llama3:8b)")
     parser.add_argument("--engine", choices=["apple", "whisper", "parakeet"], default="apple", help="quicksubs speech engine")

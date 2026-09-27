@@ -48,6 +48,9 @@ graph TD
   ```
   *The system detects Hebrew across encodings, converts to clean UTF-8, applies BiDi with RLM, strips promo ads, and standardizes the filename to `Movie.he.srt` for Plex/Infuse recognition.*
 
+  > [!TIP]
+  > **Seed-Safe Protection**: If your subtitle is named `Movie.srt` (e.g. from a torrent), RightSub duplicates it to `Movie.he.srt` and masters the copy, leaving `Movie.srt` 100% untouched so torrent seeding is never broken. If you prefer replacing/renaming in-place, pass `--replace-original`.
+
 ### 2. Fix an Entire TV Season or Complete Library
 - **The Issue**: You have a folder with 24 episodes or dozens of movies and want them all mastered at once.
 - **The Solution**:
