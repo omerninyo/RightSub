@@ -21,7 +21,8 @@ The `install.sh` script verifies dependencies (`python3`, `ffmpeg`), installs pa
 
 ### Local Installation:
 ```bash
-cd /Volumes/Other/Antigravity/RightSub
+git clone https://github.com/omerninyo/RightSub.git
+cd RightSub
 ./install.sh
 ```
 
@@ -86,8 +87,8 @@ For isolated Python environments without polluting the system Python:
 brew install pipx
 pipx ensurepath
 
-# Install from local folder:
-cd /Volumes/Other/Antigravity/RightSub
+# Install from cloned folder:
+cd RightSub
 pipx install .
 
 # Or install directly from GitHub:

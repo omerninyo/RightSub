@@ -23,6 +23,6 @@
 - Creating separate Antigravity agent conversations or subagents for individual translation batches is strictly forbidden, as it floods the IDE's 500-conversation LRU cache and purges user conversations.
 
 ## 5. Subtitle Localization & BiDi Standards
-- Full adherence to `AI_INSTRUCTIONS.md`, `DETERMINISTIC_DECISION_TREE.md`, and `translation_bible_s03_s05.json`.
+- Full adherence to `AI_INSTRUCTIONS.md`, `DETERMINISTIC_DECISION_TREE.md`, and generated `translation_bible.json`.
 - Strict line length limits (max 38-40 characters per line, max 2 lines per cue).
 - Correct BiDi punctuation formatting for Plex, Infuse, and Apple devices.

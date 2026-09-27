@@ -196,7 +196,7 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (74 unit & integration tests):
+RightSub comes with a comprehensive automated test suite (59 unit tests):
 ```bash
 pytest -v
 ```

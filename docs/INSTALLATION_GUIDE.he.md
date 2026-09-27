@@ -29,7 +29,8 @@
 
 ### התקנה מקומית מתוך תיקיית המאגר:
 ```bash
-cd /Volumes/Other/Antigravity/RightSub
+git clone https://github.com/omerninyo/RightSub.git
+cd RightSub
 ./install.sh
 ```
 
@@ -94,8 +95,8 @@ Homebrew ידאג להתקין אוטומטית את `ffmpeg` ואת `python`, �
 brew install pipx
 pipx ensurepath
 
-# התקנת RightSub ישירות מהתיקייה המקומית:
-cd /Volumes/Other/Antigravity/RightSub
+# התקנת RightSub מתוך תיקיית המאגר:
+cd RightSub
 pipx install .
 
 # או התקנה ישירות ממאגר ה-GitHub:

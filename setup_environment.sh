@@ -1,8 +1,11 @@
 #!/bin/bash
 # ==============================================================================
-# Subtitle Toolkit Master - Environment Setup Script
+# RightSub - Environment Setup Script
 # ==============================================================================
 set -e
+
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPTS_DIR="$REPO_DIR/scripts"
 
 echo "=== [1/4] Checking System & Homebrew ==="
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -43,7 +46,8 @@ echo "Installing required Python packages: srt, pysubs2, requests, regex..."
 $pip_cmd install --quiet --upgrade srt pysubs2 requests regex
 
 echo "=== [4/4] Setting Permissions ==="
-chmod +x "$scripts_dir"/*.py 2>/dev/null || true
+chmod +x "$SCRIPTS_DIR"/*.py 2>/dev/null || true
+chmod +x "$REPO_DIR/rightsub" "$REPO_DIR/rightsub.py" 2>/dev/null || true
 
 echo "=================================================================="
 echo " Environment setup complete! All tools and libraries are ready. "
