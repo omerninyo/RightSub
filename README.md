@@ -314,6 +314,7 @@ Tests cover:
 - 🤖 **[AI Integration & Coding Assistants Guide](docs/AI_INTEGRATION_GUIDE.md)** — What needs AI vs. what runs locally, plus Antigravity, Claude Code, Gemini, and ChatGPT setups.
 - 📐 **[Hebrew BiDi & Plex/Infuse Guide](docs/BIDI_AND_PLEX_GUIDE.md)** — Deep dive into invisible RLM marks and punctuation reversal.
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
+- ⚖️ **[RightSub vs. Bazarr Technical Comparison](docs/COMPARISON_BAZARR.md)** — Architectural breakdown, differences, and integration guide.
 - 🔮 **[Future Interactive CLI Specification](docs/FUTURE_INTERACTIVE_CLI.he.md)** — Interactive CLI wizard specification and design.
 - 🌐 **[Future MCP Server Specification](docs/FUTURE_MCP_SERVER.he.md)** — RightSub Model Context Protocol (MCP) server architecture.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.

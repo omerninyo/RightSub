@@ -9,6 +9,7 @@
 - **[On-Device STT & Sync (quicksubs)](Quicksubs-Integration)**
 - **[TMDb Metadata & Entity Resolution](TMDb-Integration)**
 - **[AI Assistants & Integration](AI-Integration-Guide)**
+- **[⚖️ RightSub vs. Bazarr Comparison](Bazarr-Comparison)**
 - **[Boston Legal Case Study](Boston-Legal-Case-Study)**
 - **[CLI Reference](Home#cli-commands-reference)**
 
@@ -23,6 +24,7 @@
 - **[תמלול וסנכרון מקומי (quicksubs)](תמלול-וסנכרון-מקומי-quicksubs)**
 - **[אינטגרציית TMDb (עלילה ומגדר)](אינטגרציית-TMDb)**
 - **[חיבור לכלי בינה מלאכותית (AI)](מדריך-חיבור-לכלי-בינה-מלאכותית)**
+- **[⚖️ השוואה טכנית מול Bazarr](השוואה-מול-Bazarr)**
 - **[מקרה בוחן - בוסטון ליגל](מקרה-בוחן-בוסטון-ליגל)**
 - **[מדריך פקודות CLI](Home-HE#מדריך-פקודות-cli-מלא)**
 
