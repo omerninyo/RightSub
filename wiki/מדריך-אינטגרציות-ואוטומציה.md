@@ -5,11 +5,43 @@
 > **סקירה כללית**: הפעלת RightSub באופן אוטונומי מלא בכל מערך ההורדות והמדיה שלכם בתצורת "הגדר ושכח" (Set-and-Forget). המדריך כולל הגדרות מוכנות להעתקה והדבקה עבור שרתי מדיה ומנהלי הורדות.
 
 המדריך מכסה הגדרות מלאות ומאומתות עבור **Windows** ועבור **macOS/Linux**:
+0. [אסטרטגיית 2 הפעימות המומלצת וארכיטקטורת Daemon](#0-אסטרטגיית-2-הפעימות-המומלצת-וארכיטקטורת-daemon)
 1. [qBittorrent (הפעלה אוטומטית בסיום הורדה ושמירה על טורנטים)](#1-qbittorrent-הפעלה-בסיום-הורדה-ושמירה-על-שיתוף)
 2. [Sonarr ו-Radarr (סקריפטי ייבוא Connect)](#2-sonarr-ו-radarr-סקריפטי-חיבור-connect)
 3. [Bazarr (הרצה כ-Post-Processing)](#3-bazarr-עיבוד-והשבחה-לאחר-הורדה)
 4. [Transmission (סקריפט סיום הורדה)](#4-transmission-סקריפט-סיום-ב-macoslinux)
 5. [Tautulli / Plex (בדיקת מדיה שנוספה לאחרונה)](#5-tautulli--plex-בדיקה-עם-קליטת-מדיה-חדשה)
+6. [ניטור תיקיות מקומי עצמאי (ללא תוכנות Arr / עבודה ידנית)](#6-ניטור-תיקיות-מקומי-עצמאי-ללא-תוכנות-arr--העתקה-ידנית)
+7. [אימות ובדיקת פעולה (Troubleshooting)](#7-אימות-ובדיקת-פעולה-troubleshooting)
+
+---
+
+## 0. אסטרטגיית 2 הפעימות המומלצת וארכיטקטורת Daemon
+
+לפני הגדרת ה-Hooks האישיים בכל תוכנה, חשוב להבין את העקרונות ההנדסיים של RightSub:
+
+### ⚙️ מודל שני השלבים
+1. **שלב א': תיקון רטרואקטיבי חד-פעמי של כל הספרייה (One-Off Batch Fix)**  
+   הריצו את RightSub פעם אחת על כל תיקיית ספריית המדיה הקיימת:
+   ```bash
+   # ב-Windows:
+   rightsub auto "C:\Media\TV Shows"
+
+   # ב-macOS / Linux:
+   rightsub auto /Volumes/Media/TV_Shows
+   ```
+   RightSub סורק רקורסיבית את כל התיקיות, ממיר קידודים מיושנים (CP1255/Windows-1255) ל-UTF-8, מחיל תווי RLM לתיקון כיווניות סימני פיסוק בפלקס, מנקה פרסומות ו-SDH, ומייצר קובצי `.he.srt` תקניים מבלי לפגוע בקובצי ההורדה המקוריים.
+2. **שלב ב': אוטומציה שוטפת ללא צורך בהתערבות (Event-Driven Hooks)**  
+   מכאן ואילך, **אין צורך** בסורק רקע רציף ומכביד. מגדירים את מנהלי ההורדות (qBittorrent, Sonarr, Radarr, Bazarr) להפעיל את RightSub **אך ורק בשנייה שבה קובץ מדיה חדש מסיים לרדת**.
+
+### 🏛️ מדוע ארכיטקטורת Hooks עדיפה על פני דמון רקע רציף (24/7 Daemon)?
+
+משתמשים תוהים לעיתים קרובות: *"מדוע RightSub לא פועלת כ-Daemon רציף שסורק תיקיות כל הזמן?"*
+
+במערכי מדיה והורדות ביתיים, דמון סורק תיקיות רציף הוא **Anti-Pattern ארכיטקטוני**:
+1. **סכנת Race Conditions ונעילת קבצים חלקיים**: כאשר קליינט טורנט מוריד קובץ וידאו של 15GB או מחלץ ארכיון, הכתיבה לדיסק נמשכת דקות ואף שעות. דמון סורק מזהה את הקובץ מיד עם יצירתו, ומנסה לקרוא או לנעול קובץ חלקי שנמצא באמצע כתיבה — מה שגורם לקריסות ולקובצי כתוביות פגומים.
+2. **אפס צריכת משאבים בשגרה (Zero Idle Resource Consumption)**: דמון רקע מחזיק סביבת Python פעילה בזיכרון ה-RAM באופן רציף (40–80 MB) ומעיר ליבות מעבד לצורך בדיקות תקופתיות. ארכיטקטורת ה-Hooks צורכת **0% מעבד ו-0 MB זיכרון בשגרה** — RightSub מתעורר לשבריר שנייה רק כשקובץ הושלם, מבצע את העיבוד ונסגר מיידית.
+3. **פעולה אטומית ובטוחה (Atomic Execution)**: מנהלי ההורדות יודעים בוודאות מתמטית מתי הקובץ סיים לרדת, עבר בהצלחה בדיקת Hash ונסגר לכתיבה. הפעלת הסקריפט באותו רגע מבטיחה אפס תקלות.
 
 ---
 
@@ -160,7 +192,78 @@ fi
 
 ---
 
-## 💡 אימות ובדיקת פעולה (Troubleshooting)
+## 6. ניטור תיקיות מקומי עצמאי (ללא תוכנות Arr / העתקה ידנית)
+
+עבור משתמשים ש**אינם** נעזרים בתוכנות הורדה אוטומטיות (כמו qBittorrent, Sonarr או Radarr) אלא מעתיקים או גוררים קבצים ידנית לתיקיית יעד, ניתן להגדיר מנגנון ניטור מקומי קל-משקל ברמת מערכת ההפעלה הכולל **מנגנון הגנה מפני קבצים חלקיים (Write-Settle)**:
+
+### ב-macOS: שימוש ב-Folder Action עם לולאת בדיקת יציבות
+צרו Automator Folder Action המשויך לתיקיית ההורדות שלכם (למשל `~/Downloads` או `/Volumes/Media/Incoming`) עם פעולת **Run Shell Script**:
+
+```bash
+#!/usr/bin/env bash
+for f in "$@"; do
+    # סינון קובצי וידאו וכתוביות בלבד
+    case "$f" in
+        *.mkv|*.mp4|*.avi|*.srt) ;;
+        *) continue ;;
+    esac
+
+    # בדיקת יציבות: מוודא שהקובץ סיים להיכתב ואינו חלקי
+    PREV_SIZE=-1
+    while true; do
+        CURR_SIZE=$(stat -f%z "$f" 2>/dev/null || echo 0)
+        if [ "$CURR_SIZE" -eq "$PREV_SIZE" ] && [ "$CURR_SIZE" -gt 0 ]; then
+            break
+        fi
+        PREV_SIZE="$CURR_SIZE"
+        sleep 2
+    done
+
+    /usr/local/bin/rightsub auto "$f"
+done
+```
+
+### ב-Windows: סקריפט ניטור ב-PowerShell (`rightsub_watcher.ps1`)
+שמרו את הסקריפט הבא והפעילו אותו בעליית המחשב (או דרך ה-Windows Task Scheduler):
+
+```powershell
+param (
+    [string]$WatchFolder = "C:\Users\$env:USERNAME\Downloads"
+)
+
+Write-Host "[*] RightSub Folder Watcher פעיל על התיקייה: $WatchFolder"
+$watcher = New-Object System.IO.FileSystemWatcher $WatchFolder, "*.*" -Property @{
+    IncludeSubdirectories = $false
+    NotifyFilter = [System.IO.NotifyFilters]::FileName -bor [System.IO.NotifyFilters]::LastWrite
+}
+
+Register-ObjectEvent $watcher "Created" -Action {
+    $path = $Event.SourceEventArgs.FullPath
+    $ext = [System.IO.Path]::GetExtension($path).ToLower()
+    if ($ext -notin @(".mkv", ".mp4", ".avi", ".srt")) { return }
+
+    # המתנה עד שהקובץ משתחרר לחלוטין מנעילת כתיבה (ההעתקה הסתיימה)
+    while ($true) {
+        try {
+            $stream = [System.IO.File]::Open($path, 'Open', 'Read', 'None')
+            $stream.Close()
+            break
+        } catch {
+            Start-Sleep -Seconds 2
+        }
+    }
+
+    Write-Host "[+] מעבד קובץ שהושלם: $path"
+    rightsub auto "$path"
+}
+
+# השארת הסקריפט פעיל ברקע
+while ($true) { Start-Sleep -Seconds 60 }
+```
+
+---
+
+## 7. 💡 אימות ובדיקת פעולה (Troubleshooting)
 
 כדי לוודא שהתהליך האוטומטי מתבצע בצורה תקינה:
 1. הריצו פקודת סימולציה (Dry Run) על קובץ לדוגמה:

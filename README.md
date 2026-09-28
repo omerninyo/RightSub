@@ -49,6 +49,7 @@ rightsub auto ~/Movies/Breaking_Bad_S01/
 - **Hebrew Subtitle (`.srt`)**: RightSub instantly fixes reversed punctuation (`? ! .`), converts legacy encodings to UTF-8, strips ads, and masters the file for Plex & Infuse. 
 - **Video File (`.mkv` / `.mp4`)**: RightSub extracts embedded subtitles, transcribes audio if needed, and builds AI-ready translation waves.
 - **Torrents & Seeding Protected (Seed-Safe)**: When encountering non-standard subtitles (e.g. `Movie.srt`), RightSub creates a clean `Movie.he.srt` copy while leaving the original file 100% bit-for-bit intact so active torrent seeding is never broken.
+- **Home Media Automation (Set-and-Forget)**: Plug RightSub into **qBittorrent**, **Sonarr**, **Radarr**, **Bazarr**, or **Transmission** to run seamlessly in the background without needing a heavy 24/7 daemon. See [Home Media Integrations Guide](docs/INTEGRATIONS_GUIDE.md).
 
 ---
 
@@ -94,6 +95,33 @@ RightSub structures the translation process so you can use **any AI model or ass
 
 3. **Auto-Merge & Validate**:
    RightSub automatically merges translated JSON batches back into a pristine `.he.srt` file, enforces 1:1 line matching, and applies full BiDi formatting.
+
+---
+
+## 🔄 Home Media Automation & Integrations (Set-and-Forget)
+
+> **Key Integrations & Keywords**: `qBittorrent` • `Sonarr` • `Radarr` • `Bazarr` • `Transmission` • `Tautulli/Plex` • `Background Watchers & Daemons` • `Seed-Safe`
+
+RightSub is engineered to integrate natively into automated home media and seedbox stacks in a 100% hands-off workflow.
+
+### The Recommended 2-Phase Strategy
+1. **Retroactive Batch Fix (Run Once)**: Clean and master your entire existing media library:
+   ```bash
+   # Windows:
+   rightsub auto "C:\Media\TV Shows"
+
+   # macOS / Linux:
+   rightsub auto /Volumes/Media/TV_Shows
+   ```
+2. **Ongoing Event-Driven Ingress (Set-and-Forget)**: Attach RightSub to your downloaders or `*arr` managers to process new media the millisecond it finishes downloading.
+
+### Why Event-Driven Hooks Beat a 24/7 Background Daemon
+Unlike heavy background daemons that poll filesystems 24/7 and risk corrupting multi-gigabyte files while they are still being written, RightSub's **Event-Driven Hook Architecture** operates with:
+- 🛡️ **Zero Race Conditions**: Executes only on completed, hash-verified files.
+- ⚡ **Zero Idle Overhead**: 0% CPU and 0 MB RAM when idle.
+- 🔒 **Seed-Safe by Default**: Duplicates into `.he.srt`, leaving original downloaded torrent files 100% bit-for-bit intact so active seeding never breaks.
+
+👉 **Read the full [Home Media & Download Integrations Guide](docs/INTEGRATIONS_GUIDE.md)** for copy-pasteable configurations for qBittorrent, Sonarr, Radarr, Bazarr, Transmission, and native OS Folder Watchers.
 
 ---
 
@@ -315,7 +343,7 @@ Tests cover:
 - 📐 **[Hebrew BiDi & Plex/Infuse Guide](docs/BIDI_AND_PLEX_GUIDE.md)** — Deep dive into invisible RLM marks and punctuation reversal.
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
 - ⚖️ **[RightSub vs. Bazarr Technical Comparison](docs/COMPARISON_BAZARR.md)** — Architectural breakdown, differences, and integration guide.
-- 🔄 **[Home Media & Download Integrations (qBittorrent, Sonarr, Radarr, Bazarr)](docs/INTEGRATIONS_GUIDE.md)** — Automated hands-off pipeline setups.
+- 🔄 **[Home Media & Download Integrations (qBittorrent, Sonarr, Radarr, Bazarr, Daemons)](docs/INTEGRATIONS_GUIDE.md)** — Automated hands-off pipeline setups, why event hooks beat background daemons, and folder watcher scripts.
 - 🔮 **[Future Interactive CLI Specification](docs/FUTURE_INTERACTIVE_CLI.he.md)** — Interactive CLI wizard specification and design.
 - 🌐 **[Future MCP Server Specification](docs/FUTURE_MCP_SERVER.he.md)** — RightSub Model Context Protocol (MCP) server architecture.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.

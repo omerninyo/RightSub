@@ -3,11 +3,43 @@
 > **Overview**: Automate RightSub across your home lab and media server stack. Run subtitle mastering, BiDi correction, and translation in a 100% hands-off "Set-and-Forget" workflow.
 
 This guide provides tested, copy-pasteable configurations for the most popular home media tools across **Windows** and **macOS/Linux**:
+0. [The Recommended 2-Phase Strategy & Daemon Architecture](#0-the-recommended-2-phase-strategy--daemon-architecture)
 1. [qBittorrent (Run on Completion & Seed-Safe)](#1-qbittorrent-torrent-completion-hook)
 2. [Sonarr & Radarr (Custom Connect Scripts)](#2-sonarr--radarr-connect-scripts)
 3. [Bazarr (Custom Post-Processing Hook)](#3-bazarr-post-processing-hook)
 4. [Transmission (Torrent Completion Script)](#4-transmission-completion-script)
 5. [Tautulli / Plex (Recently Added Webhook)](#5-tautulli--plex-recently-added-hook)
+6. [Standalone OS Folder Watchers (Non-Arr / Manual Setups)](#6-standalone-os-folder-watchers-non-arr--manual-setups)
+7. [Troubleshooting & Verifying Integrations](#7-troubleshooting--verifying-integrations)
+
+---
+
+## 0. The Recommended 2-Phase Strategy & Daemon Architecture
+
+Before configuring individual hooks, understand RightSub's architectural philosophy:
+
+### ⚙️ The 2-Phase Setup
+1. **Phase 1: One-Off Retroactive Library Fix**  
+   Run RightSub once across your existing media library to normalize legacy files:
+   ```bash
+   # Windows:
+   rightsub auto "C:\Media\TV Shows"
+
+   # macOS / Linux:
+   rightsub auto /Volumes/Media/TV_Shows
+   ```
+   RightSub recursively scans all subdirectories, converts CP1255/Windows-1255 to UTF-8, injects BiDi RLM marks for Plex, sanitizes ads/SDH, and creates `.he.srt` files without modifying original torrent downloads.
+2. **Phase 2: Ongoing Hands-Off Ingress (Event-Driven Hooks)**  
+   From this point forward, you do **not** need a heavy background scanner. You configure your download clients (qBittorrent, Sonarr, Radarr, Bazarr) to invoke RightSub **only when new media finishes downloading**.
+
+### 🏛️ Why Event-Driven Hooks Beat a 24/7 Background Daemon
+
+Users often ask: *"Why doesn't RightSub run as a continuous background daemon/service that polls folders?"*
+
+In home media pipelines, a continuous folder watcher daemon is an **architectural anti-pattern**:
+1. **Race Conditions on Active Writes**: When a torrent client downloads a 15GB video file or unpacks a release, the file is being written continuously for minutes or hours. A folder watcher daemon triggers immediately upon file creation and attempts to read or lock an incomplete, partially-written file—causing crashes or corrupt outputs.
+2. **Zero Idle Resource Consumption**: A background daemon keeps a Python runtime loaded in RAM 24/7 (~40–80 MB) and continually wakes CPU cores for filesystem polling. Event-driven hooks consume **0% CPU and 0 MB RAM**—RightSub is spawned only when an item finishes, does its work, and immediately terminates.
+3. **Atomic Execution**: Download managers know with 100% cryptographic certainty when a file is fully downloaded, verified against its torrent hash, and closed. Invoking RightSub at that exact instant guarantees complete safety.
 
 ---
 
@@ -160,7 +192,78 @@ For users running Tautulli alongside Plex Media Server who want automated subtit
 
 ---
 
-## 💡 Troubleshooting & Verifying Integrations
+## 6. Standalone OS Folder Watchers (Non-Arr / Manual Setups)
+
+If you do **not** use automated download managers (such as qBittorrent, Sonarr, or Radarr) and instead manually copy or drop files into a folder, you can configure a native OS-level watcher with **write-settle protection**:
+
+### macOS: Folder Action with Write-Settle Loop
+Create an Automator Folder Action on your target folder (e.g. `~/Downloads` or `/Volumes/Media/Incoming`) with a **Run Shell Script** action:
+
+```bash
+#!/usr/bin/env bash
+for f in "$@"; do
+    # Only process video and subtitle files
+    case "$f" in
+        *.mkv|*.mp4|*.avi|*.srt) ;;
+        *) continue ;;
+    esac
+
+    # Ensure file is completely written and unlocked before processing
+    PREV_SIZE=-1
+    while true; do
+        CURR_SIZE=$(stat -f%z "$f" 2>/dev/null || echo 0)
+        if [ "$CURR_SIZE" -eq "$PREV_SIZE" ] && [ "$CURR_SIZE" -gt 0 ]; then
+            break
+        fi
+        PREV_SIZE="$CURR_SIZE"
+        sleep 2
+    done
+
+    /usr/local/bin/rightsub auto "$f"
+done
+```
+
+### Windows: PowerShell Folder Watcher (`rightsub_watcher.ps1`)
+Save this script and launch it at startup (or via Windows Task Scheduler):
+
+```powershell
+param (
+    [string]$WatchFolder = "C:\Users\$env:USERNAME\Downloads"
+)
+
+Write-Host "[*] RightSub Folder Watcher active on: $WatchFolder"
+$watcher = New-Object System.IO.FileSystemWatcher $WatchFolder, "*.*" -Property @{
+    IncludeSubdirectories = $false
+    NotifyFilter = [System.IO.NotifyFilters]::FileName -bor [System.IO.NotifyFilters]::LastWrite
+}
+
+Register-ObjectEvent $watcher "Created" -Action {
+    $path = $Event.SourceEventArgs.FullPath
+    $ext = [System.IO.Path]::GetExtension($path).ToLower()
+    if ($ext -notin @(".mkv", ".mp4", ".avi", ".srt")) { return }
+
+    # Wait until file handle is unlocked (copy/download complete)
+    while ($true) {
+        try {
+            $stream = [System.IO.File]::Open($path, 'Open', 'Read', 'None')
+            $stream.Close()
+            break
+        } catch {
+            Start-Sleep -Seconds 2
+        }
+    }
+
+    Write-Host "[+] Processing completed file: $path"
+    rightsub auto "$path"
+}
+
+# Keep script running
+while ($true) { Start-Sleep -Seconds 60 }
+```
+
+---
+
+## 7. 💡 Troubleshooting & Verifying Integrations
 
 To test that your automated pipeline is executing correctly:
 1. Run a manual dry run on a sample file:
