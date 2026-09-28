@@ -1,5 +1,9 @@
 <div dir="rtl">
 
+<p align="center">
+  <img src="docs/assets/banner.png" alt="RightSub — סוויטת מאסטרינג, השבחה ותרגום כתוביות אוניברסלית" width="100%" />
+</p>
+
 # 🎬 RightSub — סוויטת מאסטרינג, השבחה ותרגום כתוביות אוניברסלית
 
 <p align="right">

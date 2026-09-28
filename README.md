@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="RightSub — Universal Subtitle Mastering & Translation Suite" width="100%" />
+</p>
+
 # 🎬 RightSub — Universal Subtitle Mastering & Translation Suite
 
 <p align="left">
