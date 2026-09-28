@@ -10,6 +10,7 @@
 - **[TMDb Metadata & Entity Resolution](TMDb-Integration)**
 - **[AI Assistants & Integration](AI-Integration-Guide)**
 - **[⚖️ RightSub vs. Bazarr Comparison](Bazarr-Comparison)**
+- **[🔄 Home Media & Download Integrations](Integrations-Guide)**
 - **[Boston Legal Case Study](Boston-Legal-Case-Study)**
 - **[CLI Reference](Home#cli-commands-reference)**
 
@@ -25,6 +26,7 @@
 - **[אינטגרציית TMDb (עלילה ומגדר)](אינטגרציית-TMDb)**
 - **[חיבור לכלי בינה מלאכותית (AI)](מדריך-חיבור-לכלי-בינה-מלאכותית)**
 - **[⚖️ השוואה טכנית מול Bazarr](השוואה-מול-Bazarr)**
+- **[🔄 מדריך אינטגרציות ואוטומציה לשרתי מדיה](מדריך-אינטגרציות-ואוטומציה)**
 - **[מקרה בוחן - בוסטון ליגל](מקרה-בוחן-בוסטון-ליגל)**
 - **[מדריך פקודות CLI](Home-HE#מדריך-פקודות-cli-מלא)**
 

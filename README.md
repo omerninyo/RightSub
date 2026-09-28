@@ -315,6 +315,7 @@ Tests cover:
 - 📐 **[Hebrew BiDi & Plex/Infuse Guide](docs/BIDI_AND_PLEX_GUIDE.md)** — Deep dive into invisible RLM marks and punctuation reversal.
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
 - ⚖️ **[RightSub vs. Bazarr Technical Comparison](docs/COMPARISON_BAZARR.md)** — Architectural breakdown, differences, and integration guide.
+- 🔄 **[Home Media & Download Integrations (qBittorrent, Sonarr, Radarr, Bazarr)](docs/INTEGRATIONS_GUIDE.md)** — Automated hands-off pipeline setups.
 - 🔮 **[Future Interactive CLI Specification](docs/FUTURE_INTERACTIVE_CLI.he.md)** — Interactive CLI wizard specification and design.
 - 🌐 **[Future MCP Server Specification](docs/FUTURE_MCP_SERVER.he.md)** — RightSub Model Context Protocol (MCP) server architecture.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.

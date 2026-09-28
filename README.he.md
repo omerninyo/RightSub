@@ -318,6 +318,7 @@ pytest -v
 - 📐 **[מדריך כיווניות (BiDi) ותיקון Plex/Infuse](docs/BIDI_AND_PLEX_GUIDE.he.md)** — הסבר מעמיק על תו ה-RLM ופתרון היפוך סימני פיסוק.
 - 🔄 **[תהליך עבודה מלא מקצה לקצה (Pipeline)](docs/PIPELINE_WORKFLOW.he.md)** — שלב אחר שלב מווידאו גולמי לכתובית מושלמת.
 - ⚖️ **[השוואה טכנית מול Bazarr](docs/COMPARISON_BAZARR.he.md)** — פירוט הבדלים ארכיטקטוניים, מתי להשתמש בכל כלי ואיך לשלב ביניהם.
+- 🔄 **[מדריך אינטגרציות ואוטומציה לשרתי מדיה](docs/INTEGRATIONS_GUIDE.he.md)** — חיבור אוטומטי ל-qBittorrent, Sonarr, Radarr, Bazarr ו-Tautulli בתצורת "הגדר ושכח".
 - 🔮 **[מפרט אשף פקודה אינטראקטיבי עתידי](docs/FUTURE_INTERACTIVE_CLI.he.md)** — תכנון ממשק שיחה וסוכן מסוף CLI.
 - 🌐 **[מפרט שרת RightSub MCP עתידי](docs/FUTURE_MCP_SERVER.he.md)** — ארכיטקטורת שרת Model Context Protocol לסוכני AI.
 - 📖 **[GitHub Wiki הרשמי](https://github.com/omerninyo/RightSub/wiki)** — תיעוד מקוון מלא ודו-לשוני.
