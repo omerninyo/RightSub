@@ -8,21 +8,196 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
+[![Platform: Windows & macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-51%2F51%20Passing-success.svg)]()
+[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-69%2F69%20Passing-success.svg)]()
 [![Benchmark: 101/101 Episodes](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
-> **Subtitles Done Right — from BiDi & SDH Cleaning to Multi-Agent AI Translation.**
+> **Subtitles Done Right — from 1-Click Plex & BiDi Repair to Autonomous Multi-Agent AI Translation.**
 
-**RightSub** is a high-performance, production-grade CLI and framework designed to repair, clean, synchronize, translate, and format subtitles for **ANY movie or television series**.
+**RightSub** is a high-performance CLI suite and Python framework designed to repair, clean, synchronize, translate, and format subtitles for **ANY movie or television series** across **Windows** and **macOS**.
 
-Whether you need to fix reversed punctuation in Plex, strip annoying `[MUSIC PLAYING]` SDH sound cues, convert legacy Windows-1255 CP1255 gibberish to clean UTF-8, stretch framerates from 25 FPS to 23.976 FPS, or autonomously translate an entire 24-episode season using multi-agent AI, **RightSub** handles the complete subtitle lifecycle end-to-end.
+Whether you want to fix reversed question marks in Plex on your Apple TV, convert unreadable Windows-1255 CP1255 Hebrew gibberish to clean UTF-8, strip annoying `[MUSIC PLAYING]` noise cues, fix framerate sync drifts, or translate an entire TV season using AI agents, RightSub gives you a dead-simple, reliable workflow.
 
 ---
 
-## 🏛️ Architecture
+## ⚡ Quickstart in 30 Seconds
 
-RightSub cleanly separates high-level workflow commands from its two underlying core engines:
+Got a video or subtitle file that needs fixing or translation? **You only need one command.**
+
+Type `rightsub auto ` and simply **drag & drop** the file or folder into your terminal:
+
+### Windows (Command Prompt / PowerShell):
+```cmd
+rightsub auto "C:\Movies\Inception.he.srt"
+:: Or for an entire TV season:
+rightsub auto "C:\TV Shows\Breaking Bad Season 1"
+```
+
+### macOS / Linux (Terminal):
+```bash
+rightsub auto ~/Movies/Inception.he.srt
+# Or for an entire TV season:
+rightsub auto ~/Movies/Breaking_Bad_S01/
+```
+
+### What happens automatically?
+- **Hebrew Subtitle (`.srt`)**: RightSub instantly fixes reversed punctuation (`? ! .`), converts legacy encodings to UTF-8, strips ads, and masters the file for Plex & Infuse. 
+- **Video File (`.mkv` / `.mp4`)**: RightSub extracts embedded subtitles, transcribes audio if needed, and builds AI-ready translation waves.
+- **Torrents & Seeding Protected (Seed-Safe)**: When encountering non-standard subtitles (e.g. `Movie.srt`), RightSub creates a clean `Movie.he.srt` copy while leaving the original file 100% bit-for-bit intact so active torrent seeding is never broken.
+
+---
+
+## 🎯 Choose Your Track
+
+RightSub is organized into two distinct paths:
+
+### Track 1: Fix Existing Subtitles (100% Offline & Free)
+*No AI required. No API keys. Zero cloud bandwidth.*
+
+- **Plex & Infuse BiDi Fix**: Injects invisible Right-to-Left Marks (`\u200F` / RLM) so punctuation and dashes never flip to the wrong side on Apple TV, Android TV, LG WebOS, Infuse, and VLC.
+- **Encoding Rescue**: Automatically detects CP1255 / Windows-1255 / ISO-8859-8 and converts to modern UTF-8.
+- **SDH Cleaner**: Strips hearing-impaired noise descriptors (`[CHEERING]`, `♪ Pop music ♪`) while strictly preserving dialogue timing.
+- **Ad & Watermark Stripper**: Removes release group spam, site URLs, and promotional lines.
+
+```bash
+# Windows:
+rightsub fix-plex "C:\Movies\Season 01" --recursive --clean-ads
+
+# macOS / Linux:
+rightsub fix-plex ~/Movies/Season_01 --recursive --clean-ads
+```
+
+---
+
+### Track 2: Translate English Media to Hebrew with AI
+*Translate entire movies or 24-episode seasons with full character context and zero hallucinations.*
+
+RightSub structures the translation process so you can use **any AI model or assistant you already have**:
+
+1. **Prepare Batches & Context**:
+   ```bash
+   rightsub auto "Movie.mkv"
+   ```
+   RightSub splits dialogue into optimal ~210-cue batches, resolves character genders via TMDb (e.g. `את/היא` vs `אתה/הוא`), and produces ready-to-use prompts.
+
+2. **Translate with Your AI Assistant**:
+   - **Coding AI Agents**: Antigravity, Claude Code, Cursor, Codex — paste the generated wave prompts.
+   - **Free Local LLM (100% Offline)**: Run with [Ollama](https://ollama.ai) using:
+     ```bash
+     rightsub auto "Movie.mkv" --ollama
+     ```
+
+3. **Auto-Merge & Validate**:
+   RightSub automatically merges translated JSON batches back into a pristine `.he.srt` file, enforces 1:1 line matching, and applies full BiDi formatting.
+
+---
+
+## 📦 Installation & Setup
+
+RightSub offers equal, first-class support for both **Windows** and **macOS/Linux**:
+
+### Windows (CMD / PowerShell)
+1. **Clone or Download** the repository:
+   ```cmd
+   git clone https://github.com/omerninyo/RightSub.git
+   cd RightSub
+   ```
+2. **Run the Windows Installer**:
+   Double-click `install.bat` (or execute it in CMD):
+   ```cmd
+   install.bat
+   ```
+   *The installer verifies Python 3, installs dependencies from `requirements.txt`, and prepares global wrappers.*
+3. **Run from anywhere**:
+   Use `rightsub.bat` or `python rightsub.py`:
+   ```cmd
+   rightsub auto "Movie.mkv"
+   ```
+
+### macOS / Linux (Terminal)
+Choose any of the following 3 options:
+
+- **Option A: Fast Local Install (Recommended)**:
+  ```bash
+  git clone https://github.com/omerninyo/RightSub.git
+  cd RightSub
+  ./install.sh
+  ```
+  *Symlinks `rightsub` globally to `~/.local/bin/rightsub`.*
+
+- **Option B: One-Liner Remote Install**:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh | bash
+  ```
+
+- **Option C: Official Homebrew Tap**:
+  ```bash
+  brew install omerninyo/tap/rightsub
+  ```
+
+---
+
+## 💻 Everyday CLI Recipes
+
+### Recipe 0: Autonomous One-Command Runner (Zero Flags / Zero Hassle)
+```bash
+# Auto-repair Hebrew subtitle (BiDi RLM, ad stripping, automatic backup):
+rightsub auto "Movie.he.srt"
+
+# Auto-process video file (extract/transcribe subtitles and build batches):
+rightsub auto "Movie.mkv"
+
+# 100% offline, free local translation using Ollama (Llama 3, Qwen):
+rightsub auto "Movie.mkv" --ollama
+
+# Auto-scan and process entire TV season or complete media library:
+rightsub auto "/path/to/Season 01/"
+```
+
+### Recipe 1: Standalone Hebrew Fix for Plex / Infuse Library
+```bash
+# Option A: Fix a single file in-place:
+rightsub fix-plex "Movie.he.srt" --in-place
+
+# Option B: Fix multiple specific files:
+rightsub fix-plex "Ep01.he.srt" "Ep02.he.srt" "Ep03.he.srt" --in-place
+
+# Option C: Preview changes safely on a whole folder (Dry Run):
+rightsub fix-plex /path/to/TV_Shows/ --recursive --clean-ads --dry-run
+
+# Option D: Apply in-place recursively with automatic backups (.srt.bak):
+rightsub fix-plex /path/to/TV_Shows/ --recursive --in-place --clean-ads --backup
+```
+
+### Recipe 2: Extract Embedded Subtitles from Video Containers
+```bash
+rightsub extract "Movie.mkv" -o "Movie.en.srt" --lang eng
+```
+
+### Recipe 3: Fix 25 FPS to 23.976 FPS (Framerate Desync)
+Stretch subtitles extracted from PAL DVDs or European TV to match US Web-DL / BluRay rips:
+```bash
+rightsub adjust-fps "PAL_sub.srt" -o "synced_sub.srt"
+```
+
+### Recipe 4: Translate a Movie or Episode with AI
+```bash
+# 1. Generate translation batches and agent wave prompts:
+rightsub prompt-gen "Episode01.en.srt" -t "Inception" -g "Sci-Fi Action"
+
+# 2. Merge translated JSON batches into final Hebrew SRT with full SubRefine BiDi:
+rightsub merge "Episode01.en.srt" "prompts_Inception" -o "Episode01.he.srt"
+
+# 3. Run comprehensive Red Team QA audit:
+rightsub qa "Episode01.en.srt" "Episode01.he.srt"
+```
+
+---
+
+## 🏛️ Advanced Architecture & Core Engines
+
+For developers and power users, RightSub cleanly separates high-level workflow commands from its two underlying core algorithmic engines:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -46,10 +221,6 @@ RightSub cleanly separates high-level workflow commands from its two underlying 
 └─────────────────────────────────┘   └───────────────────────────────────┘
 ```
 
----
-
-## ✨ Key Capabilities
-
 ### 1. 🧼 The SubRefine Engine (Sanitization, SDH & BiDi)
 - **Zero-Reverse Punctuation on Plex & Infuse**: Automatically injects invisible Right-to-Left Marks (`\u200F` / RLM) at line starts and trailing punctuation (`?`, `!`, `.`, `:`, `-`), preventing punctuation from flipping to the wrong side of the screen on Apple TV, Android TV, Infuse, and VLC.
 - **Hearing-Impaired (SDH) Cleaner**: Intelligently removes descriptive auditory noise like `[DOOR CLOSES]`, `(CHEERING)`, `♪ Pop music ♪` while strictly preserving dialogue timing blocks.
@@ -72,122 +243,23 @@ RightSub cleanly separates high-level workflow commands from its two underlying 
 
 ---
 
-## 🚀 Quick Global Installation
-
-> [!TIP]
-> For the comprehensive guide on setting up a personal **Homebrew Tap** (`brew install`), see the **[📦 Global Installation Guide](docs/INSTALLATION_GUIDE.md)**.  
-> For the simplest step-by-step beginner guide, see the **[🔰 Quickstart for Beginners](docs/QUICKSTART_FOR_BEGINNERS.md)**.
-
-### Option 1: Fast Local Install (Recommended for Mac users):
-```bash
-git clone https://github.com/omerninyo/RightSub.git
-cd RightSub
-./install.sh
-```
-*The installer checks Python 3 & FFmpeg, installs dependencies, and links `rightsub` globally to `~/.local/bin/rightsub`. You can now run `rightsub` from any terminal directory!*
-
-### Option 2: Remote One-Liner Install:
-```bash
-curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh | bash
-```
-
-### Option 3: Official Homebrew Tap Install:
-```bash
-brew install omerninyo/tap/rightsub
-```
-
-### Windows Users (CMD / PowerShell):
-RightSub includes native Windows batch wrappers (`rightsub.bat` and `rightsub.cmd`). Run directly in Command Prompt or PowerShell:
-```cmd
-rightsub auto "Movie.mkv"
-# Or:
-python rightsub.py auto "Movie.mkv"
-```
-
----
-
-### 💻 CLI Usage Recipes
-
-### Recipe 0: Autonomous One-Command Runner (Zero Flags / Zero Hassle)
-Simply drag and drop a file or directory into the terminal after the command:
-```bash
-# Auto-repair Hebrew subtitle (BiDi RLM, ad stripping, automatic backup):
-./rightsub auto "Movie.he.srt"
-
-# Auto-process video file (extract/transcribe subtitles and build batches):
-./rightsub auto "Movie.mkv"
-
-# 100% offline, free local translation using Ollama (Llama 3, Qwen):
-./rightsub auto "Movie.mkv" --ollama
-
-# Auto-scan and process entire TV season or complete media library:
-./rightsub auto "/path/to/Season 01/"
-```
-
-> [!TIP]
-> **Seed-Safe By Default (Torrent Seeding Protection)**:
-> When RightSub encounters non-standard Hebrew subtitles (like `Movie.srt` or `Movie.heb.srt`), it **duplicates** them to `Movie.he.srt` and masters the copy for Plex/Infuse. The original file remains 100% bit-for-bit intact so active torrent seeding and file hashes are never broken.
-> To replace and rename the original subtitle file instead of duplicating, pass `--replace-original`.
-
-### Recipe 1: Standalone Hebrew Fix for Plex / Infuse Library
-Fix punctuation flips, convert legacy encodings to UTF-8, and clean ads in-place. The tool automatically detects Hebrew and safely skips English/foreign subtitles:
-```bash
-# Option A: Fix a single file
-./rightsub fix-plex "Movie.he.srt" --in-place
-
-# Option B: Fix multiple specific files
-./rightsub fix-plex "Ep01.he.srt" "Ep02.he.srt" "Ep03.he.srt" --in-place
-
-# Option C: Preview changes safely on a whole folder (Dry Run):
-./rightsub fix-plex /path/to/TV_Shows/ --recursive --clean-ads --dry-run
-
-# Option D: Apply in-place recursively with automatic backups (.srt.bak):
-./rightsub fix-plex /path/to/TV_Shows/ --recursive --in-place --clean-ads --backup
-```
-
-### Recipe 2: Extract Embedded Subtitles from Video Containers
-Discover and dump embedded English/Hebrew tracks from MKV/MP4 files:
-```bash
-./rightsub extract "Movie.mkv" -o "Movie.en.srt" --lang eng
-```
-
-### Recipe 3: Fix 25 FPS to 23.976 FPS (Framerate Desync)
-Stretch subtitles extracted from PAL DVDs or European TV to match US Web-DL / BluRay rips:
-```bash
-./rightsub adjust-fps "PAL_sub.srt" -o "synced_sub.srt"
-```
-
-### Recipe 4: Translate a Movie or Episode with AI
-```bash
-# 1. Generate translation batches and agent wave prompts:
-./rightsub prompt-gen "Episode01.en.srt" -t "Boston Legal S04E01" -g "Legal Comedy-Drama"
-
-# 2. Merge translated JSON batches into final Hebrew SRT with full SubRefine BiDi:
-./rightsub merge "Episode01.en.srt" "prompts_Boston Legal S04E01" -o "Episode01.he.srt"
-
-# 3. Run comprehensive Red Team QA audit:
-./rightsub qa "Episode01.en.srt" "Episode01.he.srt"
-```
-
----
-
 ## 📖 CLI Commands Reference
 
-| Command | Engine | Description | Example |
-| :--- | :---: | :--- | :--- |
-| `auto` | **All** | Zero-flag autonomous runner for single files, seasons, or directories | `./rightsub auto "Movie.mkv"` |
-| `translate-ollama` | **SubSwarm** | 100% offline local subtitle translation via Ollama (Llama 3, Qwen) | `./rightsub translate-ollama prompts_Movie` |
-| `fix-plex` | **SubRefine** | Fix BiDi, RLM, punctuation, CP1255 encoding & ads | `./rightsub fix-plex ./Season1/ -r -i --clean-ads` |
-| `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `./rightsub adjust-fps in.srt -o out.srt` |
-| `extract` | **SubRefine** | Extract subtitle tracks from MKV/MP4 using FFmpeg | `./rightsub extract video.mp4 -o video.en.srt` |
-| `transcribe` | **quicksubs** | On-device Speech-to-Subtitle transcription (Apple Speech / Whisper) | `./rightsub transcribe video.mp4 -e apple` |
-| `audio-sync` | **quicksubs** | Subtitle retiming and calibration guided by authoritative audio | `./rightsub audio-sync bad.srt -v video.mp4 -o fixed.srt` |
-| `sync` | **SubRefine** | Compare timing delta between English & Hebrew SRTs | `./rightsub sync master.en.srt download.he.srt` |
-| `bible` | **SubSwarm** | Generate Character & Terminology Bible from SRTs & TMDb | `./rightsub bible Season1/*.en.srt -o bible.json --tmdb` |
-| `split` | **SubSwarm** | Split master English SRT into ~210 cue JSON chunks | `./rightsub split episode.en.srt -o ./batches/` |
-| `prompt-gen` | **SubSwarm** | Generate AI translation prompt waves with Bible & Context Overlap | `./rightsub prompt-gen ep.en.srt -t "Inception" -b bible.json --overlap 5` |
-| `merge` | **Both** | Assemble translated JSONs into Hebrew SRT with RLM | `./rightsub merge ep.en.srt ./batches/ -o ep.he.srt` |
-| `qa` | **Both** | Zero-discrepancy 1:1 validation & gender mismatch audit | `./rightsub qa ep.en.srt ep.he.srt -b bible.json --strict-gender` |
+| Command | Engine | Description | Windows Example | macOS / Linux Example |
+| :--- | :---: | :--- | :--- | :--- |
+| `auto` | **All** | Zero-flag autonomous runner for files, seasons, or directories | `rightsub auto "Movie.mkv"` | `rightsub auto "Movie.mkv"` |
+| `translate-ollama` | **SubSwarm** | 100% offline local subtitle translation via Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
+| `fix-plex` | **SubRefine** | Fix BiDi, RLM, punctuation, CP1255 encoding & ads | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
+| `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
+| `extract` | **SubRefine** | Extract subtitle tracks from MKV/MP4 using FFmpeg | `rightsub extract video.mp4 -o out.srt` | `rightsub extract video.mp4 -o out.srt` |
+| `transcribe` | **quicksubs** | On-device Speech-to-Subtitle transcription (Apple / Whisper) | `rightsub transcribe video.mp4` | `rightsub transcribe video.mp4` |
+| `audio-sync` | **quicksubs** | Subtitle retiming guided by authoritative audio | `rightsub audio-sync bad.srt -v vid.mp4 -o ok.srt` | `rightsub audio-sync bad.srt -v vid.mp4 -o ok.srt` |
+| `sync` | **SubRefine** | Compare timing delta between English & Hebrew SRTs | `rightsub sync master.en.srt dl.he.srt` | `rightsub sync master.en.srt dl.he.srt` |
+| `bible` | **SubSwarm** | Generate Character & Terminology Bible from SRTs & TMDb | `rightsub bible Season1/*.srt -o b.json --tmdb` | `rightsub bible Season1/*.srt -o b.json --tmdb` |
+| `split` | **SubSwarm** | Split master English SRT into ~210 cue JSON chunks | `rightsub split ep.en.srt -o ./batches/` | `rightsub split ep.en.srt -o ./batches/` |
+| `prompt-gen` | **SubSwarm** | Generate AI translation prompt waves with Bible & Context | `rightsub prompt-gen ep.en.srt -t "Title"` | `rightsub prompt-gen ep.en.srt -t "Title"` |
+| `merge` | **Both** | Assemble translated JSONs into Hebrew SRT with RLM | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` |
+| `qa` | **Both** | Zero-discrepancy 1:1 validation & gender mismatch audit | `rightsub qa ep.en.srt ep.he.srt` | `rightsub qa ep.en.srt ep.he.srt` |
 
 ---
 
@@ -209,7 +281,7 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (59 unit tests):
+RightSub comes with a comprehensive automated test suite (69 unit tests):
 ```bash
 pytest -v
 ```
@@ -225,17 +297,21 @@ Tests cover:
 - Framerate arithmetic and time shifting.
 - On-device STT CLI wrappers, fallback handlers, and audio-guided retiming algorithms.
 - TMDb API metadata resolution, smart media filename parsing, and deterministic gender mapping.
+- Documentation consistency, cross-platform parity, and valid link resolution.
 - Live verification of all 101 episodes in the media dataset.
 
 ---
 
 ## 📚 Documentation & Guides
 - 🔰 **[Quickstart for Beginners (Step-by-Step)](docs/QUICKSTART_FOR_BEGINNERS.md)** — Instant 30-second fix with zero jargon.
+- 📦 **[Global Installation & Packaging Guide](docs/INSTALLATION_GUIDE.md)** — Setting up Homebrew tap, Windows installer, and PATH configuration.
 - 🎙️ **[On-Device STT & Audio Alignment (`quicksubs`)](docs/QUICKSUBS_INTEGRATION.md)** — Speech-to-subtitle extraction and audio-grounded alignment.
 - 🎬 **[TMDb Metadata & Entity Resolution](docs/TMDB_INTEGRATION.md)** — Deterministic gender mapping, episodic guest stars, and dialect priming.
 - 🤖 **[AI Integration & Coding Assistants Guide](docs/AI_INTEGRATION_GUIDE.md)** — What needs AI vs. what runs locally, plus Antigravity, Claude Code, Gemini, and ChatGPT setups.
 - 📐 **[Hebrew BiDi & Plex/Infuse Guide](docs/BIDI_AND_PLEX_GUIDE.md)** — Deep dive into invisible RLM marks and punctuation reversal.
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
+- 🔮 **[Future Interactive CLI Specification](docs/FUTURE_INTERACTIVE_CLI.he.md)** — Interactive CLI wizard specification and design.
+- 🌐 **[Future MCP Server Specification](docs/FUTURE_MCP_SERVER.he.md)** — RightSub Model Context Protocol (MCP) server architecture.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.
 
 ---
@@ -248,4 +324,4 @@ Tests cover:
 ---
 
 ## 📄 License
-Released under the [MIT License](LICENSE).
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

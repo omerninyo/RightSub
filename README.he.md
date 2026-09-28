@@ -10,21 +10,196 @@
 
 [![רישיון: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![גרסת פייתון: 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
+[![פלטפורמה: Windows ו-macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![מאומת ל-Plex ו-Infuse](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-51%2F51%20Passing-success.svg)]()
+[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-69%2F69%20Passing-success.svg)]()
 [![בנצ׳מרק: 101/101 פרקים](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
-> **כתוביות כמו שצריך — מתיקון BiDi וניקוי SDH ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**
+> **כתוביות כמו שצריך — מתיקון מהיר ב-Plex ו-BiDi ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**
 
-**RightSub** היא סוויטת כלי CLI וספריית פייתון ברמת Production, שתוכננה ומיועדת לתקן, להשביח, לנקות, לסנכרן ולתרגם כתוביות עבור **כל סרט וכל סדרת טלוויזיה**.
+**RightSub** היא סוויטת כלי CLI וספריית פייתון ברמת Production, שתוכננה עבור **Windows** ועבור **macOS** במטרה לתקן, להשביח, לנקות, לסנכרן ולתרגם כתוביות עבור **כל סרט וכל סדרת טלוויזיה**.
 
-בין אם יש לכם צורך בתיקון פיסוק הפוך ב-Plex וב-Apple TV, ניקוי רעשי שמע מעצבנים לחירשים (`[מוזיקה מתנגנת]`), המרת קובצי ג'יבריש ישנים מקידוד Windows-1255 ל-UTF-8 תקין, מתיחת קצב פריימים (FPS) מ-25 ל-23.976, או תרגום מלא של עונה שלמה (24 פרקים) בזמן שיא בעזרת סוכני בינה מלאכותית — **RightSub** פותרת את כל מחזור החיים של הכתובית מקצה לקצה.
+בין אם אתם צריכים לתקן סימני שאלה הפוכים ב-Plex או ב-Apple TV, להמיר ג'יבריש מקידוד Windows-1255 ישן ל-UTF-8 תקין, לנקות רעשי שמע מעצבנים לחירשים (`[מוזיקה מתנגנת]`), לתקן בריחת סנכרון של פריימים (FPS), או לתרגם עונה שלמה בעזרת בינה מלאכותית — RightSub מעניקה תהליך עבודה פשוט, מהיר ומדויק.
 
 ---
 
-## 🏛️ ארכיטקטורת המערכת
+## ⚡ התחלה מהירה ב-30 שניות
 
-RightSub מפרידה באופן מודולרי וברור בין ממשק הפקודות (CLI) לבין שני מנועי הליבה שלה:
+יש לכם קובץ כתוביות או וידאו שצריך לתקן או לתרגם? **אתם צריכים פקודה אחת בלבד.**
+
+מקלידים `rightsub auto ` ופשוט **גוררים ומשחררים** את הקובץ או התיקייה ישירות אל חלון הפקודה:
+
+### Windows (Command Prompt / PowerShell):
+```cmd
+rightsub auto "C:\Movies\Inception.he.srt"
+:: או עבור עונה שלמה של סדרה:
+rightsub auto "C:\TV Shows\Breaking Bad Season 1"
+```
+
+### macOS / Linux (Terminal):
+```bash
+rightsub auto ~/Movies/Inception.he.srt
+# או עבור עונה שלמה של סדרה:
+rightsub auto ~/Movies/Breaking_Bad_S01/
+```
+
+### מה קורה באופן אוטומטי?
+- **קובץ כתוביות בעברית (`.srt`)**: RightSub מתקנת מיידית היפוכי פיסוק (`? ! .`), ממירה קידודי ג'יבריש ל-UTF-8, מנקה פרסומות ומתאימה את הקובץ ל-Plex ול-Infuse.
+- **קובץ וידאו (`.mkv` / `.mp4`)**: RightSub מחלצת כתוביות מובנות, מתמללת את האודיו במידת הצורך ומכינה מנות עבודה לתרגום.
+- **שמירה על שיתוף טורנטים (Seed-Safe)**: כאשר הכלי מזהה כתובית שאינה בעלת סיומת סטנדרטית (למשל `Movie.srt` או `Movie.heb.srt`), הוא משכפל אותה ל-`Movie.he.srt` ומתקן את העותק בלבד. קובץ המקור נשאר זהה ב-100% ברמת הביט, כך שה-Seeding אינו נפגע לעולם.
+
+---
+
+## 🎯 בחרו את מסלול השימוש שלכם
+
+RightSub מציעה שני מסלולי עבודה ברורים:
+
+### מסלול 1: השבחה ותיקון כתוביות קיימות (100% מקומי, חינמי וללא אינטרנט)
+*ללא צורך בבינה מלאכותית, ללא מפתחות API ואפס תלות בענן.*
+
+- **תיקון BiDi ל-Plex ו-Infuse**: הזרקה אוטומטית של תווי כיווניות סמויים (`\u200F` / RLM) כך שסימני פיסוק, מקפים ומספרים לא יתהפכו ב-Apple TV, Android TV, LG WebOS, Infuse ו-VLC.
+- **הצלת קידודים (Encoding Rescue)**: זיהוי והמרה אוטומטית של CP1255 / Windows-1255 / ISO-8859-8 ל-UTF-8 מודרני ונקי.
+- **ניקוי רעשי שמע (SDH Cleaner)**: הסרת תיאורי שמיעה כגון `[מחיאות כפיים]` או `♪ מוזיקת רקע ♪` תוך שמירה מוחלטת על תזמון הדיאלוג.
+- **ניקוי פרסומות וספאם**: הסרת שורות קרדיטים, אתרי טורנטים וקישורי טלגרם.
+
+```bash
+# Windows:
+rightsub fix-plex "C:\Movies\Season 01" --recursive --clean-ads
+
+# macOS / Linux:
+rightsub fix-plex ~/Movies/Season_01 --recursive --clean-ads
+```
+
+---
+
+### מסלול 2: תרגום סרטים וסדרות מאנגלית לעברית בעזרת AI
+*תרגום סרטים מלאים או עונות שלמות (24 פרקים) עם הקשר דמויות מלא וללא הזיות.*
+
+RightSub מארגנת את תהליך התרגום כך שתוכלו להשתמש **בכל מודל או צ'אט AI שכבר יש לכם**:
+
+1. **הכנת מנות והקשר עלילתי**:
+   ```bash
+   rightsub auto "Movie.mkv"
+   ```
+   RightSub מפצלת את הדיאלוג למנות אופטימליות של כ-210 כתוביות, פותרת את מגדר הדמויות מתוך TMDb (למשל `את/היא` מול `אתה/הוא`), ומפיקה פרומפטים מוכנים.
+
+2. **תרגום בעזרת סוכן ה-AI שלכם**:
+   - **סוכני קוד ובינה מלאכותית**: Antigravity, Claude Code, Cursor, ChatGPT, Gemini — מעתיקים את הפרומפטים שנוצרו ומקבלים את קובצי ה-JSON המתורגמים.
+   - **מודל שפה מקומי חינמי (100% אופליין)**: הרצה מקומית מלאה בעזרת [Ollama](https://ollama.ai):
+     ```bash
+     rightsub auto "Movie.mkv" --ollama
+     ```
+
+3. **מיזוג ובקרה אוטומטית (Merge & Validate)**:
+   RightSub ממזגת את המנות חזרה לכתובית `.he.srt` סופית, מוודאת התאמת 1:1 מדויקת ללא שמיטת שורות, ומזריקה עיצוב BiDi לפלקס.
+
+---
+
+## 📦 התקנה והגדרה
+
+RightSub מעניקה תמיכה מלאה ושווה הן עבור **Windows** והן עבור **macOS/Linux**:
+
+### משתמשי Windows (CMD / PowerShell)
+1. **הורדה או שכפול** של המאגר:
+   ```cmd
+   git clone https://github.com/omerninyo/RightSub.git
+   cd RightSub
+   ```
+2. **הרצת קובץ ההתקנה של חלונות**:
+   לחיצה כפולה על `install.bat` (או הרצתו בחלון CMD):
+   ```cmd
+   install.bat
+   ```
+   *המתקין מוודא קיום של Python 3, מתקין את התלויות מ-`requirements.txt` ומכין את קובצי ההפעלה.*
+3. **הרצה מכל מקום**:
+   השתמשו ב-`rightsub.bat` או ב-`python rightsub.py`:
+   ```cmd
+   rightsub auto "Movie.mkv"
+   ```
+
+### משתמשי macOS / Linux (Terminal)
+בחרו באחת מ-3 האפשרויות הנוחות:
+
+- **אפשרות א': התקנה מהירה מקומית (מומלץ)**:
+  ```bash
+  git clone https://github.com/omerninyo/RightSub.git
+  cd RightSub
+  ./install.sh
+  ```
+  *מייצר קישור גלובלי של `rightsub` ישירות אל `~/.local/bin/rightsub`.*
+
+- **אפשרות ב': התקנה מרחוק בפקודה אחת**:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh | bash
+  ```
+
+- **אפשרות ג': התקנה דרך Homebrew Tap**:
+  ```bash
+  brew install omerninyo/tap/rightsub
+  ```
+
+---
+
+## 💻 מתכוני שימוש נפוצים ב-CLI
+
+### מתכון 0: הפעלה אוטונומית בפקודה אחת (ללא דגלים / ללא סיבוך)
+```bash
+# טיפול אוטומטי בקובץ כתוביות (תיקון BiDi, פרסומות, גיבוי):
+rightsub auto "Movie.he.srt"
+
+# טיפול אוטומטי בקובץ וידאו (חילוץ/תמלול כתוביות והכנת מנות):
+rightsub auto "Movie.mkv"
+
+# תרגום מלא 100% מקומי וחינמי עם מודל שפה מקומי (Ollama):
+rightsub auto "Movie.mkv" --ollama
+
+# סריקה וטיפול בעונה שלמה או ספרייה מלאה:
+rightsub auto "/path/to/Season 01/"
+```
+
+### מתכון 1: תיקון כתוביות עבריות עבור ספריית Plex / Infuse
+```bash
+# אפשרות א': תיקון קובץ בודד במקום:
+rightsub fix-plex "Movie.he.srt" --in-place
+
+# אפשרות ב': תיקון מספר קבצים מוגדרים:
+rightsub fix-plex "Ep01.he.srt" "Ep02.he.srt" "Ep03.he.srt" --in-place
+
+# אפשרות ג': תצוגה מקדימה ללא שינוי קבצים (Dry Run):
+rightsub fix-plex /path/to/TV_Shows/ --recursive --clean-ads --dry-run
+
+# אפשרות ד': תיקון רקורסיבי על ספריה שלמה עם גיבוי אוטומטי (.srt.bak):
+rightsub fix-plex /path/to/TV_Shows/ --recursive --in-place --clean-ads --backup
+```
+
+### מתכון 2: חילוץ כתוביות מובנות מתוך קובצי וידאו
+```bash
+rightsub extract "Movie.mkv" -o "Movie.en.srt" --lang eng
+```
+
+### מתכון 3: תיקון בריחת סנכרון (מ-25 FPS ל-23.976 FPS)
+מתיחת כתוביות שנלקחו משידור טלוויזיה או DVD אירופי (PAL) כדי שיתאימו לגרסת Web-DL או BluRay:
+```bash
+rightsub adjust-fps "PAL_sub.srt" -o "synced_sub.srt"
+```
+
+### מתכון 4: תרגום מלא של סרט או פרק באמצעות AI
+```bash
+# 1. הפקת מנות תרגום ופרומפטים מותאמים לסוכנים:
+rightsub prompt-gen "Episode01.en.srt" -t "Inception" -g "Sci-Fi Action"
+
+# 2. מיזוג מנות התרגום לקובץ SRT סופי עם מנוע SubRefine:
+rightsub merge "Episode01.en.srt" "prompts_Inception" -o "Episode01.he.srt"
+
+# 3. הרצת ביקורת איכות אוטומטית (QA):
+rightsub qa "Episode01.en.srt" "Episode01.he.srt"
+```
+
+---
+
+## 🏛️ ארכיטקטורה מתקדמת ומנועי הליבה
+
+למפתחים ולמשתמשים מתקדמים, RightSub מפרידה באופן מודולרי בין ממשק הפקודות (CLI) לבין שני מנועי הליבה שלה:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -49,10 +224,6 @@ RightSub מפרידה באופן מודולרי וברור בין ממשק הפ�
 └─────────────────────────────────┘   └───────────────────────────────────┘
 ```
 
----
-
-## ✨ יכולות מרכזיות
-
 ### 1. 🧼 מנוע SubRefine (השבחה, ניקוי ו-BiDi)
 - **אפס היפוכי פיסוק ב-Plex ו-Infuse**: הזרקה אוטומטית של תווי RLM סמויים (`\u200F`) בתחילת כל שורה ולפני סימני פיסוק סופיים (`?`, `!`, `.`, `:`, `-`), המונעת מהפיסוק לקפוץ לצד הלא נכון בנגני Apple TV, Android TV, LG WebOS, Infuse ו-VLC.
 - **ניקוי רעשי שמע (SDH Cleaner)**: זיהוי והסרה חכמה של תיאורי שמיעה כגון `[דלת נטרקת]`, `(מחיאות כפיים)`, `♪ מוזיקת פופ ♪` תוך שמירה קפדנית על אינדקס התזמון של הדו-שיח.
@@ -75,122 +246,23 @@ RightSub מפרידה באופן מודולרי וברור בין ממשק הפ�
 
 ---
 
-## 🚀 התקנה גלובלית מהירה
-
-> [!TIP]
-> למדריך התקנה מלא הכולל יצירת **Homebrew Tap** רשמי (`brew install`), קראו את **[📦 מדריך ההתקנה הגלובלית וההפצה](docs/INSTALLATION_GUIDE.he.md)**.  
-> למדריך פשוט צעד-אחר-צעד, קראו את **[🔰 המדריך הפשוט למתחילים](docs/QUICKSTART_FOR_BEGINNERS.he.md)**.
-
-### אפשרות א': התקנה מהירה מקומית בפקודה אחת (מומלץ למשתמשי Mac):
-```bash
-git clone https://github.com/omerninyo/RightSub.git
-cd RightSub
-./install.sh
-```
-*הסקריפט מוודא קיום של Python 3 ו-FFmpeg, מתקין את התלויות, ומקשר את הפקודה `rightsub` ישירות לנתיב הגלובלי (`~/.local/bin/rightsub`). מרגע זה תוכלו להקליד `rightsub` מכל מקום בטרמינל!*
-
-### אפשרות ב': התקנה מרחוק בפקודה אחת:
-```bash
-curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh | bash
-```
-
-### אפשרות ג': התקנה רשמית דרך Homebrew Tap:
-```bash
-brew install omerninyo/tap/rightsub
-```
-
-### למשתמשי Windows (CMD / PowerShell):
-RightSub כולל קובצי הפעלה ייעודיים ל-Windows (`rightsub.bat` ו-`rightsub.cmd`). ניתן להריץ ישירות ב-Command Prompt או ב-PowerShell:
-```cmd
-rightsub auto "Movie.mkv"
-# או:
-python rightsub.py auto "Movie.mkv"
-```
-
----
-
-## 💻 מתכוני שימוש ב-CLI
-
-### מתכון 0: הפעלה אוטונומית בפקודה אחת (ללא דגלים / ללא סיבוך)
-פשוט גררו קובץ או תיקייה ישירות לחלון הטרמינל אחרי הפקודה:
-```bash
-# טיפול אוטומטי בקובץ כתוביות (תיקון BiDi, פרסומות, גיבוי):
-./rightsub auto "Movie.he.srt"
-
-# טיפול אוטומטי בקובץ וידאו (חילוץ/תמלול כתוביות והכנת מנות):
-./rightsub auto "Movie.mkv"
-
-# תרגום מלא 100% מקומי וחינמי עם מודל שפה מקומי (Ollama):
-./rightsub auto "Movie.mkv" --ollama
-
-# סריקה וטיפול בעונה שלמה או ספרייה מלאה:
-./rightsub auto "/path/to/Season 01/"
-```
-
-> [!TIP]
-> **בטוח לשיתוף טורנטים כברירת מחדל (Seed-Safe By Default)**:
-> כאשר RightSub נתקל בכתובית בעברית שאינה בעלת סיומת סטנדרטית (לדוגמה `Movie.srt` או `Movie.heb.srt` מטורנט), המערכת **משכפלת** אותה ל-`Movie.he.srt` ומתקנת את העותק עבור פלקס. קובץ המקור נשאר 100% ללא שינוי ברמת הביט (Hash זהה לחלוטין), כך ששיתוף הטורנט (Seeding) לא נפגע לעולם.
-> משתמשים המעוניינים לשנות את שם קובץ המקור ולהחליפו במקום לשכפל, יכולים להעביר את הדגל `--replace-original`.
-
-### מתכון 1: תיקון כתוביות עבריות עבור ספריית Plex / Infuse
-תיקון סימני פיסוק, המרת ג'יבריש מ-CP1255 ל-UTF-8 וניקוי פרסומות ישירות בספרייה. הסקריפט מזהה ומסנן אוטומטית כתוביות בעברית בלבד (ומדלג לחלוטין על כתוביות באנגלית ושפות זרות):
-```bash
-# אפשרות א': תיקון קובץ בודד
-./rightsub fix-plex "Movie.he.srt" --in-place
-
-# אפשרות ב': תיקון מספר קבצים מוגדרים
-./rightsub fix-plex "Ep01.he.srt" "Ep02.he.srt" "Ep03.he.srt" --in-place
-
-# אפשרות ג': תצוגה מקדימה ללא שינוי קבצים (Dry Run):
-./rightsub fix-plex /path/to/TV_Shows/ --recursive --clean-ads --dry-run
-
-# אפשרות ד': תיקון רקורסיבי על ספריה שלמה עם גיבוי אוטומטי (.srt.bak):
-./rightsub fix-plex /path/to/TV_Shows/ --recursive --in-place --clean-ads --backup
-```
-
-### מתכון 2: חילוץ כתוביות מובנות מתוך קובצי וידאו
-איתור וחילוץ ערוצי כתוביות מובנים (באנגלית או עברית) מתוך קובצי MKV או MP4:
-```bash
-./rightsub extract "Movie.mkv" -o "Movie.en.srt" --lang eng
-```
-
-### מתכון 3: תיקון בריחת סנכרון (מ-25 FPS ל-23.976 FPS)
-מתיחת כתוביות שנלקחו משידור טלוויזיה או DVD אירופי (PAL) כדי שיתאימו לגרסת Web-DL או BluRay:
-```bash
-./rightsub adjust-fps "PAL_sub.srt" -o "synced_sub.srt"
-```
-
-### מתכון 4: תרגום מלא של סרט או פרק באמצעות AI
-```bash
-# 1. הפקת מנות תרגום ופרומפטים מותאמים לסוכנים:
-./rightsub prompt-gen "Episode01.en.srt" -t "בוסטון ליגל עונה 4 פרק 1" -g "דרמה קומית משפטית"
-
-# 2. מיזוג מנות התרגום לקובץ SRT סופי עם מנוע SubRefine:
-./rightsub merge "Episode01.en.srt" "prompts_Boston Legal S04E01" -o "Episode01.he.srt"
-
-# 3. הרצת ביקורת איכות אוטומטית (QA):
-./rightsub qa "Episode01.en.srt" "Episode01.he.srt"
-```
-
----
-
 ## 📖 מדריך פקודות CLI מלא
 
-| פקודה | מנוע אחראי | תיאור | דוגמה להפעלה |
-| :--- | :---: | :--- | :--- |
-| `auto` | **הכל** | הפעלה אוטונומית שלמה (קובץ בודד, עונה או תיקייה) באפס דגלים | `./rightsub auto "Movie.mkv"` |
-| `translate-ollama` | **SubSwarm** | תרגום מקומי 100% חינמי ואופליין דרך Ollama (Llama 3, Qwen) | `./rightsub translate-ollama prompts_Movie` |
-| `fix-plex` | **SubRefine** | תיקון פיסוק, RLM, קידוד CP1255, ניקוי SDH וספאם | `./rightsub fix-plex ./Season1/ -r -i --clean-ads` |
-| `adjust-fps` | **SubRefine** | מתיחת פריימים (25 <-> 23.976) או הזזת אופסט | `./rightsub adjust-fps in.srt -o out.srt` |
-| `extract` | **SubRefine** | חילוץ כתוביות מווידאו (MKV/MP4) בעזרת FFmpeg | `./rightsub extract video.mp4 -o video.en.srt` |
-| `transcribe` | **quicksubs** | תמלול קולי מהיר ישירות מהשמע (Apple Speech / Whisper) | `./rightsub transcribe video.mp4 -e apple` |
-| `audio-sync` | **quicksubs** | סנכרון וכיול כתוביות מוסטות על בסיס ציר השמע | `./rightsub audio-sync bad.srt -v video.mp4 -o fixed.srt` |
-| `sync` | **SubRefine** | השוואת תזמונים בין כתובית מקור לכתובית חיצונית | `./rightsub sync master.en.srt download.he.srt` |
-| `bible` | **SubSwarm** | הפקת Translation Bible (דמויות, מונחים ומגדר מ-TMDb) | `./rightsub bible Season1/*.en.srt -o bible.json --tmdb` |
-| `split` | **SubSwarm** | פיצול SRT באנגלית למנות JSON של כ-210 שורות | `./rightsub split episode.en.srt -o ./batches/` |
-| `prompt-gen` | **SubSwarm** | מחולל פרומפטים וגלי סוכנים עם מילון דמויות וחפיפת הקשר | `./rightsub prompt-gen ep.en.srt -t "Inception" -b bible.json --overlap 5` |
-| `merge` | **שניהם** | מיזוג מנות תרגום ל-SRT סופי עם הזרקת RLM מלאה | `./rightsub merge ep.en.srt ./batches/ -o ep.he.srt` |
-| `qa` | **שניהם** | דוח בקרת איכות של 1-לאחד, טיהור תווים זרים ובדיקת מגדר | `./rightsub qa ep.en.srt ep.he.srt -b bible.json --strict-gender` |
+| פקודה | מנוע אחראי | תיאור | דוגמה ב-Windows | דוגמה ב-macOS / Linux |
+| :--- | :---: | :--- | :--- | :--- |
+| `auto` | **הכל** | הפעלה אוטונומית שלמה (קובץ בודד, עונה או תיקייה) | `rightsub auto "Movie.mkv"` | `rightsub auto "Movie.mkv"` |
+| `translate-ollama` | **SubSwarm** | תרגום מקומי 100% חינמי ואופליין דרך Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
+| `fix-plex` | **SubRefine** | תיקון פיסוק, RLM, קידוד CP1255, ניקוי SDH וספאם | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
+| `adjust-fps` | **SubRefine** | מתיחת פריימים (25 <-> 23.976) או הזזת אופסט | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
+| `extract` | **SubRefine** | חילוץ כתוביות מווידאו (MKV/MP4) בעזרת FFmpeg | `rightsub extract video.mp4 -o out.srt` | `rightsub extract video.mp4 -o out.srt` |
+| `transcribe` | **quicksubs** | תמלול קולי מהיר ישירות מהשמע (Apple Speech / Whisper) | `rightsub transcribe video.mp4` | `rightsub transcribe video.mp4` |
+| `audio-sync` | **quicksubs** | סנכרון וכיול כתוביות מוסטות על בסיס ציר השמע | `rightsub audio-sync bad.srt -v v.mp4 -o ok.srt` | `rightsub audio-sync bad.srt -v v.mp4 -o ok.srt` |
+| `sync` | **SubRefine** | השוואת תזמונים בין כתובית מקור לכתובית חיצונית | `rightsub sync master.en.srt dl.he.srt` | `rightsub sync master.en.srt dl.he.srt` |
+| `bible` | **SubSwarm** | הפקת Translation Bible (דמויות, מונחים ומגדר מ-TMDb) | `rightsub bible Season1/*.srt -o b.json --tmdb` | `rightsub bible Season1/*.srt -o b.json --tmdb` |
+| `split` | **SubSwarm** | פיצול SRT באנגלית למנות JSON של כ-210 שורות | `rightsub split ep.en.srt -o ./batches/` | `rightsub split ep.en.srt -o ./batches/` |
+| `prompt-gen` | **SubSwarm** | מחולל פרומפטים וגלי סוכנים עם מילון דמויות וחפיפה | `rightsub prompt-gen ep.en.srt -t "Inception"` | `rightsub prompt-gen ep.en.srt -t "Inception"` |
+| `merge` | **שניהם** | מיזוג מנות תרגום ל-SRT סופי עם הזרקת RLM מלאה | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` |
+| `qa` | **שניהם** | דוח בקרת איכות של 1-לאחד, טיהור תווים זרים ומגדר | `rightsub qa ep.en.srt ep.he.srt` | `rightsub qa ep.en.srt ep.he.srt` |
 
 ---
 
@@ -212,7 +284,7 @@ RightSub נבחנה ואומתה על גבי מערך נתונים הממודל 
 
 ## 🧪 בדיקות יחידה ואימות אוטומטי
 
-RightSub מגיעה עם סוויטת בדיקות מקיפה של 59 בדיקות יחידה עצמאיות:
+RightSub מגיעה עם סוויטת בדיקות מקיפה של 69 בדיקות יחידה עצמאיות:
 ```bash
 pytest -v
 ```
@@ -228,17 +300,21 @@ pytest -v
 - חישובי תזמון ומתיחת פריימים.
 - מעטפת CLI של quicksubs, מנגנוני Fallback ואלגוריתמי כיול תזמונים מונחי שמע.
 - פענוח מטא-דאטה מ-TMDb API, מפענח שמות קבצים חכם ושיוך מגדר דטרמיניסטי.
+- עקביות תיעוד מלאה, קישורים תקנים בדיסק ושמירה על שוויון בין Windows ל-macOS.
 - אימות חי של כל 101 הפרקים במאגר המדיה.
 
 ---
 
 ## 📚 מדריכים ותיעוד מלא
 - 🔰 **[מדריך פשוט למתחילים (צעד אחר צעד)](docs/QUICKSTART_FOR_BEGINNERS.he.md)** — פתרון מהיר ב-30 שניות ללא מושגים טכניים.
+- 📦 **[מדריך התקנה גלובלית והפצה](docs/INSTALLATION_GUIDE.he.md)** — הגדרת Homebrew tap, מתקין חלונות וקינפוג משתנה ה-PATH.
 - 🎙️ **[תמלול וסנכרון מקומי On-Device (`quicksubs`)](docs/QUICKSUBS_INTEGRATION.he.md)** — הפקת כתוביות משמע וכיול תזמונים מונחה אודיו.
 - 🎬 **[אינטגרציית TMDb (עלילה ומגדר)](docs/TMDB_INTEGRATION.he.md)** — שיוך מגדרי מאומת, שחקני אורח והזרקת דיאלקט לפרומפטים.
 - 🤖 **[מדריך חיבור לכלי בינה מלאכותית וסייעני קוד](docs/AI_INTEGRATION_GUIDE.he.md)** — מה דורש AI ומה רץ מקומית, ואיך לחבר את Antigravity, Claude Code, Gemini ו-ChatGPT.
 - 📐 **[מדריך כיווניות (BiDi) ותיקון Plex/Infuse](docs/BIDI_AND_PLEX_GUIDE.he.md)** — הסבר מעמיק על תו ה-RLM ופתרון היפוך סימני פיסוק.
 - 🔄 **[תהליך עבודה מלא מקצה לקצה (Pipeline)](docs/PIPELINE_WORKFLOW.he.md)** — שלב אחר שלב מווידאו גולמי לכתובית מושלמת.
+- 🔮 **[מפרט אשף פקודה אינטראקטיבי עתידי](docs/FUTURE_INTERACTIVE_CLI.he.md)** — תכנון ממשק שיחה וסוכן מסוף CLI.
+- 🌐 **[מפרט שרת RightSub MCP עתידי](docs/FUTURE_MCP_SERVER.he.md)** — ארכיטקטורת שרת Model Context Protocol לסוכני AI.
 - 📖 **[GitHub Wiki הרשמי](https://github.com/omerninyo/RightSub/wiki)** — תיעוד מקוון מלא ודו-לשוני.
 
 ---
@@ -250,7 +326,7 @@ pytest -v
 
 ---
 
-## 📄 רישיון
-הפרויקט מופץ תחת [רישיון MIT](LICENSE).
+## 📄 רישיון שימוש (License)
+פרויקט זה מופץ תחת רישיון MIT — לפרטים מלאים עיינו בקובץ [LICENSE](LICENSE).
 
 </div>
