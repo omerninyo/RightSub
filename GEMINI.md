@@ -26,3 +26,9 @@
 - Full adherence to `AI_INSTRUCTIONS.md`, `DETERMINISTIC_DECISION_TREE.md`, and generated `translation_bible.json`.
 - Strict line length limits (max 38-40 characters per line, max 2 lines per cue).
 - Correct BiDi punctuation formatting for Plex, Infuse, and Apple devices.
+
+## 6. Value-Driven Release Notes Protocol (Zero Alert Fatigue)
+- Release notes (`docs/WHATS_NEW.md`, `docs/WHATS_NEW.he.md`, and GitHub Releases) are strictly reserved for **major milestone releases** (new core capabilities, cross-platform parity, architectural breakthroughs).
+- **Strictly forbidden to publish release notes for routine changes**: Minor bug fixes, code refactoring, typo corrections, or incremental tests remain solely in standard git commits and technical changelogs to avoid alert fatigue.
+- Each milestone entry must follow the 4-part value structure: Highlights / TL;DR, Why It Matters, Quick Upgrade / Getting Started, and Deep Dive Links.
+- Releases in GitHub should use `.github/release_template.md`.

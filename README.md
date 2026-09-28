@@ -347,6 +347,7 @@ Tests cover:
 - 🔮 **[Future Interactive CLI Specification](docs/FUTURE_INTERACTIVE_CLI.md)** — Interactive CLI wizard specification and design.
 - 🔮 **[Future Setup & Health-Check Wizard Specification](docs/FUTURE_SETUP_WIZARD.md)** — Autonomous clean-slate onboarding and system doctor specification.
 - 🌐 **[Future MCP Server Specification](docs/FUTURE_MCP_SERVER.he.md)** — RightSub Model Context Protocol (MCP) server architecture.
+- 🚀 **[What's New & Release Notes](docs/WHATS_NEW.md)** — Curated product milestone announcements and feature highlights.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.
 
 ---
