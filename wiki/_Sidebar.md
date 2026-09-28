@@ -11,6 +11,8 @@
 - **[AI Assistants & Integration](AI-Integration-Guide)**
 - **[⚖️ RightSub vs. Bazarr Comparison](Bazarr-Comparison)**
 - **[🔄 Home Media & Download Integrations](Integrations-Guide)**
+- **[🔮 Interactive CLI Specification](Interactive-CLI-Specification)**
+- **[🔮 Setup & Health Wizard Specification](Setup-Wizard-Specification)**
 - **[Boston Legal Case Study](Boston-Legal-Case-Study)**
 - **[CLI Reference](Home#cli-commands-reference)**
 
@@ -27,6 +29,8 @@
 - **[חיבור לכלי בינה מלאכותית (AI)](מדריך-חיבור-לכלי-בינה-מלאכותית)**
 - **[⚖️ השוואה טכנית מול Bazarr](השוואה-מול-Bazarr)**
 - **[🔄 מדריך אינטגרציות ואוטומציה לשרתי מדיה](מדריך-אינטגרציות-ואוטומציה)**
+- **[🔮 מפרט אשף פקודה אינטראקטיבי](מפרט-אשף-פקודה-אינטראקטיבי)**
+- **[🔮 מפרט אשף התקנה ואבחון](מפרט-אשף-התקנה-ואבחון)**
 - **[מקרה בוחן - בוסטון ליגל](מקרה-בוחן-בוסטון-ליגל)**
 - **[מדריך פקודות CLI](Home-HE#מדריך-פקודות-cli-מלא)**
 

@@ -348,6 +348,7 @@ pytest -v
 - ⚖️ **[השוואה טכנית מול Bazarr](docs/COMPARISON_BAZARR.he.md)** — פירוט הבדלים ארכיטקטוניים, מתי להשתמש בכל כלי ואיך לשלב ביניהם.
 - 🔄 **[מדריך אינטגרציות ואוטומציה לשרתי מדיה (qBittorrent, Sonarr, Radarr, Bazarr, Daemons)](docs/INTEGRATIONS_GUIDE.he.md)** — חיבור אוטומטי בתצורת "הגדר ושכח", מדוע Hooks עדיפים על דמונים, וסקריפטים לניטור תיקיות.
 - 🔮 **[מפרט אשף פקודה אינטראקטיבי עתידי](docs/FUTURE_INTERACTIVE_CLI.he.md)** — תכנון ממשק שיחה וסוכן מסוף CLI.
+- 🔮 **[מפרט אשף התקנה ואבחון אוטומטי עתידי](docs/FUTURE_SETUP_WIZARD.he.md)** — תכנון התקנה והגדרה מאפס (כולל ללא Homebrew / Winget).
 - 🌐 **[מפרט שרת RightSub MCP עתידי](docs/FUTURE_MCP_SERVER.he.md)** — ארכיטקטורת שרת Model Context Protocol לסוכני AI.
 - 📖 **[GitHub Wiki הרשמי](https://github.com/omerninyo/RightSub/wiki)** — תיעוד מקוון מלא ודו-לשוני.
 

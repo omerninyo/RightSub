@@ -344,7 +344,8 @@ Tests cover:
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
 - ⚖️ **[RightSub vs. Bazarr Technical Comparison](docs/COMPARISON_BAZARR.md)** — Architectural breakdown, differences, and integration guide.
 - 🔄 **[Home Media & Download Integrations (qBittorrent, Sonarr, Radarr, Bazarr, Daemons)](docs/INTEGRATIONS_GUIDE.md)** — Automated hands-off pipeline setups, why event hooks beat background daemons, and folder watcher scripts.
-- 🔮 **[Future Interactive CLI Specification](docs/FUTURE_INTERACTIVE_CLI.he.md)** — Interactive CLI wizard specification and design.
+- 🔮 **[Future Interactive CLI Specification](docs/FUTURE_INTERACTIVE_CLI.md)** — Interactive CLI wizard specification and design.
+- 🔮 **[Future Setup & Health-Check Wizard Specification](docs/FUTURE_SETUP_WIZARD.md)** — Autonomous clean-slate onboarding and system doctor specification.
 - 🌐 **[Future MCP Server Specification](docs/FUTURE_MCP_SERVER.he.md)** — RightSub Model Context Protocol (MCP) server architecture.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.
 
