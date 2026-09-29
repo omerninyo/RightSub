@@ -162,7 +162,7 @@ def main():
 
     # Command: polish (Semantic AI Proofreading & QC)
     p_polish = subparsers.add_parser("polish", help="Semantic AI proofreading, canon harmonization & subtitle QC")
-    p_polish.add_argument("target", help="Path to Hebrew subtitle (.he.srt) to polish")
+    p_polish.add_argument("target", help="Path to Hebrew subtitle (.he.srt) or video file (.mkv/.mp4) to polish")
     p_polish.add_argument("--en", dest="en_path", help="Path to companion master English subtitle (.en.srt)")
     p_polish.add_argument("--tmdb-id", type=int, help="TMDb Movie/TV ID for ground-truth entity resolution")
     p_polish.add_argument("--title", help="Explicit title for metadata/canon resolution")

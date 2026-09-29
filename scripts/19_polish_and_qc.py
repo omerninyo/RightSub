@@ -52,6 +52,50 @@ except (ImportError, ModuleNotFoundError):
 
 try:
     import importlib
+    m18 = importlib.import_module("18_auto_pipeline")
+    find_companion_hebrew_subtitle = m18.find_companion_hebrew_subtitle
+    find_companion_english_subtitle = m18.find_companion_english_subtitle
+    is_hebrew_file = m18.is_hebrew_file
+    VIDEO_EXTENSIONS = m18.VIDEO_EXTENSIONS
+except Exception:
+    find_companion_hebrew_subtitle = lambda p: None
+    find_companion_english_subtitle = lambda p: None
+    is_hebrew_file = lambda p: False
+    VIDEO_EXTENSIONS = {".mp4", ".mkv", ".m4v", ".avi", ".ts", ".mov", ".webm"}
+
+try:
+    import importlib
+    m01 = importlib.import_module("01_extract_subtitles")
+    extract_from_video = m01.extract_from_video
+    discover_external_subtitles = m01.discover_external_subtitles
+    clean_srt_tags = m01.clean_srt_tags
+except Exception:
+    extract_from_video = None
+    discover_external_subtitles = None
+    clean_srt_tags = None
+
+try:
+    import importlib
+    m07 = importlib.import_module("07_fix_plex_punctuation")
+    normalize_homoglyphs = getattr(m07, "normalize_homoglyphs", getattr(m07, "clean_and_sanitize_text", lambda t: t))
+    clean_subtitles = getattr(m07, "clean_subtitles", lambda c, **kw: c)
+    clean_line = getattr(m07, "clean_line", lambda l, **kw: l)
+except Exception:
+    normalize_homoglyphs = lambda t: t
+    clean_subtitles = lambda c, **kw: c
+    clean_line = lambda l, **kw: l
+
+try:
+    import importlib
+    m00 = importlib.import_module("00_transcribe_audio")
+    transcribe_audio = m00.transcribe_audio
+    is_quicksubs_available = m00.is_quicksubs_available
+except Exception:
+    transcribe_audio = None
+    is_quicksubs_available = lambda: False
+
+try:
+    import importlib
     m5 = importlib.import_module("05_merge_and_validate")
     apply_bidi_and_punctuation = m5.apply_bidi_and_punctuation
     RLM = m5.RLM
@@ -154,70 +198,82 @@ def time_to_ms(time_str):
     except Exception:
         return 0
 
+def parse_timing_ms(time_str):
+    """Converts '00:00:00,000 --> 00:00:00,000' to (start_ms, end_ms)."""
+    try:
+        parts = time_str.split('-->')
+        start = parts[0].strip()
+        h, m, s_ms = start.split(':')
+        s, ms = s_ms.replace('.', ',').split(',')
+        start_ms = int(h) * 3600000 + int(m) * 60000 + int(s) * 1000 + int(ms)
+        end = parts[1].strip()
+        h, m, s_ms = end.split(':')
+        s, ms = s_ms.replace('.', ',').split(',')
+        end_ms = int(h) * 3600000 + int(m) * 60000 + int(s) * 1000 + int(ms)
+        return start_ms, end_ms
+    except Exception:
+        return 0, 0
+
 def align_bilingual_cues(en_cues, he_cues):
     """
-    Pairs English master cues with Hebrew existing cues.
-    Strategy:
-    1. Try exact 1:1 index match if indices and timings are reasonably aligned.
-    2. Fallback to nearest timestamp overlap within 2500ms window.
+    Pairs English master cues with Hebrew target cues anchored strictly on Hebrew timings.
+    Ensures zero cue starvation and zero off-by-one drift even when segmentation differs.
     """
     he_by_idx = {c["index"]: c for c in he_cues}
     en_by_idx = {c["index"]: c for c in en_cues}
 
     aligned = []
     
-    # Check if exact index match holds (common case)
+    # 1. Exact 1:1 match if counts match and timestamps align within 2.5s
     if len(en_cues) == len(he_cues) and all(c["index"] in he_by_idx for c in en_cues):
+        all_aligned = True
         for en in en_cues:
             he = he_by_idx[en["index"]]
-            aligned.append({
-                "index": en["index"],
-                "timing": he["timing"],
-                "en": en["text"],
-                "he": he["text"]
-            })
-        return aligned
+            if abs(time_to_ms(en["timing"]) - time_to_ms(he["timing"])) > 2500:
+                all_aligned = False
+                break
+        if all_aligned:
+            for en in en_cues:
+                he = he_by_idx[en["index"]]
+                aligned.append({
+                    "index": en["index"],
+                    "timing": he["timing"],
+                    "en": en["text"],
+                    "he": he["text"]
+                })
+            return aligned
 
-    # Fallback to proximity alignment
-    he_times = [(time_to_ms(c["timing"]), c) for c in he_cues]
-    used_he_indices = set()
-
+    # 2. Resilient Anchor Matching (Hebrew-Centric Timestamp Overlap & Proximity)
+    en_times = []
     for en in en_cues:
-        en_ms = time_to_ms(en["timing"])
-        best_he = None
-        best_diff = float("inf")
+        s, e = parse_timing_ms(en["timing"])
+        en_times.append((s, e, en))
 
-        for h_ms, he in he_times:
-            if he["index"] in used_he_indices:
-                continue
-            diff = abs(h_ms - en_ms)
-            if diff < best_diff and diff <= 2500:
-                best_diff = diff
-                best_he = he
+    for he in he_cues:
+        hs, he_end = parse_timing_ms(he["timing"])
+        best_en = None
+        best_overlap = 0
+        best_dist = float("inf")
 
-        if best_he:
-            used_he_indices.add(best_he["index"])
-            aligned.append({
-                "index": best_he["index"],
-                "timing": best_he["timing"],
-                "en": en["text"],
-                "he": best_he["text"]
-            })
-        else:
-            # Unpaired English cue - skip or ignore
-            pass
+        for es, ee, en in en_times:
+            # Calculate timestamp overlap in ms
+            overlap = max(0, min(he_end, ee) - max(hs, es))
+            dist = abs(hs - es)
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_en = en
+            elif best_overlap == 0 and dist < best_dist and dist <= 3000:
+                best_dist = dist
+                best_en = en
 
-    # Add any remaining Hebrew cues that had no English pair (keep intact)
-    for h_ms, he in he_times:
-        if he["index"] not in used_he_indices:
-            aligned.append({
-                "index": he["index"],
-                "timing": he["timing"],
-                "en": "",
-                "he": he["text"]
-            })
+        en_text = best_en["text"] if best_en else ""
+        aligned.append({
+            "index": he["index"],
+            "timing": he["timing"],
+            "en": en_text,
+            "he": he["text"]
+        })
 
-    aligned.sort(key=lambda x: x["index"])
     return aligned
 
 def detect_franchise(title, overview=""):
@@ -314,6 +370,16 @@ CRITICAL INSTRUCTIONS:
    - Fix clumsy literal machine translations into natural, idiomatic Hebrew dialogue.
 5. SUBTITLE CONSTRAINTS:
    - Maximum 38-40 characters per line, maximum 2 lines per cue block.
+6. STRICT TIMELINE INTEGRITY (ZERO DRIFT):
+   - Never merge dialogue across multiple cues, and never shift lines from one cue to another.
+   - Each cue must contain ONLY the dialogue spoken during that specific cue.
+   - If the English reference covers multiple consecutive Hebrew cues, keep each Hebrew cue distinct and focused on its piece of dialogue.
+7. NEVER DELETE CUES (NO EMPTY CUES):
+   - 'polished_he' must NEVER be empty or whitespace.
+   - You are strictly forbidden from returning empty cues ("").
+   - If a cue requires no changes, leave it out of the 'cues' array completely.
+8. HEBREW CHARACTERS ONLY:
+   - Output must contain only valid Hebrew characters, numbers, and standard punctuation. Never output Arabic or foreign characters.
 
 {chr(10).join(glossary_lines)}
 {chr(10).join(char_lines)}
@@ -634,44 +700,118 @@ def generate_diff_report(title, total_cues, modifications, output_report_path, e
     return report_content
 
 def write_mastered_srt(cues, output_path):
-    """Writes cues to SRT file with Plex/Infuse RLM and UTF-8 encoding."""
+    """Writes cues to SRT file with Plex/Infuse RLM, ad cleaning, and UTF-8 encoding."""
     out_blocks = []
     for c in cues:
         idx = c["index"]
         timing = c["timing"]
         raw_text = c["text"]
         
+        # Clean ads/promotions if any
+        if clean_line:
+            raw_text = clean_line(raw_text, clean_ads=True)
+            
+        # Homoglyph normalization
+        raw_text = normalize_homoglyphs(raw_text)
+        
         # Apply Plex/Infuse BiDi RLM mastering to each line
-        lines = [apply_bidi_and_punctuation(l) for l in raw_text.splitlines()]
+        lines = [apply_bidi_and_punctuation(l) for l in raw_text.splitlines() if l.strip()]
         clean_text = "\n".join(lines)
-        out_blocks.append(f"{idx}\n{timing}\n{clean_text}")
+        if clean_text:
+            out_blocks.append(f"{idx}\n{timing}\n{clean_text}")
 
     content = "\n\n".join(out_blocks) + "\n"
     Path(output_path).write_text(content, encoding="utf-8")
 
-def polish_subtitle_file(he_path, en_path=None, args=None):
-    """Main execution function for polishing a subtitle file."""
-    he_path = Path(he_path).resolve()
-    if not he_path.is_file():
-        print(f"[-] Target Hebrew subtitle not found: {he_path}")
+def polish_target(target, en_path=None, args=None):
+    """
+    Main execution function for polishing a subtitle file or video container.
+    Supports:
+    1. Video files (.mkv, .mp4, .avi, etc.): Automatically extracts or finds companion
+       Hebrew & English subtitles, fetches TMDb context, and polishes seamlessly.
+    2. Subtitle files (.he.srt, .srt): Polishes Hebrew subtitle with automatic companion
+       English discovery (from disk or from adjacent video containers).
+    """
+    target_path = Path(target).resolve()
+    if not target_path.exists():
+        print(f"[-] Target path not found: {target_path}")
         return False
 
-    print(f"\n=======================================================")
-    print(f"  💎 RightSub Semantic AI Polish & QC Engine")
-    print(f"=======================================================")
-    print(f"[*] Hebrew Target: {he_path.name}")
-
-    # 1. Discover English counterpart if not provided
-    if not en_path:
-        for ext in [".en.srt", ".eng.srt", ".english.srt"]:
-            cand = he_path.parent / f"{he_path.stem.replace('.he', '')}{ext}"
-            if cand.is_file():
-                en_path = cand
-                break
+    is_video = target_path.suffix.lower() in VIDEO_EXTENSIONS
+    video_path = target_path if is_video else None
+    he_path = None
+    
+    if is_video:
+        print(f"\n=======================================================")
+        print(f"  💎 RightSub Semantic AI Polish & QC Engine")
+        print(f"=======================================================")
+        print(f"[*] Video Media Target: {target_path.name}")
+        
+        # 1. Find companion Hebrew subtitle
+        he_cand = find_companion_hebrew_subtitle(target_path)
+        if he_cand and he_cand.is_file():
+            he_path = he_cand
+            print(f"[+] Found external Hebrew subtitle: {he_path.name}")
+        else:
+            # Try extracting embedded Hebrew subtitle from video
+            extracted_he = target_path.parent / f"{target_path.stem}.he.srt"
+            if extract_from_video:
+                print(f"[*] Searching for embedded Hebrew subtitle track in {target_path.name}...")
+                ok, status = extract_from_video(target_path, output_srt=extracted_he, lang="heb")
+                if ok and extracted_he.is_file() and extracted_he.stat().st_size > 0:
+                    he_path = extracted_he
+                    print(f"[✓] Extracted embedded Hebrew subtitle: {he_path.name}")
+                    
+        if not he_path or not he_path.is_file():
+            print(f"[-] No companion or embedded Hebrew subtitle found for '{target_path.name}'.")
+            print(f"    To translate from scratch, use: rightsub auto \"{target_path}\"")
+            return False
+            
+        # 2. Find or extract companion English subtitle
         if not en_path:
-            alt_cand = he_path.with_suffix(".en.srt")
-            if alt_cand.is_file():
-                en_path = alt_cand
+            en_cand = find_companion_english_subtitle(target_path)
+            if en_cand and en_cand.is_file():
+                en_path = en_cand
+                print(f"[+] Found external English master: {en_path.name}")
+            elif extract_from_video:
+                extracted_en = target_path.parent / f"{target_path.stem}.en.srt"
+                print(f"[*] Searching for embedded English master track in {target_path.name}...")
+                ok, status = extract_from_video(target_path, output_srt=extracted_en, lang="eng", fallback_transcribe=True)
+                if ok and extracted_en.is_file() and extracted_en.stat().st_size > 0:
+                    en_path = extracted_en
+                    print(f"[✓] Extracted embedded English master: {en_path.name}")
+    else:
+        he_path = target_path
+        print(f"\n=======================================================")
+        print(f"  💎 RightSub Semantic AI Polish & QC Engine")
+        print(f"=======================================================")
+        print(f"[*] Hebrew Target: {he_path.name}")
+        
+        # Check if companion video exists in same directory
+        for ext in VIDEO_EXTENSIONS:
+            cand_video = he_path.parent / f"{he_path.stem.replace('.he', '').replace('.polished', '')}{ext}"
+            if cand_video.is_file():
+                video_path = cand_video
+                break
+                
+        # Discover English counterpart
+        if not en_path:
+            for ext in [".en.srt", ".eng.srt", ".english.srt"]:
+                cand = he_path.parent / f"{he_path.stem.replace('.he', '').replace('.polished', '')}{ext}"
+                if cand.is_file():
+                    en_path = cand
+                    break
+            if not en_path:
+                alt_cand = he_path.with_suffix(".en.srt")
+                if alt_cand.is_file():
+                    en_path = alt_cand
+            # If still no English subtitle, but we found a companion video, extract from video!
+            if not en_path and video_path and extract_from_video:
+                extracted_en = he_path.parent / f"{video_path.stem}.en.srt"
+                print(f"[*] Extracting embedded English master from companion video {video_path.name}...")
+                ok, status = extract_from_video(video_path, output_srt=extracted_en, lang="eng")
+                if ok and extracted_en.is_file():
+                    en_path = extracted_en
 
     if en_path:
         en_path = Path(en_path).resolve()
@@ -697,12 +837,13 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
 
     # 4. Detect Media Metadata & Franchise Lore
     title = getattr(args, "title", None)
+    sample_name = video_path.name if video_path else he_path.name
     if not title:
         if parse_media_filename:
-            parsed = parse_media_filename(he_path.name)
-            title = parsed.get("title") or he_path.stem.replace(".he", "").replace(".polished", "")
+            parsed = parse_media_filename(sample_name)
+            title = parsed.get("title") or sample_name.replace(".he", "").replace(".polished", "")
         else:
-            title = he_path.stem.replace(".he", "").replace(".polished", "")
+            title = sample_name.replace(".he", "").replace(".polished", "")
 
     franchise_name, franchise_data = detect_franchise(title)
     if franchise_name:
@@ -810,13 +951,31 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
                     res = query_gemini_api(prompt, api_key=getattr(args, "api_key", None), model=model)
 
                 batch_cues = res.get("cues", []) if isinstance(res, dict) else []
+                valid_count = 0
                 for mod in batch_cues:
                     idx = mod.get("index")
-                    if idx in en_map:
-                        modifications[idx] = mod
+                    if idx not in en_map:
+                        continue
+                    polished_text = (mod.get("polished_he") or "").strip()
+                    if not polished_text:
+                        continue
+                    cleaned = normalize_homoglyphs(polished_text)
+                    if re.search(r'[\u0600-\u06FF]', cleaned):
+                        for pat, repl in [
+                            (r'\bبالכאד\b', 'בקושי'),
+                            (r'\bبالكاد\b', 'בקושי'),
+                            (r'\bما\b', 'מה'),
+                        ]:
+                            cleaned = re.sub(pat, repl, cleaned)
+                        if re.search(r'[\u0600-\u06FF]', cleaned):
+                            print(f"\n    [!] Warning: Rejected edit for cue #{idx} due to foreign/Arabic characters: {cleaned}")
+                            continue
+                    mod["polished_he"] = cleaned
+                    modifications[idx] = mod
+                    valid_count += 1
 
                 consecutive_errors = 0
-                print(f" [✓ {len(batch_cues)} edits]")
+                print(f" [✓ {valid_count} edits]")
             except Exception as e:
                 consecutive_errors += 1
                 print(f" [!] Error in batch {b_num}: {e}")
@@ -880,12 +1039,15 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
     print(f"[✓] Polished & Mastered: {len(modifications)} cues.")
     return True
 
+# Backward-compatibility alias
+polish_subtitle_file = polish_target
+
 def main():
     parser = argparse.ArgumentParser(
         prog="rightsub polish",
         description="Semantic AI Polish & Subtitle QC Engine for RightSub"
     )
-    parser.add_argument("target", help="Path to Hebrew subtitle (.he.srt) to polish")
+    parser.add_argument("target", help="Path to Hebrew subtitle (.he.srt) or video file (.mkv/.mp4) to polish")
     parser.add_argument("--en", dest="en_path", help="Path to companion master English subtitle (.en.srt)")
     parser.add_argument("--tmdb-id", type=int, help="TMDb Movie/TV ID for ground-truth entity resolution")
     parser.add_argument("--title", help="Explicit title for metadata/canon resolution")
@@ -902,7 +1064,7 @@ def main():
     parser.add_argument("--diff-report", help="Custom output path for markdown diff report")
 
     args = parser.parse_args()
-    success = polish_subtitle_file(args.target, args.en_path, args)
+    success = polish_target(args.target, args.en_path, args)
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":

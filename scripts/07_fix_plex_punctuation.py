@@ -128,6 +128,8 @@ ARABIC_TO_HEBREW = {
     '\u0636': 'צ',  # Dad
     '\u0638': 'ט',  # Zah
     '\u063A': 'ג',  # Ghain
+    '\u064A': 'י',  # Standard Arabic Yaa
+    '\u0648': 'ו',  # Standard Arabic Waw
 }
 
 ARABIC_PHRASES = [
@@ -138,6 +140,8 @@ ARABIC_PHRASES = [
     (r'\bيكون\b', 'יהיה'),
     (r'\bاكون\b', 'אהיה'),
     (r'\bأكون\b', 'אהיה'),
+    (r'\bبالכאד\b', 'בקושי'),
+    (r'\bبالكاد\b', 'בקושי'),
 ]
 
 CYRILLIC_TO_HEBREW = {
@@ -284,6 +288,9 @@ def clean_and_sanitize_text(text):
     # Clean double spaces or broken quotes
     text = re.sub(r'[ \t]+', ' ', text)
     return text.strip()
+
+# Alias for external script compatibility
+normalize_homoglyphs = clean_and_sanitize_text
 
 def detect_hebrew(content, min_chars=6, min_ratio=0.15):
     """

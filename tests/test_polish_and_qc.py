@@ -311,5 +311,55 @@ class TestPolishAndQC:
         assert call_count == 2
         assert polish_module._active_working_model == "gemini-3.5-flash-lite"
 
+    def test_polish_video_target_with_companion_srt(self, tmp_path):
+        video_file = tmp_path / "Movie (2020).mkv"
+        video_file.touch()
+        he_file = tmp_path / "Movie (2020).he.srt"
+        en_file = tmp_path / "Movie (2020).en.srt"
+        he_file.write_text(SAMPLE_HE_SRT, encoding="utf-8")
+        en_file.write_text(SAMPLE_EN_SRT, encoding="utf-8")
+
+        args = MagicMock()
+        args.offline_canon_only = True
+        args.diff_only = True
+        args.dry_run = True
+        args.in_place = False
+        args.output = None
+        args.diff_report = None
+        args.title = None
+
+        res = polish_module.polish_target(video_file, None, args)
+        assert res is True
+        diff_report = tmp_path / "Movie (2020)_polish_diff.md"
+        assert diff_report.exists()
+
+    def test_align_bilingual_cues_hebrew_centric_overlap(self):
+        en_cues = [
+            {"index": 1, "timing": "00:00:10,000 --> 00:00:16,000", "text": "This is a long English sentence spanning across two Hebrew lines."}
+        ]
+        he_cues = [
+            {"index": 1, "timing": "00:00:10,000 --> 00:00:12,500", "text": "זה משפט ארוך,"},
+            {"index": 2, "timing": "00:00:13,000 --> 00:00:16,000", "text": "שמשתרע על פני שתי שורות."}
+        ]
+        aligned = polish_module.align_bilingual_cues(en_cues, he_cues)
+        assert len(aligned) == 2
+        assert aligned[0]["index"] == 1
+        assert aligned[1]["index"] == 2
+        # Both Hebrew cues get the overlapping English sentence reference
+        assert "long English sentence" in aligned[0]["en"]
+        assert "long English sentence" in aligned[1]["en"]
+
+    def test_polish_sanitizes_arabic_homoglyphs_and_rejects_leaks(self):
+        # 1. Homoglyphs and phrases are normalized
+        line_with_phrase = "אני بالكاد יכול לזוז."
+        normalized = polish_module.normalize_homoglyphs(line_with_phrase)
+        assert "בקושי" in normalized
+
+        # 2. Arabic yaa (\u064A) normalized to Hebrew \u05D9
+        line_with_yaa = "מאסטר\u064A"
+        norm_yaa = polish_module.normalize_homoglyphs(line_with_yaa)
+        assert norm_yaa == "מאסטרי"
+        assert "\u064A" not in norm_yaa
+
 
 
