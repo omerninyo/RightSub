@@ -349,6 +349,7 @@ pytest -v
 - 🔄 **[מדריך אינטגרציות ואוטומציה לשרתי מדיה (qBittorrent, Sonarr, Radarr, Bazarr, Daemons)](docs/INTEGRATIONS_GUIDE.he.md)** — חיבור אוטומטי בתצורת "הגדר ושכח", מדוע Hooks עדיפים על דמונים, וסקריפטים לניטור תיקיות.
 - 🔮 **[מפרט אשף פקודה אינטראקטיבי עתידי](docs/FUTURE_INTERACTIVE_CLI.he.md)** — תכנון ממשק שיחה וסוכן מסוף CLI.
 - 🔮 **[מפרט אשף התקנה ואבחון אוטומטי עתידי](docs/FUTURE_SETUP_WIZARD.he.md)** — תכנון התקנה והגדרה מאפס (כולל ללא Homebrew / Winget).
+- 💎 **[מפרט מנוע ליטוש סמנטי ובקרת איכות AI](docs/FEATURE_AI_POLISH_AND_QC.he.md)** — ארכיטקטורה להשבחה והגהה של כתוביות קיימות, מניעת שיבושי קאנון ותיקון מגדר ללא תרגום מאפס.
 - 🌐 **[מפרט שרת RightSub MCP עתידי](docs/FUTURE_MCP_SERVER.he.md)** — ארכיטקטורת שרת Model Context Protocol לסוכני AI.
 - 🚀 **[מה חדש ועדכוני גרסאות](docs/WHATS_NEW.he.md)** — עדכוני מוצר מרכזיים, הכרזות אבן-דרך ותכונות חדשות.
 - 📖 **[GitHub Wiki הרשמי](https://github.com/omerninyo/RightSub/wiki)** — תיעוד מקוון מלא ודו-לשוני.
