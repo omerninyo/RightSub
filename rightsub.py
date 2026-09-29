@@ -9,6 +9,7 @@ Powered by the SubRefine Algorithmic Engine & SubSwarm Multi-Agent Orchestrator.
 Commands:
   auto          Zero-flag autonomous runner: processes single file, season, or directory.
   translate-ollama 100% offline, free local subtitle translation using Ollama (LLaMA 3, Qwen).
+  polish        Semantic AI proofreading, canon harmonization & subtitle QC on existing subtitles.
   split         Split master English SRT into JSON batches (~210 items) for translation.
   merge         Merge translated JSON batches into master Hebrew SRT with automated RLM & QC.
   prompt-gen    Generate wave-based AI translation prompts (Gemini Flash/Flash-Lite) for any title.
@@ -157,6 +158,23 @@ def main():
     p_ollama.add_argument("--en-srt", help="Original English master SRT for automatic merge")
     p_ollama.add_argument("-o", "--output", help="Output .he.srt path after merge")
 
+    # Command: polish (Semantic AI Proofreading & QC)
+    p_polish = subparsers.add_parser("polish", help="Semantic AI proofreading, canon harmonization & subtitle QC")
+    p_polish.add_argument("target", help="Path to Hebrew subtitle (.he.srt) to polish")
+    p_polish.add_argument("--en", dest="en_path", help="Path to companion master English subtitle (.en.srt)")
+    p_polish.add_argument("--tmdb-id", type=int, help="TMDb Movie/TV ID for ground-truth entity resolution")
+    p_polish.add_argument("--title", help="Explicit title for metadata/canon resolution")
+    p_polish.add_argument("--ollama", action="store_true", help="Use local Ollama engine")
+    p_polish.add_argument("--gemini", action="store_true", help="Force Google Gemini engine")
+    p_polish.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-2.5-flash for Gemini)")
+    p_polish.add_argument("--api-key", help="TMDb or Gemini API key")
+    p_polish.add_argument("--batch-size", type=int, default=60, help="Number of cues per prompt batch (default: 60)")
+    p_polish.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
+    p_polish.add_argument("--diff-only", "--dry-run", dest="diff_only", action="store_true", help="Generate audit report only without saving subtitle file")
+    p_polish.add_argument("--in-place", action="store_true", help="Backup and update original file instead of creating .he.polished.srt")
+    p_polish.add_argument("-o", "--output", help="Custom output path for polished subtitle file")
+    p_polish.add_argument("--diff-report", help="Custom output path for markdown diff report")
+
     args, unknown = parser.parse_known_args()
 
     if not args.command:
@@ -166,6 +184,7 @@ def main():
     script_mapping = {
         "auto": "18_auto_pipeline.py",
         "translate-ollama": "17_translate_ollama.py",
+        "polish": "19_polish_and_qc.py",
         "split": "04_split_batches.py",
         "merge": "05_merge_and_validate.py",
         "prompt-gen": "09_prompt_builder.py",
