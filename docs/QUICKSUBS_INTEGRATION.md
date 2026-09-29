@@ -40,6 +40,11 @@ brew install mattbirchler/tap/quicksubs
 | **OpenAI Whisper** | `--engine whisper` | ~626 MB | Highest transcription accuracy for challenging audio. |
 | **NVIDIA Parakeet** | `--engine parakeet` | ~400 MB | Fast, lightweight local neural model. |
 
+> [!IMPORTANT]
+> **Apple SpeechAnalyzer Language Limitations:**
+> Apple's native speech recognition framework currently supports Apple-recognized system locales (English, Spanish, French, German, Italian, Japanese, etc.). **Hebrew is not currently supported by Apple's on-device SpeechAnalyzer.**
+> In RightSub, this engine is strictly used for **source language transcription** (extracting English/foreign dialogue before translating to Hebrew via Gemini or Ollama) or audio-guided retiming. For transcribing original Hebrew audio dialogue, multilingual Whisper (e.g., `whisper-cpp` with medium/large models) or Google Gemini Multimodal Audio is required.
+
 ---
 
 ## Implemented Use Cases

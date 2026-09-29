@@ -111,3 +111,38 @@ class TestConfigAndDoctor:
         res = config_module.handle_config(args)
         assert res == 1
         assert "requires an Apple Silicon Mac" in capsys.readouterr().out
+
+    def test_handle_config_install_quicksubs_old_macos(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "platform", "darwin")
+        import platform
+        monkeypatch.setattr(platform, "machine", lambda: "arm64")
+        monkeypatch.setattr(platform, "mac_ver", lambda: ("15.7.4", ("", "", ""), ""))
+        args = MagicMock()
+        args.install_quicksubs = True
+        res = config_module.handle_config(args)
+        assert res == 1
+        captured = capsys.readouterr().out
+        assert "requires macOS 26+ Tahoe" in captured
+        assert "whisper-cpp" in captured
+
+    def test_doctor_quicksubs_macos_versions(self, monkeypatch, capsys):
+        import shutil
+        import platform
+        monkeypatch.setattr(shutil, "which", lambda cmd: None)
+        monkeypatch.setattr(sys, "platform", "darwin")
+        monkeypatch.setattr(platform, "machine", lambda: "arm64")
+
+        # Case 1: macOS 15 (e.g. Sequoia)
+        monkeypatch.setattr(platform, "mac_ver", lambda: ("15.7.4", ("", "", ""), ""))
+        args = MagicMock()
+        config_module.handle_doctor(args)
+        captured = capsys.readouterr().out
+        assert "Requires macOS 26+ Tahoe" in captured
+        assert "whisper-cpp" in captured
+
+        # Case 2: macOS 26 (Tahoe)
+        monkeypatch.setattr(platform, "mac_ver", lambda: ("26.0.0", ("", "", ""), ""))
+        config_module.handle_doctor(args)
+        captured = capsys.readouterr().out
+        assert "brew trust mattbirchler/tap" in captured
+        assert "mattbirchler/tap/quicksubs" in captured

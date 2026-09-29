@@ -36,6 +36,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+__version__ = "1.3.0"
 default_engine = "apple" if sys.platform == "darwin" else "whisper"
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -56,6 +57,7 @@ def main():
         prog="rightsub",
         description="RightSub — Universal Subtitle Mastering & Translation Suite (Powered by SubRefine Engine & SubSwarm)"
     )
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Command: split

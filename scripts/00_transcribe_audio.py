@@ -14,7 +14,9 @@ Features:
 - Transcribes media on-device on macOS with zero cloud latency and zero bandwidth cost.
 - Supported speech engines:
   * apple    : Apple SpeechAnalyzer (native on macOS, on-device, zero download).
-  * whisper  : OpenAI Whisper (highest accuracy, local ~626MB model).
+               Supports Apple's recognized languages (English, Spanish, French, etc.).
+               NOTE: Apple SpeechAnalyzer does NOT support Hebrew audio transcription.
+  * whisper  : OpenAI Whisper (highest accuracy, local ~626MB model, multilingual).
   * parakeet : NVIDIA Parakeet (fastest local model ~400MB).
 - Produces clean .srt subtitles and returns structured execution metrics.
 - Can be imported as a library or executed directly from the command line.

@@ -106,13 +106,25 @@ def handle_config(args):
         if not is_silicon:
             print("[-] quicksubs Apple SpeechAnalyzer requires an Apple Silicon Mac.")
             return 1
-        print("[*] Installing quicksubs via Homebrew...")
+        macos_major = 0
+        if sys.platform == "darwin":
+            try:
+                macos_major = int(platform.mac_ver()[0].split(".")[0])
+            except Exception:
+                pass
+        if macos_major < 26:
+            print(f"[-] quicksubs requires macOS 26+ Tahoe (Detected macOS {platform.mac_ver()[0]}).")
+            print("    For local GPU-accelerated STT on this system, install whisper-cpp:")
+            print("    brew install whisper-cpp")
+            return 1
+        print("[*] Trusting tap and installing quicksubs via Homebrew...")
+        subprocess.run(["brew", "trust", "mattbirchler/tap"], check=False)
         res = subprocess.run(["brew", "install", "mattbirchler/tap/quicksubs"])
         if res.returncode == 0:
             print("[✓] Quicksubs installed successfully!")
             return 0
         else:
-            print(f"[!] brew install exited with code {res.returncode}. Manual install: brew tap mattbirchler/tap && brew install quicksubs")
+            print(f"[!] brew install exited with code {res.returncode}. Manual install: brew trust mattbirchler/tap && brew install mattbirchler/tap/quicksubs")
             return res.returncode
 
     if getattr(args, "show", False):
@@ -219,26 +231,35 @@ def handle_config(args):
 
     print()
 
-    # 3. Quicksubs On-Device Speech-to-Text (Apple Silicon only)
+    # 3. Quicksubs On-Device Speech-to-Text (Apple Silicon on macOS 26+ only)
     is_apple_silicon = sys.platform == "darwin" and platform.machine() == "arm64"
+    macos_major = 0
+    if sys.platform == "darwin":
+        try:
+            macos_major = int(platform.mac_ver()[0].split(".")[0])
+        except Exception:
+            pass
+
     has_brew = shutil.which("brew") is not None
     quicksubs_path = shutil.which("quicksubs")
-    if is_apple_silicon and not quicksubs_path and has_brew:
-        print("3. Quicksubs On-Device Speech-to-Text (Apple Silicon detected):")
-        print("   Enables 100% free, local audio transcription directly on Apple Neural Engine.")
+    if is_apple_silicon and not quicksubs_path and has_brew and macos_major >= 26:
+        print("3. Quicksubs On-Device Speech-to-Text (Apple Silicon on macOS 26+ detected):")
+        print("   Enables 100% free, local source audio transcription (English/Western) via Neural Engine.")
+        print("   Note: Apple engine does not support Hebrew audio; use for English source or audio-sync.")
         print("   Official tap: mattbirchler/tap/quicksubs")
-        prompt_qs = "   Would you like to install quicksubs now via Homebrew? [y/N]: "
+        prompt_qs = "   Would you like to trust and install quicksubs now via Homebrew? [y/N]: "
         try:
             entered_qs = input(prompt_qs).strip().lower()
             if entered_qs in ("y", "yes"):
-                print("   Installing quicksubs via Homebrew...", flush=True)
+                print("   Trusting and installing quicksubs via Homebrew...", flush=True)
+                subprocess.run(["brew", "trust", "mattbirchler/tap"], check=False)
                 res = subprocess.run(["brew", "install", "mattbirchler/tap/quicksubs"])
                 if res.returncode == 0:
                     print("   [✓] Quicksubs installed successfully!")
                 else:
-                    print(f"   [!] Note: brew install exited with code {res.returncode}. Manual install: brew tap mattbirchler/tap && brew install quicksubs")
+                    print(f"   [!] Note: brew install exited with code {res.returncode}.")
             else:
-                print("   Skipped. You can install anytime via: brew tap mattbirchler/tap && brew install quicksubs")
+                print("   Skipped.")
         except (EOFError, KeyboardInterrupt):
             print("\nSkipped.")
         print()
@@ -323,11 +344,22 @@ def handle_doctor(args):
     # 6. Quicksubs / Apple Silicon Speech-to-Text
     quicksubs_path = shutil.which("quicksubs")
     is_apple_silicon = sys.platform == "darwin" and platform.machine() == "arm64"
+    macos_major = 0
+    if sys.platform == "darwin":
+        try:
+            macos_major = int(platform.mac_ver()[0].split(".")[0])
+        except Exception:
+            pass
+
     if quicksubs_path:
         print(f" [✓] Quicksubs STT:   Installed ({quicksubs_path}) — Apple Neural Engine ready")
-    elif is_apple_silicon:
-        print(" [i] Quicksubs STT:   Not installed (Recommended on Apple Silicon for 0-cost audio transcription)")
-        print("     Installation:    brew tap mattbirchler/tap && brew install quicksubs")
+        print("     Scope:           Source audio (English/Western). Hebrew audio STT not supported by Apple.")
+    elif is_apple_silicon and macos_major >= 26:
+        print(" [i] Quicksubs STT:   Not installed (Recommended on Apple Silicon for 0-cost source audio STT)")
+        print("     Installation:    brew trust mattbirchler/tap && brew install mattbirchler/tap/quicksubs")
+        print("     Scope:           Source audio only (English, etc.). Hebrew audio STT requires whisper-cpp.")
+    elif is_apple_silicon and macos_major < 26:
+        print(" [i] Quicksubs STT:   Requires macOS 26+ Tahoe (For local STT on this OS: brew install whisper-cpp)")
     else:
         print(" [i] Quicksubs STT:   Not installed (Optional speech-to-text engine)")
 
