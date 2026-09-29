@@ -10,8 +10,8 @@ class Rightsub < Formula
 
   bottle do
     root_url "https://github.com/omerninyo/homebrew-tap/releases/download/v1.3.0"
-    rebuild 1
-    sha256 cellar: :any_skip_relocation, all: "f47f5326aa33695c9f9beecf093f017dca12c4ef4c58c4074a039e9886026ac9"
+    rebuild 2
+    sha256 cellar: :any_skip_relocation, all: "2dbe92b54af6aeeca07b545ae560d6075e6c24532f71ecd4b0d594e6344a79b2"
   end
 
   depends_on "ffmpeg"
