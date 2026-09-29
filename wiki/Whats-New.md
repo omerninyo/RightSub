@@ -10,16 +10,17 @@ This document tracks **major milestone releases** and product capabilities in Ri
 
 ---
 
-## 🚧 Version 1.3.0 (Milestone in Progress) — Semantic AI Proofreading, Homebrew Bottles & System Diagnostics
+## 🌟 Version 1.3.0 — Semantic AI Proofreading, Homebrew Universal Tap & Interactive Onboarding
 
-> **Status:** Active Development (Target: v1.3.0)  
-> **Milestone Focus:** Semantic AI subtitle QC (`polish`), official Homebrew tap distribution with instant binary bottles, 10-second credential onboarding (`config`), and proactive system diagnostics (`doctor`).
+> **Release Date:** September 2026  
+> **Milestone Focus:** Semantic AI subtitle QC (`polish`), official Homebrew tap distribution with instant universal bottles, 10-second credential onboarding (`config`), and proactive system diagnostics (`doctor`).
 
 ### 🎯 Key Highlights
 - **Semantic AI Polish & Subtitle Quality Control (`rightsub polish`):** Autonomous proofreading engine for existing subtitles. Combines zero-token deterministic franchise canon rules (Star Wars, Marvel, etc.) with bilingual cue alignment, Markdown diff reporting, and seed-safe protection.
 - **Official Homebrew Tap & Universal Bottle (`omerninyo/tap`):** Global 1-second installation on macOS (both Apple Silicon and Intel) via pre-packaged `:all` bottles on GitHub Releases, bypassing Xcode compiler checks completely.
 - **Interactive Credentials Onboarding (`rightsub config`):** 10-second setup wizard for Google Gemini & TMDb API keys with live ping authentication checks and automated storage in `~/.config/rightsub/config.json`.
 - **System Health Diagnostics (`rightsub doctor`):** End-to-end environment inspector verifying Python 3.9+, FFmpeg suite, TMDb, Gemini, Ollama daemon, and Quicksubs STT.
+- **On-Device STT Engine Clarification & OS Safety:** Apple SpeechAnalyzer integration for instant source audio transcription on Apple Silicon with macOS 26+ (Tahoe), with automated detection and clear guidance for Whisper (`whisper-cpp`) on older macOS versions and for Hebrew audio transcription.
 
 ---
 
