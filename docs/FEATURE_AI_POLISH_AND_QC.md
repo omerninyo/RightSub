@@ -6,9 +6,9 @@
   <a href="FEATURE_AI_POLISH_AND_QC.he.md"><b>עברית</b></a>
 </p>
 
-This document specifies the architectural design, data contracts, CLI interface, and execution workflow for the future **Semantic AI Polish & Subtitle QC Engine** in RightSub: the `rightsub polish` (or `rightsub qc-ai`) command.
+This document specifies the architectural design, data contracts, CLI interface, and production implementation of the **Semantic AI Polish & Subtitle QC Engine** in RightSub (shipped in v1.3.0): the `rightsub polish` command.
 
-The goal of this engine is to proofread, polish, and modernize existing Hebrew subtitles (legacy releases, imperfect human translations, or raw machine drafts — such as community scans like *Star Wars 4K77*) **without re-translating the entire movie from scratch**, correcting canon drift, gender agreement errors, and literal idioms while strictly preserving quality human phrasing.
+The goal of this engine is to proofread, polish, and modernize existing Hebrew subtitles (legacy releases, imperfect human translations, or raw machine drafts — such as community scans like *Star Wars 4K77*) **without re-translating the entire movie from scratch**, correcting canon drift, gender agreement errors, and literal idioms while strictly preserving quality human phrasing (85%–90% preservation target).
 
 ---
 
@@ -124,9 +124,30 @@ Produces a readable Markdown change log alongside the mastered subtitle:
 | **#520** | "I have a bad feeling about this." | "אני יש לי הרגשה רעה לגבי זה." | "יש לי תחושה רעה בקשר לזה." | Fixed literal clumsy machine syntax |
 ```
 
+### Stage 6: Hierarchical Domain Knowledge Engine
+RightSub operates an offline and online 3-tier classifier (`domain_knowledge.py`):
+1. **Tier 1 (TMDb / Bible)**: Verified genre lists and character cast sheets directly from TMDb or local bibles.
+2. **Tier 2 (Franchise Patterns)**: Regex and title matches across major film franchises (*Star Wars*, *Marvel*, *Star Trek*, *Lord of the Rings*, *Harry Potter*).
+3. **Tier 3 (Offline Fingerprinting)**: Lexical keyword scans detecting sci-fi, military, medical, or legal dialogue inside the subtitle itself when offline.
+
+#### Bilingual Anchor Validation:
+To guarantee that cross-genre terms never corrupt unintended lines (e.g. translating "motor" as "motivator" outside of droid contexts), deterministic franchise rules require **bidirectional validation**:
+- The Hebrew trigger must match the pattern.
+- The master English cue must independently confirm the presence of the anchor phrase.
+
+### Stage 7: Forward Anticipation Drift Guard & Split-Cue Partitioning
+When dialogue spans multiple split cues (e.g. a sentence begun in cue #144 and finished in cue #145), standard LLMs often collapse the sentence into the first cue and translate upcoming dialogue lines into subsequent cues, causing a cascading off-by-one desynchronization.
+- **Split-Cue Annotations**: Cues are annotated with `split_part` markers (`"1/2"`, `"2/2"`).
+- **Drift Guard**: Polished outputs are checked in real-time. If an edit leaks or quotes words from upcoming English master cues, the edit is automatically rejected and the authentic human translation is preserved.
+
+### Stage 8: Network Storage (SMB/NAS) Metadata Synchronization
+When writing mastered subtitles or diff reports across SMB network mounts (e.g. Synology NAS, TrueNAS, QNAP), macOS SMB clients (`smbfs`) often fail to flush creation metadata, falling back to Apple's CoreFoundation epoch (`2001-01-01`).
+RightSub explicitly calls `os.utime()` after all file write and backup operations, issuing an immediate kernel `SYS_utimes` call and SMB2 `SET_INFO` (`FileBasicInformation`) packet with the current system clock.
+
 ---
 
 ## 5. Non-Destructive Safety Guarantees
 
 - Original subtitles (`Movie.he.srt`) are safely backed up to `Movie.he.original.srt` before any replacement occurs.
 - Polished output files are passed through the SubRefine engine, guaranteeing UTF-8 encoding and idempotent RLM (`\u200F`) injection for Plex, Infuse, and Apple TV playback.
+- Subtitle timecodes and cue indexes are strictly immutable.

@@ -16,7 +16,7 @@
 [![גרסת פייתון: 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![פלטפורמה: Windows ו-macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![מאומת ל-Plex ו-Infuse](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-87%2F87%20Passing-success.svg)]()
+[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-103%2F103%20Passing-success.svg)]()
 [![בנצ׳מרק: 101/101 פרקים](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **כתוביות כמו שצריך — מתיקון מהיר ב-Plex ו-BiDi ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**
@@ -152,7 +152,14 @@ RightSub מעניקה תמיכה מלאה ושווה הן עבור **Windows** �
 ### משתמשי macOS / Linux (Terminal)
 בחרו באחת מ-3 האפשרויות הנוחות:
 
-- **אפשרות א': התקנה מהירה מקומית (מומלץ)**:
+- **אפשרות א': חבילת Homebrew Tap רשמית (מומלץ ל-macOS)**:
+  התקנה מיידית בשנייה אחת באמצעות Bottles אוניברסליים מוכנים מראש (למעבדי Apple Silicon ו-Intel):
+  ```bash
+  brew tap omerninyo/tap
+  brew install rightsub
+  ```
+
+- **אפשרות ב': התקנה מהירה מקומית (Clone)**:
   ```bash
   git clone https://github.com/omerninyo/RightSub.git
   cd RightSub
@@ -160,14 +167,9 @@ RightSub מעניקה תמיכה מלאה ושווה הן עבור **Windows** �
   ```
   *מייצר קישור גלובלי של `rightsub` ישירות אל `~/.local/bin/rightsub`.*
 
-- **אפשרות ב': התקנה מרחוק בפקודה אחת**:
+- **אפשרות ג': התקנה מרחוק בסקריפט אחד**:
   ```bash
   curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh | bash
-  ```
-
-- **אפשרות ג': התקנה דרך Homebrew Tap**:
-  ```bash
-  brew install omerninyo/tap/rightsub
   ```
 
 ---
@@ -227,6 +229,31 @@ rightsub merge "Episode01.en.srt" "prompts_Inception" -o "Episode01.he.srt"
 rightsub qa "Episode01.en.srt" "Episode01.he.srt"
 ```
 
+### מתכון 5: הגהה סמנטית ובקרת איכות על כתובית קיימת (`rightsub polish`)
+השבחה, מודרניזציה והגהה של כתובית עברית קיימת ללא תרגום מיותר מאפס (משמר כ-85%–90% משורות המקור):
+```bash
+# אפשרות א': ליטוש כתובית עברית צמודה ישירות מקובץ וידאו:
+rightsub polish "Star Wars (1977).mkv"
+
+# אפשרות ב': ליטוש כתובית עברית ספציפית מול כתובית אנגלית:
+rightsub polish "Movie.he.srt" --en "Movie.en.srt"
+
+# אפשרות ג': הרצת בדיקה (Dry Run) המפיקה דוח Markdown Diff בלבד:
+rightsub polish "Movie.he.srt" --diff-only
+
+# אפשרות ד': עריכה במקום (In-Place) עם גיבוי אוטומטי מוגן טורנט (.he.original.srt):
+rightsub polish "Movie.he.srt" --in-place
+```
+
+### מתכון 6: אשף הגדרות מהיר ואבחון בריאות מערכת
+```bash
+# אשף הגדרת מפתחות API (Gemini ו-TMDb) תוך 10 שניות:
+rightsub config
+
+# אבחון מקיף לסביבת ההפעלה (FFmpeg, Python, Gemini, TMDb, Quicksubs):
+rightsub doctor
+```
+
 ---
 
 ## 🏛️ ארכיטקטורה מתקדמת ומנועי הליבה
@@ -276,6 +303,13 @@ rightsub qa "Episode01.en.srt" "Episode01.he.srt"
 - **שיוך מגדרי דטרמיניסטי**: פענוח אוטומטי של מגדר הדמויות ושחקני אורח מתחלפים מתוך ה-API של **[The Movie Database (TMDb)](https://www.themoviedb.org)**, המבטיח 100% דיוק של פנייה ישירה וכינויי גוף בעברית (`את/היא` מול `אתה/הוא`) ללא ניחושים.
 - **הכנת הקשר עלילתי והנחיות דיאלקט**: הזרקת תקצירי פרקים, מילון מונחי ז'אנר והנחיות סלנג ודיאלקט אזורי (כגון אנגלית בריטית מול אמריקאית) ישירות לפרומפטים של מודלי התרגום.
 
+### 5. 💎 מנוע הגהה סמנטית ובקרת איכות (`rightsub polish`)
+- **עקרון מרחק עריכה מינימלי (Minimal Edit Distance)**: ליטוש סלקטיבי של תרגום אנושי קיים, תוך שימור של 85%–90% משורות המקור התקינות ומניעת שינויים קוסמטיים מיותרים.
+- **מנוע ידע היררכי (Hierarchical Domain Knowledge)**: מסווג תוכן חכם ב-3 רמות (מטא-דאטה מ-TMDb, זיהוי פרנצ'ייז בכותרת, וטביעת אצבע לקסיקלית בכתוביות באופליין) עם חבילות תוכן מובנות (`SCI_FI`, `MILITARY`, `LEGAL`, `MEDICAL`, `FANTASY`, `UNIVERSAL_IDIOMS`) ואימות עוגן דו-לשוני (**Bilingual Anchor Validation**) למניעת False Positives.
+- **הגנת זליגת ציפייה (Forward Anticipation Drift Guard)**: פיצול קיוסים מורכבים (`split_part`) ובלימת מודל השפה מהקדמת שורות עתידיות, לשמירה על סנכרון תזמונים מושלם של 1:1.
+- **סנכרון חותמות זמן לכונני רשת (SMB/NAS)**: שטיפת מטא-דאטה מאולצת (`os.utime`) המונעת מלקוחות SMB ב-macOS ליפול לאפוק 2001.
+- **דוחות השוואה אוטומטיים (Markdown Diff Audit)**: הפקה אוטומטית של דוח השוואה מפורט שורה-אחר-שורה (`_polish_diff.md`) המציג מקור, תרגום ישן, תרגום חדש ונימוק מדויק לכל תיקון.
+
 ---
 
 ## 📖 מדריך פקודות CLI מלא
@@ -319,7 +353,7 @@ RightSub נבחנה ואומתה על גבי מערך נתונים הממודל 
 
 ## 🧪 בדיקות יחידה ואימות אוטומטי
 
-RightSub מגיעה עם סוויטת בדיקות מקיפה של 77 בדיקות יחידה עצמאיות:
+RightSub מגיעה עם סוויטת בדיקות מקיפה של 103 בדיקות יחידה עצמאיות:
 ```bash
 pytest -v
 ```

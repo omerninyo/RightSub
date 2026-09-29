@@ -11,6 +11,7 @@ Maintains documentation consistency across READMEs and Wiki:
 
 import sys
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -20,12 +21,20 @@ README_HE = BASE_DIR / "README.he.md"
 
 def get_pytest_test_count():
     """Runs pytest --collect-only and returns total collected tests."""
+    pytest_bin = shutil.which("pytest") or "pytest"
     res = subprocess.run(
-        [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+        [pytest_bin, "--collect-only", "-q"],
         capture_output=True,
         text=True,
         cwd=BASE_DIR
     )
+    if res.returncode != 0:
+        res = subprocess.run(
+            [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+            capture_output=True,
+            text=True,
+            cwd=BASE_DIR
+        )
     # Search for line like "69 tests collected" or "collected 69 items"
     match = re.search(r'collected\s+(\d+)\s+items', res.stdout)
     if not match:

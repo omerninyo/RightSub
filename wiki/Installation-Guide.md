@@ -14,11 +14,11 @@ This guide explains how to install **RightSub** as a global command-line tool ac
 
 | Method | Operating System | Command | Best For | Prerequisites |
 | :--- | :--- | :--- | :--- | :---: |
-| **1. Fast Script Installer** | macOS / Linux | `./install.sh` | **Recommended for Mac** (Global `~/.local/bin` link) | Python 3 |
-| **2. Windows Batch Installer** | Windows | `install.bat` | **Recommended for Windows** (Checks Python, installs pip packages) | Python 3 |
-| **3. Official Homebrew Tap** | macOS / Linux | `brew install omerninyo/tap/rightsub` | **Best for public Mac distribution** | Homebrew |
+| **1. Official Homebrew Tap** | macOS / Linux | `brew tap omerninyo/tap && brew install rightsub` | **Recommended for macOS** (1-sec universal bottle) | Homebrew |
+| **2. Fast Script Installer** | macOS / Linux | `./install.sh` | Local developer setup (Global `~/.local/bin` link) | Python 3 |
+| **3. Windows Batch Installer** | Windows | `install.bat` | **Recommended for Windows** (Checks Python, installs pip packages) | Python 3 |
 | **4. Isolated Package (`pipx`)**| Cross-Platform | `pipx install .` | Isolated Python virtual environment | pipx |
-| **5. Planned Interactive Wizard**| Cross-Platform | `python setup.py` | Future self-diagnostic & clean-slate setup | [Spec](FUTURE_SETUP_WIZARD.md) |
+| **5. Config & Health Diagnostics**| Cross-Platform | `rightsub config` / `rightsub doctor` | Interactive API key setup & dependency inspector | RightSub installed |
 
 ---
 

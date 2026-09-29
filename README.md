@@ -14,7 +14,7 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![Platform: Windows & macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-87%2F87%20Passing-success.svg)]()
+[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-103%2F103%20Passing-success.svg)]()
 [![Benchmark: 101/101 Episodes](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **Subtitles Done Right — from 1-Click Plex & BiDi Repair to Autonomous Multi-Agent AI Translation.**
@@ -150,7 +150,14 @@ RightSub offers equal, first-class support for both **Windows** and **macOS/Linu
 ### macOS / Linux (Terminal)
 Choose any of the following 3 options:
 
-- **Option A: Fast Local Install (Recommended)**:
+- **Option A: Official Homebrew Tap (Recommended for macOS)**:
+  Instant 1-second installation via pre-packaged universal bottles (supports both Apple Silicon & Intel):
+  ```bash
+  brew tap omerninyo/tap
+  brew install rightsub
+  ```
+
+- **Option B: Fast Local Clone**:
   ```bash
   git clone https://github.com/omerninyo/RightSub.git
   cd RightSub
@@ -158,14 +165,9 @@ Choose any of the following 3 options:
   ```
   *Symlinks `rightsub` globally to `~/.local/bin/rightsub`.*
 
-- **Option B: One-Liner Remote Install**:
+- **Option C: One-Liner Remote Script**:
   ```bash
   curl -fsSL https://raw.githubusercontent.com/omerninyo/RightSub/main/install.sh | bash
-  ```
-
-- **Option C: Official Homebrew Tap**:
-  ```bash
-  brew install omerninyo/tap/rightsub
   ```
 
 ---
@@ -225,6 +227,31 @@ rightsub merge "Episode01.en.srt" "prompts_Inception" -o "Episode01.he.srt"
 rightsub qa "Episode01.en.srt" "Episode01.he.srt"
 ```
 
+### Recipe 5: Semantic AI Proofreading & Subtitle QC (`rightsub polish`)
+Modernize and proofread an existing Hebrew subtitle without re-translating from scratch (preserves 85%–90% of intact lines):
+```bash
+# Option A: Polish existing Hebrew subtitle directly against media container:
+rightsub polish "Star Wars (1977).mkv"
+
+# Option B: Polish specific Hebrew subtitle against companion English master:
+rightsub polish "Movie.he.srt" --en "Movie.en.srt"
+
+# Option C: Dry run generating a Markdown diff report without altering files:
+rightsub polish "Movie.he.srt" --diff-only
+
+# Option D: In-place mastering with automatic seed-safe backup (.he.original.srt):
+rightsub polish "Movie.he.srt" --in-place
+```
+
+### Recipe 6: Interactive Credentials Onboarding & System Diagnostics
+```bash
+# 10-second interactive setup wizard for Gemini & TMDb API keys:
+rightsub config
+
+# End-to-end environment inspector (FFmpeg, Python, Gemini, TMDb, Quicksubs):
+rightsub doctor
+```
+
 ---
 
 ## 🏛️ Advanced Architecture & Core Engines
@@ -273,6 +300,13 @@ For developers and power users, RightSub cleanly separates high-level workflow c
 - **Deterministic Gender Mapping**: Automatically resolves character genders and episodic guest stars via **[The Movie Database (TMDb)](https://www.themoviedb.org)** API, guaranteeing 100% accurate second-person Hebrew pronouns (`את/היא` vs `אתה/הוא`) with zero hallucinations.
 - **Narrative Context & Dialect Priming**: Injects episodic plot synopses, genre terms, and regional dialect guidance (e.g. British English idioms) directly into the translation prompts.
 
+### 5. 💎 The Semantic AI Polish & Subtitle QC Engine (`rightsub polish`)
+- **Minimal Edit Distance Principle**: Selectively proofreads and modernizes existing human subtitles, preserving 85%–90% of intact dialogue blocks and eliminating gratuitous cosmetic churn.
+- **Hierarchical Domain Knowledge Engine**: 3-tier intelligent context classifier (TMDb metadata, title/franchise patterns, and offline lexical cue vocabulary fingerprinting) with dedicated domain packs (`SCI_FI`, `MILITARY`, `LEGAL`, `MEDICAL`, `FANTASY`, `UNIVERSAL_IDIOMS`) and **Bilingual Anchor Validation** to prevent false positives across unrelated genres.
+- **Forward Anticipation Drift Guard**: Robust split-cue partitioning (`split_part`) and real-time drift protection that strictly prevents language models from leaking or anticipating future dialogue lines, ensuring 100% timing alignment.
+- **Network Storage (SMB/NAS) Timestamp Synchronization**: Forces immediate kernel filesystem metadata flushes (`os.utime`) on all mastered subtitles, diff audit reports, and backups to prevent macOS SMB clients from falling back to Apple's CoreFoundation epoch (`2001-01-01`).
+- **Automated Markdown Diff Audit Reporting**: Automatically outputs a detailed, cue-by-cue audit report (`_polish_diff.md`) comparing original English, prior Hebrew, polished Hebrew, and explicit reasoning for every single modification.
+
 ---
 
 ## 📖 CLI Commands Reference
@@ -316,7 +350,7 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (87 unit tests):
+RightSub comes with a comprehensive automated test suite (103 unit tests):
 ```bash
 pytest -v
 ```

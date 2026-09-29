@@ -16,11 +16,11 @@
 
 | שיטה | מערכת הפעלה | פקודת ההתקנה | מתי להשתמש? | דרישות קדם |
 | :--- | :--- | :--- | :--- | :---: |
-| **1. סקריפט התקנה מהיר** | macOS / Linux | `./install.sh` | **הכי מומלץ למשתמשי Mac** (קישור גלובלי ב-`~/.local/bin`) | Python 3 |
-| **2. מתקין חלונות Batch** | Windows | `install.bat` | **הכי מומלץ למשתמשי Windows** (בודק Python ומתקין ספריות) | Python 3 |
-| **3. חבילת Homebrew Tap** | macOS / Linux | `brew install omerninyo/tap/rightsub` | **הפצה רשמית ונוחה למשתמשי Mac** | Homebrew |
+| **1. חבילת Homebrew Tap רשמית** | macOS / Linux | `brew tap omerninyo/tap && brew install rightsub` | **הכי מומלץ למשתמשי Mac** (בקבוק אוניברסלי בשנייה אחת) | Homebrew |
+| **2. סקריפט התקנה מהיר** | macOS / Linux | `./install.sh` | התקנה מקומית למפתחים (קישור גלובלי ב-`~/.local/bin`) | Python 3 |
+| **3. מתקין חלונות Batch** | Windows | `install.bat` | **הכי מומלץ למשתמשי Windows** (בודק Python ומתקין ספריות) | Python 3 |
 | **4. חבילת Python מבודדת (`pipx`)** | חוצה-פלטפורמות | `pipx install .` | סביבת פייתון מבודדת ונקייה | pipx |
-| **5. אשף התקנה אינטראקטיבי מתוכנן** | חוצה-פלטפורמות | `python setup.py` | הגדרה ובדיקת בריאות אוטומטית מאפס | [מפרט](FUTURE_SETUP_WIZARD.he.md) |
+| **5. אשף הגדרות ואבחון מערכת** | חוצה-פלטפורמות | `rightsub config` / `rightsub doctor` | הגדרת מפתחות אינטראקטיבית ובדיקת סביבה | RightSub מותקן |
 
 ---
 
