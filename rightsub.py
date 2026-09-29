@@ -172,8 +172,15 @@ def main():
     p_polish.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
     p_polish.add_argument("--diff-only", "--dry-run", dest="diff_only", action="store_true", help="Generate audit report only without saving subtitle file")
     p_polish.add_argument("--in-place", action="store_true", help="Backup and update original file instead of creating .he.polished.srt")
-    p_polish.add_argument("-o", "--output", help="Custom output path for polished subtitle file")
-    p_polish.add_argument("--diff-report", help="Custom output path for markdown diff report")
+    # Command: config (API Key & Configuration Manager)
+    p_config = subparsers.add_parser("config", help="Interactive API key onboarding and credentials manager")
+    p_config.add_argument("--gemini", help="Directly set Google Gemini API Key")
+    p_config.add_argument("--tmdb", help="Directly set TMDb API Key or Bearer Token")
+    p_config.add_argument("--show", action="store_true", help="Display current configuration status")
+    p_config.add_argument("--clear", action="store_true", help="Delete configuration file")
+
+    # Command: doctor (System Diagnostics & Health Check)
+    p_doctor = subparsers.add_parser("doctor", help="Run comprehensive health check on dependencies and services")
 
     args, unknown = parser.parse_known_args()
 
@@ -185,6 +192,8 @@ def main():
         "auto": "18_auto_pipeline.py",
         "translate-ollama": "17_translate_ollama.py",
         "polish": "19_polish_and_qc.py",
+        "config": "20_config_and_doctor.py",
+        "doctor": "20_config_and_doctor.py",
         "split": "04_split_batches.py",
         "merge": "05_merge_and_validate.py",
         "prompt-gen": "09_prompt_builder.py",
@@ -199,7 +208,10 @@ def main():
     }
 
     script_name = script_mapping[args.command]
-    raw_args = sys.argv[2:]
+    if args.command in ("config", "doctor"):
+        raw_args = [args.command] + sys.argv[2:]
+    else:
+        raw_args = sys.argv[2:]
     run_script(script_name, raw_args)
 
 if __name__ == "__main__":

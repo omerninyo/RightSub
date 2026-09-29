@@ -10,9 +10,22 @@ This document tracks **major milestone releases** and product capabilities in Ri
 
 ---
 
+## 🚧 Version 1.3.0 (Milestone in Progress) — Semantic AI Proofreading, Homebrew Bottles & System Diagnostics
+
+> **Status:** Active Development (Target: v1.3.0)  
+> **Milestone Focus:** Semantic AI subtitle QC (`polish`), official Homebrew tap distribution with instant binary bottles, 10-second credential onboarding (`config`), and proactive system diagnostics (`doctor`).
+
+### 🎯 Key Highlights
+- **Semantic AI Polish & Subtitle Quality Control (`rightsub polish`):** Autonomous proofreading engine for existing subtitles. Combines zero-token deterministic franchise canon rules (Star Wars, Marvel, etc.) with bilingual cue alignment, Markdown diff reporting, and seed-safe protection.
+- **Official Homebrew Tap & Universal Bottle (`omerninyo/tap`):** Global 1-second installation on macOS (both Apple Silicon and Intel) via pre-packaged `:all` bottles on GitHub Releases, bypassing Xcode compiler checks completely.
+- **Interactive Credentials Onboarding (`rightsub config`):** 10-second setup wizard for Google Gemini & TMDb API keys with live ping authentication checks and automated storage in `~/.config/rightsub/config.json`.
+- **System Health Diagnostics (`rightsub doctor`):** End-to-end environment inspector verifying Python 3.9+, FFmpeg suite, TMDb, Gemini, Ollama daemon, and Quicksubs STT.
+
+---
+
 ## 🌟 Version 1.2.0 — Home Media Automation Stack & Clean-Slate Setup
 
-> **Release Date:** September 2026 (Commit: `HEAD`)  
+> **Release Date:** September 2026 (Commit: `0acfb14`)  
 > **Milestone Focus:** Hands-off home lab automation, zero-daemon architecture, and clean-slate onboarding without package managers.
 
 ### 🎯 Key Highlights
