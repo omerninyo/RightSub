@@ -19,7 +19,7 @@ flowchart LR
     v10["v1.0 מנוע אוטונומי"] --> v11["v1.1 חלונות ו-Seed-Safe"]
     v11 --> v12["v1.2 אוטומציית מדיה"]
     v12 --> v13["v1.3 הגהה סמנטית ו-Homebrew"]
-    v13 --> v14["v1.4 ממשק TUI אינטראקטיבי"]
+    v13 --> v14["v1.4 ממשק TUI וקונטיינר Docker"]
     v14 --> v15["v1.5 שרת MCP וסוכנים"]
 
     classDef done fill:#2e7d32,stroke:#1b5e20,color:#ffffff;
@@ -67,10 +67,10 @@ flowchart LR
 
 ---
 
-## 🟡 היעד הבא — גרסה 1.4.0: ממשק טרמינל אינטראקטיבי (TUI) וחיבורי עומק
+## 🟡 היעד הבא — גרסה 1.4.0: ממשק טרמינל אינטראקטיבי (TUI), חיבורי שרתים וקונטיינרים (Docker)
 
 > **יעד שחרור משוער:** רבעון רביעי 2026  
-> **מיילסטון ב-GitHub:** [`v1.4.0 — Interactive Terminal Experience (TUI)`](https://github.com/omerninyo/RightSub/milestones)  
+> **מיילסטון ב-GitHub:** [`v1.4.0 — Interactive Terminal Experience (TUI) & Containers`](https://github.com/omerninyo/RightSub/milestones)  
 > **מסמכי מפרט (RFC):**
 > - [RFC 001: ממשק טרמינל אינטראקטיבי (TUI)](docs/proposals/RFC_001_INTERACTIVE_TUI.he.md)
 > - [RFC 003: אשף התקנה ואבחון אוטונומי](docs/proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.he.md)
@@ -83,6 +83,12 @@ flowchart LR
 - [ ] **מתקין אוטומטי לחיבורי תוכנות הורדה ומעטפת שירות** ([#2](https://github.com/omerninyo/RightSub/issues/2)):
   - פקודת `rightsub config --install-hooks`: זיהוי אוטומטי של תוכנות הורדה מותקנות (qBittorrent, Sonarr, Radarr) והגדרת סקריפטי הסיום באופן אוטונומי.
   - יצירת שירותי systemd (בלינוקס) ו-launchd (ב-macOS) עבור שרתי מדיה מרוחקים הדורשים סריקת תיקיות אוטומטית.
+- [ ] **תמיכה רשמית בקונטיינרים (Official Docker & Sidecar Container Support)**:
+  - **אימג' רשמי ב-GitHub Container Registry (`ghcr.io/omerninyo/rightsub`)**: אימג' רזה מבוסס Python/Debian הכולל את כל התלויות, ספריות הקידוד ו-ffmpeg ללא צורך בהתקנה על המארח.
+  - **תמיכה במצב כפול (Dual Mode: CLI vs. Watcher)**:
+    - *CLI One-Shot:* הרצה לפי דרישה מתוך טרמינל או סקריפטים: `docker run --rm -v /media:/media ghcr.io/omerninyo/rightsub auto /media/movie.srt`.
+    - *Directory Watcher (Sidecar):* קונטיינר רקע קל-משקל המאזין לתיקיות הורדה (`/media/downloads`) באמצעות `watchdog` ומאסטר אוטומטית כל כתובית חדשה שנוצרת על ידי Bazarr או תוכנת טורנטים.
+  - **אינטגרציה ל-NAS (Unraid / TrueNAS SCALE / Synology)**: תבנית מוכנה (`docker-compose.yml`) וקובץ תבנית ל-Unraid Community Apps להתקנה בלחיצה אחת.
 
 ---
 
