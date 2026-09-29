@@ -72,6 +72,7 @@ flowchart LR
 > **Primary RFCs:**
 > - [RFC 001: Interactive Terminal UI (TUI) Specification](docs/proposals/RFC_001_INTERACTIVE_TUI.md)
 > - [RFC 003: Autonomous Setup & Health-Check Wizard](docs/proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md)
+> - [RFC 004: Docker Webhook Daemon & Container Architecture](docs/proposals/RFC_004_DOCKER_WEBHOOK_SERVER.md)
 
 ### Key Planned Features:
 - [ ] **Interactive TUI Diff Reviewer (`rightsub polish --interactive`)** ([#1](https://github.com/omerninyo/RightSub/issues/1)):

@@ -15,6 +15,7 @@
 - **[🔮 Setup & Health Wizard Specification](Setup-Wizard-Specification)**
 - **[🔌 MCP Server Specification](MCP-Server-Specification)**
 - **[💎 Semantic AI Polish & QC Specification](Semantic-AI-Polish-and-QC)**
+- **[🐳 Docker Webhook Server Specification](Docker-Webhook-Server-Specification)**
 - **[🗺️ Product Roadmap](Roadmap)**
 - **[🚀 What's New & Release Notes](Whats-New)**
 - **[Boston Legal Case Study](Boston-Legal-Case-Study)**
@@ -37,6 +38,7 @@
 - **[🔮 מפרט אשף התקנה ואבחון](מפרט-אשף-התקנה-ואבחון)**
 - **[🔌 מפרט שרת MCP](מפרט-שרת-MCP)**
 - **[💎 מפרט מנוע ליטוש סמנטי ו-QC](מפרט-מנוע-ליטוש-סמנטי-ובקרת-איכות)**
+- **[🐳 מפרט שרת Webhook וקונטיינר](מפרט-שרת-Webhook-וקונטיינר-Docker)**
 - **[🗺️ מפת דרכים ומעקב אבני-דרך](מפת-דרכים)**
 - **[🚀 מה חדש ועדכוני גרסאות](מה-חדש)**
 - **[מקרה בוחן - בוסטון ליגל](מקרה-בוחן-בוסטון-ליגל)**

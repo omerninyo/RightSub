@@ -74,6 +74,7 @@ flowchart LR
 > **מסמכי מפרט (RFC):**
 > - [RFC 001: ממשק טרמינל אינטראקטיבי (TUI)](docs/proposals/RFC_001_INTERACTIVE_TUI.he.md)
 > - [RFC 003: אשף התקנה ואבחון אוטונומי](docs/proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.he.md)
+> - [RFC 004: שרת Webhook וקונטיינר Docker לחיבור Sonarr, Radarr ו-Bazarr](docs/proposals/RFC_004_DOCKER_WEBHOOK_SERVER.he.md)
 
 ### תכונות מתוכננות:
 - [ ] **ממשק TUI לסריקה ואישור שינויים (`rightsub polish --interactive`)** ([#1](https://github.com/omerninyo/RightSub/issues/1)):
