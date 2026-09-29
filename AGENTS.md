@@ -33,13 +33,28 @@
 - Each milestone entry must follow the 4-part value structure: Highlights / TL;DR, Why It Matters, Quick Upgrade / Getting Started, and Deep Dive Links.
 - Releases in GitHub should use `.github/release_template.md`.
 
-## 7. Continuous Product Roadmap Governance (`ROADMAP.md` & GitHub Milestones)
-- **Automatic Lifecycle Tracking**:
-  - Whenever a new feature, architecture idea, or user enhancement request is discussed or proposed, it MUST immediately be logged in `ROADMAP.md` (and `ROADMAP.he.md`) under the appropriate future target release (e.g. `v1.4.0 (Planned)` or `Future / On the Horizon`), and linked to a GitHub Issue/Milestone.
-  - Detailed technical designs or specs must be organized under `docs/proposals/` (as `RFC_*.md`) instead of floating ad-hoc `FUTURE_*.md` files.
-  - Whenever a planned feature is implemented, verified, and shipped:
-    1. It MUST be moved from "Planned" to "Shipped" in `ROADMAP.md` and `ROADMAP.he.md`.
-    2. Its corresponding GitHub Issue/Milestone must be closed/updated.
-    3. Documented in `docs/WHATS_NEW.md` and `docs/WHATS_NEW.he.md` for major releases.
-  - No new feature idea may be left solely in chat memory; it must be persisted to the Roadmap.
+## 7. Continuous Product Roadmap & GitHub Issue Governance Protocol
+- **MANDATORY 5-STEP FEATURE LIFECYCLE (Zero Ideas Lost, 100% Tracking)**:
+  Whenever a new feature, architecture idea, or user enhancement request is discussed, approved, or proposed, the AI assistant MUST unconditionally execute this standardized sequence:
+  1. **Technical Specification (RFC)**:
+     - Author a formal bilingual RFC document under `docs/proposals/RFC_XXX_<TITLE>.he.md` and `docs/proposals/RFC_XXX_<TITLE>.md`.
+     - Never create floating, unorganized `FUTURE_*.md` files.
+  2. **GitHub Issue & Milestone Tracking**:
+     - Create an official GitHub Issue using the `github` MCP tool (`create_issue`) with the label `enhancement` and assign it to the appropriate GitHub Milestone (e.g. `v1.4.0`, `v1.5.0`).
+     - Standard title format: `feat(<scope>): <Description> (RFC XXX)`.
+  3. **Roadmap Binding**:
+     - Log the feature under the target release section in `ROADMAP.he.md` and `ROADMAP.md`.
+     - Explicitly hyperlink both the RFC document and the GitHub Issue: `- [ ] **<Title>** ([#X](https://github.com/omerninyo/RightSub/issues/X)): ...`.
+  4. **Bilingual Wiki Synchronization**:
+     - Create the corresponding wiki page under `wiki/` (e.g. `wiki/<RFC-Title>.md`).
+     - Add the entry to both language sections of `wiki/_Sidebar.md`.
+     - Execute `python3 scripts/sync_wiki.py` to push changes to `RightSub.wiki.git`.
+  5. **Implementation, Verification & Closure**:
+     - Once implemented and all unit tests pass, the git commit MUST include `closes #X`.
+     - GitHub will automatically close the issue, link the commit, and advance the milestone's completion percentage.
+     - Move the feature from "Planned" to "Shipped" in `ROADMAP.he.md` and `ROADMAP.md`, and document in `WHATS_NEW` for major releases.
+- **Strict Issue Taxonomy**:
+  - `enhancement` (light blue): Feature requests, architecture expansions, and RFC tasks.
+  - `bug` (red): Runtime defects or regression errors.
+  - No new feature idea or user request may remain solely in conversation context; it must immediately be codified into the project's tracked lifecycle.
 

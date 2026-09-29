@@ -84,7 +84,7 @@ flowchart LR
 - [ ] **מתקין אוטומטי לחיבורי תוכנות הורדה ומעטפת שירות** ([#2](https://github.com/omerninyo/RightSub/issues/2)):
   - פקודת `rightsub config --install-hooks`: זיהוי אוטומטי של תוכנות הורדה מותקנות (qBittorrent, Sonarr, Radarr) והגדרת סקריפטי הסיום באופן אוטונומי.
   - יצירת שירותי systemd (בלינוקס) ו-launchd (ב-macOS) עבור שרתי מדיה מרוחקים הדורשים סריקת תיקיות אוטומטית.
-- [ ] **תמיכה רשמית בקונטיינרים (Official Docker & Sidecar Container Support)**:
+- [ ] **תמיכה רשמית בקונטיינרים (Official Docker & Sidecar Container Support)** ([#4](https://github.com/omerninyo/RightSub/issues/4)):
   - **אימג' רשמי ב-GitHub Container Registry (`ghcr.io/omerninyo/rightsub`)**: אימג' רזה מבוסס Python/Debian הכולל את כל התלויות, ספריות הקידוד ו-ffmpeg ללא צורך בהתקנה על המארח.
   - **תמיכה במצב כפול (Dual Mode: CLI vs. Watcher)**:
     - *CLI One-Shot:* הרצה לפי דרישה מתוך טרמינל או סקריפטים: `docker run --rm -v /media:/media ghcr.io/omerninyo/rightsub auto /media/movie.srt`.

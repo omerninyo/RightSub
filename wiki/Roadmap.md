@@ -82,7 +82,7 @@ flowchart LR
 - [ ] **Automated Downloader Hook Installer & Service Wrapper** ([#2](https://github.com/omerninyo/RightSub/issues/2)):
   - `rightsub config --install-hooks`: Auto-detects installed qBittorrent, Sonarr, or Radarr instances and writes complete completion scripts automatically.
   - Optional lightweight systemd (Linux) and launchd (macOS) service generator for headless media servers requiring automated directory watching.
-- [ ] **Official Container Image & Sidecar Watcher (Docker / Podman)**:
+- [ ] **Official Container Image & Sidecar Watcher (Docker / Podman)** ([#4](https://github.com/omerninyo/RightSub/issues/4)):
   - **Official GHCR Image (`ghcr.io/omerninyo/rightsub`)**: Lightweight, self-contained container image bundling Python, all linguistic dependencies, and ffmpeg with zero host configuration.
   - **Dual Operating Modes (One-Shot CLI vs. Directory Watcher)**:
     - *One-Shot CLI Mode:* Direct invocation on demand: `docker run --rm -v /media:/media ghcr.io/omerninyo/rightsub auto /media/movie.srt`.
