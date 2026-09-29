@@ -340,6 +340,42 @@ JSON SCHEMA:
 ```"""
     return prompt
 
+def extract_json_payload(raw_text):
+    """Extracts and parses JSON object from LLM response text, safely stripping markdown fences or wrapping."""
+    if isinstance(raw_text, dict):
+        return raw_text
+    if not isinstance(raw_text, str):
+        return {}
+
+    text = raw_text.strip()
+
+    # Direct parse attempt
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+
+    # Extract outermost { ... }
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        candidate = text[first_brace:last_brace + 1]
+        try:
+            return json.loads(candidate)
+        except Exception:
+            pass
+
+    # Strip markdown code fences (```json ... ```)
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+
+    return json.loads(text)
+
 _cached_gemini_models = None
 _active_working_model = None
 
@@ -446,11 +482,11 @@ def query_gemini_api(prompt, api_key=None, model=None):
         if fallback not in models_to_try:
             models_to_try.append(fallback)
 
+    # Standard clean payload without restrictive responseMimeType to prevent HTTP 400 on models without native json mode flag
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0.2,
-            "responseMimeType": "application/json"
+            "temperature": 0.2
         }
     }
     raw_data = json.dumps(payload).encode("utf-8")
@@ -473,9 +509,10 @@ def query_gemini_api(prompt, api_key=None, model=None):
             with urllib.request.urlopen(req, timeout=120) as resp:
                 res_json = json.loads(resp.read().decode("utf-8"))
             text = res_json["candidates"][0]["content"]["parts"][0]["text"]
+            parsed = extract_json_payload(text)
             # Lock onto the successful model for subsequent batches
             _active_working_model = m
-            return json.loads(text)
+            return parsed
         except urllib.error.HTTPError as e:
             err_msg = ""
             try:
@@ -485,18 +522,23 @@ def query_gemini_api(prompt, api_key=None, model=None):
             except Exception:
                 err_msg = str(e)
 
-            # Retryable cascade conditions: 404 (not found/deprecated), 429 (quota), 500/502/503/504 (overloaded/server)
-            is_cascadeable = (e.code in (404, 429, 500, 502, 503, 504)) or any(
-                term in err_msg.lower() for term in ("quota", "overloaded", "not found", "no longer available", "resource_exhausted")
+            # Retryable cascade conditions: 404 (not found/deprecated), 429 (quota), 500/502/503/504 (overloaded/server),
+            # or 400 model feature limitation (e.g. JSON mode not enabled)
+            is_cascadeable = (e.code in (400, 404, 429, 500, 502, 503, 504)) or any(
+                term in err_msg.lower() for term in (
+                    "quota", "overloaded", "not found", "no longer available",
+                    "resource_exhausted", "not enabled for this model", "not supported"
+                )
             )
 
-            if is_cascadeable and e.code not in (401, 403):
+            if is_cascadeable and e.code not in (401, 403) and "api_key_invalid" not in err_msg.lower():
                 last_error = f"Model '{m}' unavailable (HTTP {e.code}): {err_msg}"
                 continue
-            elif e.code in (400, 401, 403):
+            elif e.code in (401, 403) or "api_key_invalid" in err_msg.lower():
                 raise RuntimeError(f"Authentication/Permission error (HTTP {e.code}): {err_msg}")
             else:
-                raise RuntimeError(f"Google API HTTP {e.code}: {err_msg}")
+                last_error = f"Google API HTTP {e.code} on '{m}': {err_msg}"
+                continue
         except Exception as e:
             last_error = str(e)
             raise e
@@ -526,7 +568,7 @@ def query_ollama_api(prompt, model="qwen2.5:7b", url="http://localhost:11434"):
         res_json = json.loads(resp.read().decode("utf-8"))
     
     response_str = res_json.get("response", "")
-    return json.loads(response_str)
+    return extract_json_payload(response_str)
 
 def generate_diff_report(title, total_cues, modifications, output_report_path, en_map=None):
     """Generates a clean, comprehensive Markdown Diff Audit Report."""

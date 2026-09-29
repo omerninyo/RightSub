@@ -270,4 +270,13 @@ class TestPolishAndQC:
         assert call_count == 4
         assert polish_module._active_working_model == "gemini-3.5-flash"
 
+    def test_extract_json_payload_markdown_and_wrapping(self):
+        fenced = "```json\n{\"cues\": [{\"index\": 1, \"reason\": \"test\"}]}\n```"
+        parsed = polish_module.extract_json_payload(fenced)
+        assert len(parsed.get("cues", [])) == 1
+
+        wrapped = "Here is your JSON output:\n{\"cues\": []}\nHope that helps!"
+        parsed_wrapped = polish_module.extract_json_payload(wrapped)
+        assert "cues" in parsed_wrapped
+
 
