@@ -112,7 +112,13 @@ rightsub --help
 
 ```bash
 brew tap omerninyo/tap
+brew trust omerninyo/tap  # נדרש ב-Homebrew 7.0+ לאישור tap צד-שלישי
 brew install rightsub
+```
+
+או בפקודה ישירה אחת:
+```bash
+brew install omerninyo/tap/rightsub
 ```
 
 Homebrew מתקין אוטומטית את תלויות `ffmpeg` ו-`python`, יוצר סביבה מבודדת ב-`/opt/homebrew/Cellar/rightsub/`, ומקשר את הפקודה ל-`/opt/homebrew/bin/rightsub`.

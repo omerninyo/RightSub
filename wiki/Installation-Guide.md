@@ -110,7 +110,13 @@ The formula is pre-built in [Formula/rightsub.rb](file:///Volumes/Other/Antigrav
 
 ```bash
 brew tap omerninyo/tap
+brew trust omerninyo/tap  # Required on Homebrew 7.0+ for external taps
 brew install rightsub
+```
+
+Alternatively, you can install directly in a single command:
+```bash
+brew install omerninyo/tap/rightsub
 ```
 
 Homebrew automatically manages `ffmpeg` and `python` dependencies, creates a virtualenv in `/opt/homebrew/Cellar/rightsub/`, and symlinks the binary directly to `/opt/homebrew/bin/rightsub`.
