@@ -169,7 +169,7 @@ def main():
     p_polish.add_argument("-b", "--bible", help="Path to Translation Bible (translation_bible.json) or directory")
     p_polish.add_argument("--ollama", action="store_true", help="Use local Ollama engine")
     p_polish.add_argument("--gemini", action="store_true", help="Force Google Gemini engine")
-    p_polish.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-3.8-flash for Gemini)")
+    p_polish.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-3.5-flash for Gemini)")
     p_polish.add_argument("--api-key", help="TMDb or Gemini API key")
     p_polish.add_argument("--batch-size", type=int, default=60, help="Number of cues per prompt batch (default: 60)")
     p_polish.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
