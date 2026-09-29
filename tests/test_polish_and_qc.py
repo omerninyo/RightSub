@@ -203,3 +203,68 @@ class TestPolishAndQC:
         polished_content = he_file.read_text(encoding="utf-8")
         assert "חרב האור" in polished_content
         assert "\u200F" in polished_content  # RLM mark present
+
+    def test_polish_loads_translation_bible(self, tmp_path):
+        he_file = tmp_path / "Movie.he.srt"
+        en_file = tmp_path / "Movie.en.srt"
+        he_file.write_text(SAMPLE_HE_SRT, encoding="utf-8")
+        en_file.write_text(SAMPLE_EN_SRT, encoding="utf-8")
+
+        bible_data = {
+            "metadata": {
+                "title": "Star Wars",
+                "overview": "A long time ago in a galaxy far, far away...",
+                "genres": ["Action", "Sci-Fi"]
+            },
+            "characters": [
+                {"name": "Luke Skywalker", "hebrew_name": "לוק סקייווקר", "gender": "male", "pronouns": "אתה/הוא"},
+                {"name": "Leia Organa", "hebrew_name": "ליאה אורגנה", "gender": "female", "pronouns": "את/היא"}
+            ]
+        }
+        bible_path = tmp_path / "translation_bible.json"
+        bible_path.write_text(json.dumps(bible_data, ensure_ascii=False), encoding="utf-8")
+
+        args = MagicMock()
+        args.bible = str(bible_path)
+        args.offline_canon_only = True
+        args.diff_only = True
+        args.dry_run = True
+        args.in_place = False
+        args.output = None
+        args.diff_report = None
+        args.title = "Star Wars"
+
+        res = polish_module.polish_subtitle_file(he_file, en_file, args)
+        assert res is True
+
+    @patch("urllib.request.urlopen")
+    def test_gemini_model_cascade_on_404(self, mock_urlopen):
+        import urllib.error
+        # Simulate 404 on first model, success on second
+        first_call = True
+        def side_effect(req, timeout=None):
+            nonlocal first_call
+            if first_call:
+                first_call = False
+                err_body = json.dumps({"error": {"message": "models/gemini-2.0-flash is not found for API version v1beta"}}).encode("utf-8")
+                raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, MagicMock(read=lambda: err_body))
+            # Second call succeeds
+            mock_resp = MagicMock()
+            mock_resp.__enter__.return_value = mock_resp
+            mock_resp.read.return_value = json.dumps({
+                "candidates": [{
+                    "content": {
+                        "parts": [{
+                            "text": '{"modifications": []}'
+                        }]
+                    }
+                }]
+            }).encode("utf-8")
+            return mock_resp
+
+        mock_urlopen.side_effect = side_effect
+        result = polish_module.query_gemini_api("Test prompt", api_key="test-key", model="gemini-2.0-flash")
+        assert result == {"modifications": []}
+        assert mock_urlopen.call_count == 2
+
+

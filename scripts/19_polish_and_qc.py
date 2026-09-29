@@ -261,21 +261,27 @@ def run_deterministic_canon_pass(aligned_cues, franchise_data):
 
     return modifications
 
-def build_polish_prompt(aligned_batch, title, franchise_name=None, franchise_data=None, characters=None):
-    """Builds a constrained, high-efficiency Polish prompt."""
+def build_polish_prompt(aligned_batch, title, franchise_name=None, franchise_data=None, characters=None, overview="", genres=None):
+    """Builds a constrained, high-efficiency Polish prompt with rich context & characters."""
     glossary_lines = []
     if franchise_data:
         glossary_lines.append(f"FRANCHISE CANON GUIDELINES ({franchise_name.upper()}):")
         for pat, rep, reas in franchise_data.get("canon_terms", []):
             clean_term = pat.replace(r"\b", "").replace(r"\s*", " ")
             glossary_lines.append(f"- '{clean_term}' MUST BE TRANSLATED AS '{rep}' ({reas})")
-    
+
+    context_lines = []
+    if genres:
+        context_lines.append(f"Genre: {', '.join(genres) if isinstance(genres, list) else genres}")
+    if overview:
+        context_lines.append(f"Context & Plot Synopsis: {overview}")
+
     char_lines = []
     if characters:
-        char_lines.append("CONFIRMED CHARACTERS & GENDERS:")
-        for c in characters[:12]:
+        char_lines.append("CONFIRMED CHARACTERS & GENDERS (Ground-Truth Context):")
+        for c in characters[:18]:
             c_name = c.get("name", "")
-            c_he = c.get("he_name") or c_name
+            c_he = c.get("he_name") or c.get("hebrew_name") or c_name
             c_gen = c.get("gender", "Unknown")
             c_pro = c.get("pronouns", "")
             char_lines.append(f"- {c_name} ({c_he}): Gender = {c_gen} (Hebrew 2nd/3rd person: {c_pro})")
@@ -285,8 +291,10 @@ def build_polish_prompt(aligned_batch, title, franchise_name=None, franchise_dat
         for c in aligned_batch
     ]
 
+    context_block = "\n".join(context_lines)
     prompt = f"""You are a professional Hebrew subtitling proofreader and quality-assurance editor.
 Title: {title}
+{context_block}
 
 TASK:
 Review the following existing Hebrew subtitles against the master English dialogue.
@@ -347,7 +355,7 @@ def query_gemini_api(prompt, api_key=None, model="gemini-2.0-flash"):
         raise ValueError("Gemini API key not found. Run 'rightsub config' or pass --api-key.")
 
     models_to_try = [model]
-    for fallback in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"]:
+    for fallback in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-flash"]:
         if fallback not in models_to_try:
             models_to_try.append(fallback)
 
@@ -531,24 +539,73 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
     if franchise_name:
         print(f"[+] Franchise Lore Detected: {franchise_name.upper()} (Enforcing canonical terms)")
 
-    # 5. Fetch TMDb Characters (if available)
+    # 5. Ingest Translation Bible & TMDb Context
     characters = []
-    tmdb_id = getattr(args, "tmdb_id", None)
+    overview = ""
+    genres = []
+
+    # Check for Translation Bible (explicit argument or companion translation_bible.json)
+    bible_arg = getattr(args, "bible", None)
+    bible_file = None
+    if bible_arg:
+        bp = Path(bible_arg).resolve()
+        if bp.is_file():
+            bible_file = bp
+        elif bp.is_dir() and (bp / "translation_bible.json").is_file():
+            bible_file = bp / "translation_bible.json"
+    else:
+        local_cand = he_path.parent / "translation_bible.json"
+        if local_cand.is_file():
+            bible_file = local_cand
+
+    if bible_file:
+        try:
+            b_data = json.loads(bible_file.read_text(encoding="utf-8"))
+            b_meta = b_data.get("metadata", {})
+            overview = b_meta.get("overview") or overview
+            genres = b_meta.get("genres") or genres
+            for c in b_data.get("characters", []):
+                characters.append({
+                    "name": c.get("name", ""),
+                    "he_name": c.get("hebrew_name") or c.get("he_name", ""),
+                    "gender": c.get("gender", "unknown"),
+                    "pronouns": c.get("pronouns", "")
+                })
+            print(f"[✓] Translation Bible Loaded: {bible_file.name} ({len(characters)} characters with confirmed context)")
+        except Exception as e:
+            print(f"[!] Bible loading notice: {e}")
+
+    # Query TMDb for ground truth metadata & cast if not already populated or if TMDb available
     if fetch_media_metadata and is_tmdb_available(getattr(args, "api_key", None)):
         try:
+            print(f"[*] Querying TMDb for '{title}' ground-truth metadata & cast...")
             tmdb_meta = fetch_media_metadata(filepath=he_path, title=title, api_key=getattr(args, "api_key", None))
             if tmdb_meta and tmdb_meta.get("success"):
-                characters = tmdb_meta.get("characters", [])
-                print(f"[+] TMDb Metadata Loaded: {len(characters)} character gender assignments.")
+                tmdb_chars = tmdb_meta.get("characters", [])
+                overview = tmdb_meta.get("overview") or overview
+                genres = tmdb_meta.get("genres") or genres
+                # Merge TMDb characters
+                existing_names = {c["name"].lower() for c in characters if c.get("name")}
+                added = 0
+                for tc in tmdb_chars:
+                    if tc["name"].lower() not in existing_names:
+                        characters.append(tc)
+                        existing_names.add(tc["name"].lower())
+                        added += 1
+                print(f"[✓] TMDb Matched: '{tmdb_meta.get('title')}' (Resolved {len(tmdb_chars)} cast members, overview & genres)")
         except Exception as e:
             print(f"[!] TMDb query notice: {e}")
 
-    # Inject franchise characters if missing from TMDb
+    # Inject franchise characters if missing from TMDb/Bible
     if franchise_data and "characters" in franchise_data:
-        existing_names = {c["name"].lower() for c in characters}
+        existing_names = {c["name"].lower() for c in characters if c.get("name")}
         for fc in franchise_data["characters"]:
             if fc["name"].lower() not in existing_names:
                 characters.append(fc)
+                existing_names.add(fc["name"].lower())
+
+    if characters:
+        print(f"[+] Active Character Bible: {len(characters)} confirmed character roles.")
 
     # 6. Deterministic Heuristic Canon Pass (Offline baseline, 0 tokens)
     modifications = run_deterministic_canon_pass(aligned, franchise_data)
@@ -573,7 +630,7 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
             b_num = (b_idx // batch_size) + 1
             print(f"    -> Processing batch {b_num}/{total_batches} (cues {batch[0]['index']}..{batch[-1]['index']})...", end="", flush=True)
 
-            prompt = build_polish_prompt(batch, title, franchise_name, franchise_data, characters)
+            prompt = build_polish_prompt(batch, title, franchise_name, franchise_data, characters, overview=overview, genres=genres)
 
             try:
                 if use_ollama:
@@ -663,6 +720,7 @@ def main():
     parser.add_argument("--en", dest="en_path", help="Path to companion master English subtitle (.en.srt)")
     parser.add_argument("--tmdb-id", type=int, help="TMDb Movie/TV ID for ground-truth entity resolution")
     parser.add_argument("--title", help="Explicit title for metadata/canon resolution")
+    parser.add_argument("-b", "--bible", help="Path to Translation Bible (translation_bible.json) or directory")
     parser.add_argument("--ollama", action="store_true", help="Use local Ollama engine")
     parser.add_argument("--gemini", action="store_true", help="Force Google Gemini engine")
     parser.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-2.0-flash for Gemini)")

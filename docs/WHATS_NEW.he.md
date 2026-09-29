@@ -19,6 +19,8 @@
 
 ### 🎯 עיקרי העדכון (Highlights)
 - **מנוע הגהה סמנטית ובקרת איכות (`rightsub polish`):** מנוע ליטוש אוטונומי לכתוביות קיימות. משלב יישור קאנון דטרמיניסטי ב-0 טוקנים (מלחמת הכוכבים, מארוול ועוד), סנכרון דו-לשוני (Bilingual Cue Alignment), דוחות השוואה ויזואליים (Markdown Diff), והגנת Seed-Safe מפני פגיעה בטורנטים פעילים.
+- **שילוב Translation Bible ועלילת TMDb כהקשר מקדים:** טעינה אוטומטית של קובץ `translation_bible.json` (או באמצעות דגל `-b` / `--bible`), משיכת תקציר עלילה וסוגה (Genres) מ-TMDb, והזרקת רשימת דמויות מאומתות עם שיוך מגדרי וכינויי גוף בעברית (את/אתה) לפרומפט ה-AI לפני ההשוואה.
+- **מפל מודלים חסין כשלים (Adaptive Model Cascade):** מעבר אוטומטי בין מודלים (`gemini-2.0-flash` ← `gemini-1.5-flash` ← `gemini-1.5-pro`), פענוח שגיאות HTTP מגוגל בזמן אמת, ומנגנון Fail-Fast לעצירה מיידית במקרה של בעיית הרשאות.
 - **חבילת Homebrew Tap רשמית ו-Bottle אוניברסלי (`omerninyo/tap`):** התקנה נקייה ב-2 שניות בכל מחשב Mac (מעבדי Intel ו-Apple Silicon כאחד) באמצעות ארכיבי `:all` מוכנים מראש ב-GitHub Releases, ללא תלות ב-Xcode או בקומפילציה מקומית.
 - **אשף הגדרת מפתחות מהיר (`rightsub config`):** הגדרת מפתחות Google Gemini ו-TMDb ב-10 שניות עם אימות קישוריות חי (Live Ping) ושמירה קבועה ב-`~/.config/rightsub/config.json`.
 - **דשבורד בדיקת בריאות המערכת (`rightsub doctor`):** אבחון מקיף לסביבת ההפעלה (Python 3.9+, FFmpeg, TMDb, Gemini API, שרת Ollama מקומי, ו-Quicksubs).

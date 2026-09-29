@@ -42,8 +42,14 @@
 # בדיקה וליטוש של כתובית עברית מול מקור אנגלי:
 rightsub polish "Star Wars (1977).he.srt" --en "Star Wars (1977).en.srt"
 
-# שימוש במזהה TMDb ייעודי למשיכת קאנון ושיוך דמויות:
+# טעינת Translation Bible ייעודית (או זיהוי אוטומטי של translation_bible.json):
+rightsub polish "Star Wars (1977).he.srt" --bible translation_bible.json
+
+# שימוש במזהה TMDb ייעודי למשיכת עלילה, שחקנים ושיוך דמויות:
 rightsub polish "Gladiator.he.srt" --en "Gladiator.en.srt" --tmdb-id 98
+
+# ליטוש מבוסס ענן ב-Gemini עם מפל מודלים אוטומטי (gemini-2.0-flash ← 1.5-flash ← 1.5-pro):
+rightsub polish "Movie.he.srt" --gemini
 
 # הפעלה במודל מקומי חינמי ואופליין דרך Ollama:
 rightsub polish "Movie.he.srt" --en "Movie.en.srt" --ollama --model qwen2.5:7b
@@ -58,7 +64,7 @@ rightsub polish "Movie.he.srt" --en "Movie.en.srt" --diff-only
 
 ```text
 [Movie.en.srt] ──┐
-                 ├──> [1. צימוד בלוקים דו-לשוני] ──> [2. הזרקת קאנון ומגדר מ-TMDb]
+                 ├──> [1. צימוד בלוקים דו-לשוני] ──> [2. הזרקת Translation Bible, עלילה ודמויות מ-TMDb]
 [Movie.he.srt] ──┘                                                    │
                                                                       ▼
 [קובץ סופי מתוקן: Movie.he.polished.srt] <── [4. יישום והזרקת RLM] <── [3. פרומפט ביקורת וליטוש AI]
@@ -77,8 +83,8 @@ rightsub polish "Movie.he.srt" --en "Movie.en.srt" --diff-only
 }
 ```
 
-### שלב 2: הזרקת מידע ישויות וקאנון מ-TMDb
-חילוץ שמות השחקנים, הדמויות והמגדר הדקדוקי מתוך ה-API של TMDb, לצד הזרקת מילון מונחי זיכיון (למשל: סדרת Star Wars, שר הטבעות, הארי פוטר, מארוול).
+### שלב 2: שילוב Translation Bible, תקציר עלילה ודמויות מ-TMDb
+טעינת `translation_bible.json` מקומי (או דרך דגל `--bible`) ושאיבת תקציר עלילה מלא, סוגות ורשימת שחקנים מאומתת מתוך ה-API של TMDb. שיוך מגדר דקדוקי בעברית (למשל: לוק סקייווקר: זכר/אתה, הנסיכה ליאה: נקבה/את) לצד מילוני מונחי זיכיון (Star Wars, שר הטבעות, מארוול ועוד).
 
 ### שלב 3: חוזה הפרומפט המבוקר (Constrained Polish Prompt)
 הפרומפט מנחה את מודל השפה לפעול כעורך לשוני מחמיר:

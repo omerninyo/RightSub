@@ -17,6 +17,8 @@ This document tracks **major milestone releases** and product capabilities in Ri
 
 ### 🎯 Key Highlights
 - **Semantic AI Polish & Subtitle Quality Control (`rightsub polish`):** Autonomous proofreading engine for existing subtitles. Combines zero-token deterministic franchise canon rules (Star Wars, Marvel, etc.) with bilingual cue alignment, Markdown diff reporting, and seed-safe protection.
+- **Translation Bible & TMDb Plot Context Ingestion:** Integrates companion `translation_bible.json` (or via explicit `-b` / `--bible` flag) along with TMDb plot overview, genres, and full verified character cast rosters with grammatical gender tags before running the LLM pass.
+- **Adaptive Model Cascade & Google API Hardening:** Multi-tier fallback (`gemini-2.0-flash` → `gemini-1.5-flash` → `gemini-1.5-pro`) with real-time Google API error body parsing and fail-fast abort protection against invalid API setups.
 - **Official Homebrew Tap & Universal Bottle (`omerninyo/tap`):** Global 1-second installation on macOS (both Apple Silicon and Intel) via pre-packaged `:all` bottles on GitHub Releases, bypassing Xcode compiler checks completely.
 - **Interactive Credentials Onboarding (`rightsub config`):** 10-second setup wizard for Google Gemini & TMDb API keys with live ping authentication checks and automated storage in `~/.config/rightsub/config.json`.
 - **System Health Diagnostics (`rightsub doctor`):** End-to-end environment inspector verifying Python 3.9+, FFmpeg suite, TMDb, Gemini, Ollama daemon, and Quicksubs STT.

@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="מפרט-מנוע-ליטוש-סמנטי-ובקרת-איכות"><b>עברית</b></a>
+  <a href="FEATURE_AI_POLISH_AND_QC.he.md"><b>עברית</b></a>
 </p>
 
 This document specifies the architectural design, data contracts, CLI interface, and execution workflow for the future **Semantic AI Polish & Subtitle QC Engine** in RightSub: the `rightsub polish` (or `rightsub qc-ai`) command.
@@ -40,8 +40,14 @@ Re-translating the entire film with an LLM burns unnecessary tokens, risks hallu
 # Review and polish an existing Hebrew subtitle against master English:
 rightsub polish "Star Wars (1977).he.srt" --en "Star Wars (1977).en.srt"
 
+# Explicitly provide a Translation Bible (or auto-detected translation_bible.json):
+rightsub polish "Star Wars (1977).he.srt" --bible translation_bible.json
+
 # Query TMDb by specific ID for cast rosters and franchise canon:
 rightsub polish "Gladiator.he.srt" --en "Gladiator.en.srt" --tmdb-id 98
+
+# Cloud AI proofreading with automated Model Cascade (gemini-2.0-flash -> 1.5-flash -> 1.5-pro):
+rightsub polish "Movie.he.srt" --gemini
 
 # Run locally and 100% offline via Ollama:
 rightsub polish "Movie.he.srt" --en "Movie.en.srt" --ollama --model qwen2.5:7b
@@ -56,7 +62,7 @@ rightsub polish "Movie.he.srt" --en "Movie.en.srt" --diff-only
 
 ```text
 [Movie.en.srt] ──┐
-                 ├──> [1. Bilingual Cue Alignment] ──> [2. TMDb Lore & Gender Ingestion]
+                 ├──> [1. Bilingual Cue Alignment] ──> [2. Translation Bible & TMDb Ingestion]
 [Movie.he.srt] ──┘                                                    │
                                                                       ▼
 [Master: Movie.he.polished.srt] <── [4. RLM & BiDi Enforcement] <─── [3. Constrained AI Polish Prompt]
@@ -75,8 +81,8 @@ Pairs each English cue with its corresponding Hebrew cue based on timestamp inte
 }
 ```
 
-### Stage 2: TMDb Lore & Gender Ingestion
-Extracts verified character genders from the TMDb API and injects domain-specific glossaries for recognized franchises (Star Wars, Lord of the Rings, Harry Potter, Marvel Cinematic Universe).
+### Stage 2: Translation Bible, Plot Synopsis & TMDb Ingestion
+Ingests companion `translation_bible.json` (or via `-b`/`--bible`) and queries TMDb API for the film's synopsis, genre categorization, and verified character roster with grammatical gender mapping (e.g., Luke Skywalker: male/אתה, Leia Organa: female/את). Also injects domain-specific glossaries for recognized franchises (Star Wars, Lord of the Rings, Harry Potter, Marvel Cinematic Universe).
 
 ### Stage 3: Constrained Polish Prompt Contract
 Instructs the LLM to act strictly as a professional subtitling editor:
