@@ -68,6 +68,7 @@ class TestConfigAndDoctor:
         monkeypatch.setattr(config_module, "CONFIG_FILE", test_file)
 
         args = MagicMock()
+        args.install_quicksubs = False
         args.show = True
         args.clear = False
         args.gemini = None
@@ -84,6 +85,7 @@ class TestConfigAndDoctor:
         monkeypatch.setattr(config_module, "CONFIG_FILE", test_file)
 
         args = MagicMock()
+        args.install_quicksubs = False
         args.show = False
         args.clear = True
         args.gemini = None
@@ -101,3 +103,11 @@ class TestConfigAndDoctor:
         assert "RightSub System Health Doctor" in captured
         assert "Python Runtime" in captured
         assert "FFmpeg Suite" in captured
+
+    def test_handle_config_install_quicksubs_non_mac(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "platform", "linux")
+        args = MagicMock()
+        args.install_quicksubs = True
+        res = config_module.handle_config(args)
+        assert res == 1
+        assert "requires an Apple Silicon Mac" in capsys.readouterr().out

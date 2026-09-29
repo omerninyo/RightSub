@@ -12,6 +12,8 @@ import os
 import sys
 import json
 import shutil
+import platform
+import subprocess
 import urllib.request
 import urllib.error
 import argparse
@@ -98,6 +100,20 @@ def verify_gemini(key: str) -> tuple:
 def handle_config(args):
     """Handle `rightsub config` command."""
     cfg = load_config()
+
+    if getattr(args, "install_quicksubs", False):
+        is_silicon = sys.platform == "darwin" and platform.machine() == "arm64"
+        if not is_silicon:
+            print("[-] quicksubs Apple SpeechAnalyzer requires an Apple Silicon Mac.")
+            return 1
+        print("[*] Installing quicksubs via Homebrew...")
+        res = subprocess.run(["brew", "install", "mattbirchler/tap/quicksubs"])
+        if res.returncode == 0:
+            print("[✓] Quicksubs installed successfully!")
+            return 0
+        else:
+            print(f"[!] brew install exited with code {res.returncode}. Manual install: brew tap mattbirchler/tap && brew install quicksubs")
+            return res.returncode
 
     if getattr(args, "show", False):
         print("\n========================================================")
@@ -201,6 +217,32 @@ def handle_config(args):
     elif current_tmdb:
         print("   Keeping existing TMDb credentials.")
 
+    print()
+
+    # 3. Quicksubs On-Device Speech-to-Text (Apple Silicon only)
+    is_apple_silicon = sys.platform == "darwin" and platform.machine() == "arm64"
+    has_brew = shutil.which("brew") is not None
+    quicksubs_path = shutil.which("quicksubs")
+    if is_apple_silicon and not quicksubs_path and has_brew:
+        print("3. Quicksubs On-Device Speech-to-Text (Apple Silicon detected):")
+        print("   Enables 100% free, local audio transcription directly on Apple Neural Engine.")
+        print("   Official tap: mattbirchler/tap/quicksubs")
+        prompt_qs = "   Would you like to install quicksubs now via Homebrew? [y/N]: "
+        try:
+            entered_qs = input(prompt_qs).strip().lower()
+            if entered_qs in ("y", "yes"):
+                print("   Installing quicksubs via Homebrew...", flush=True)
+                res = subprocess.run(["brew", "install", "mattbirchler/tap/quicksubs"])
+                if res.returncode == 0:
+                    print("   [✓] Quicksubs installed successfully!")
+                else:
+                    print(f"   [!] Note: brew install exited with code {res.returncode}. Manual install: brew tap mattbirchler/tap && brew install quicksubs")
+            else:
+                print("   Skipped. You can install anytime via: brew tap mattbirchler/tap && brew install quicksubs")
+        except (EOFError, KeyboardInterrupt):
+            print("\nSkipped.")
+        print()
+
     save_config(cfg)
     print("\n========================================================")
     print(f"[✓] Setup complete! Configuration saved to: {CONFIG_FILE}")
@@ -280,10 +322,14 @@ def handle_doctor(args):
 
     # 6. Quicksubs / Apple Silicon Speech-to-Text
     quicksubs_path = shutil.which("quicksubs")
+    is_apple_silicon = sys.platform == "darwin" and platform.machine() == "arm64"
     if quicksubs_path:
-        print(f" [✓] Quicksubs STT:   Installed ({quicksubs_path})")
+        print(f" [✓] Quicksubs STT:   Installed ({quicksubs_path}) — Apple Neural Engine ready")
+    elif is_apple_silicon:
+        print(" [i] Quicksubs STT:   Not installed (Recommended on Apple Silicon for 0-cost audio transcription)")
+        print("     Installation:    brew tap mattbirchler/tap && brew install quicksubs")
     else:
-        print(" [i] Quicksubs STT:   Not found (Optional, for on-device Apple Silicon audio transcription)")
+        print(" [i] Quicksubs STT:   Not installed (Optional speech-to-text engine)")
 
     print("========================================================")
     if overall_ok:
@@ -304,6 +350,7 @@ def main():
     config_parser.add_argument("--tmdb", help="Directly set TMDb API Key or Bearer Token")
     config_parser.add_argument("--show", action="store_true", help="Display current configuration status")
     config_parser.add_argument("--clear", action="store_true", help="Delete configuration file")
+    config_parser.add_argument("--install-quicksubs", action="store_true", help="Install quicksubs via Homebrew on Apple Silicon")
 
     # doctor sub-command
     doctor_parser = subparsers.add_parser("doctor", help="Run comprehensive health check on dependencies and services")
