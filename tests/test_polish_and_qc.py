@@ -279,4 +279,37 @@ class TestPolishAndQC:
         parsed_wrapped = polish_module.extract_json_payload(wrapped)
         assert "cues" in parsed_wrapped
 
+    @patch("urllib.request.urlopen")
+    def test_gemini_cascade_on_socket_timeout(self, mock_urlopen):
+        import socket
+        polish_module._cached_gemini_models = ["gemini-3.5-flash", "gemini-3.5-flash-lite"]
+        polish_module._active_working_model = None
+
+        call_count = 0
+        def side_effect(req, timeout=None):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise socket.timeout("The read operation timed out")
+            # 2nd call succeeds
+            mock_resp = MagicMock()
+            mock_resp.__enter__.return_value = mock_resp
+            mock_resp.read.return_value = json.dumps({
+                "candidates": [{
+                    "content": {
+                        "parts": [{
+                            "text": '{"modifications": []}'
+                        }]
+                    }
+                }]
+            }).encode("utf-8")
+            return mock_resp
+
+        mock_urlopen.side_effect = side_effect
+        result = polish_module.query_gemini_api("Test prompt", api_key="test-key")
+        assert result == {"modifications": []}
+        assert call_count == 2
+        assert polish_module._active_working_model == "gemini-3.5-flash-lite"
+
+
 

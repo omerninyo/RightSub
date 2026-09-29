@@ -32,6 +32,7 @@ import shutil
 import urllib.request
 import urllib.parse
 import urllib.error
+import socket
 from pathlib import Path
 
 # Add scripts directory to sys.path
