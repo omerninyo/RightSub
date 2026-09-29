@@ -46,7 +46,7 @@ rightsub polish "Star Wars (1977).he.srt" --bible translation_bible.json
 # Query TMDb by specific ID for cast rosters and franchise canon:
 rightsub polish "Gladiator.he.srt" --en "Gladiator.en.srt" --tmdb-id 98
 
-# Cloud AI proofreading with automated Model Cascade (gemini-2.0-flash -> 1.5-flash -> 1.5-pro):
+# Cloud AI proofreading with automated Model Cascade (gemini-3.8-flash -> gemini-3.5-flash):
 rightsub polish "Movie.he.srt" --gemini
 
 # Run locally and 100% offline via Ollama:

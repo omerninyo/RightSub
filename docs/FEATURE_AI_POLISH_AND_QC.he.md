@@ -48,7 +48,7 @@ rightsub polish "Star Wars (1977).he.srt" --bible translation_bible.json
 # שימוש במזהה TMDb ייעודי למשיכת עלילה, שחקנים ושיוך דמויות:
 rightsub polish "Gladiator.he.srt" --en "Gladiator.en.srt" --tmdb-id 98
 
-# ליטוש מבוסס ענן ב-Gemini עם מפל מודלים אוטומטי (gemini-2.0-flash ← 1.5-flash ← 1.5-pro):
+# ליטוש מבוסס ענן ב-Gemini עם מפל מודלים אוטומטי (gemini-3.8-flash ← gemini-3.5-flash):
 rightsub polish "Movie.he.srt" --gemini
 
 # הפעלה במודל מקומי חינמי ואופליין דרך Ollama:

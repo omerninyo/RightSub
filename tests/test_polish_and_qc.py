@@ -238,17 +238,19 @@ class TestPolishAndQC:
         assert res is True
 
     @patch("urllib.request.urlopen")
-    def test_gemini_model_cascade_on_404(self, mock_urlopen):
+    def test_gemini_model_cascade_down_to_3_5_flash(self, mock_urlopen):
         import urllib.error
-        # Simulate 404 on first model, success on second
-        first_call = True
+        polish_module._cached_gemini_models = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
+        polish_module._active_working_model = None
+
+        call_count = 0
         def side_effect(req, timeout=None):
-            nonlocal first_call
-            if first_call:
-                first_call = False
-                err_body = json.dumps({"error": {"message": "models/gemini-2.0-flash is not found for API version v1beta"}}).encode("utf-8")
+            nonlocal call_count
+            call_count += 1
+            if call_count < 4:
+                err_body = json.dumps({"error": {"message": f"model unavailable, code {call_count}"}}).encode("utf-8")
                 raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, MagicMock(read=lambda: err_body))
-            # Second call succeeds
+            # 4th call (gemini-3.5-flash) succeeds
             mock_resp = MagicMock()
             mock_resp.__enter__.return_value = mock_resp
             mock_resp.read.return_value = json.dumps({
@@ -263,8 +265,9 @@ class TestPolishAndQC:
             return mock_resp
 
         mock_urlopen.side_effect = side_effect
-        result = polish_module.query_gemini_api("Test prompt", api_key="test-key", model="gemini-2.0-flash")
+        result = polish_module.query_gemini_api("Test prompt", api_key="test-key")
         assert result == {"modifications": []}
-        assert mock_urlopen.call_count == 2
+        assert call_count == 4
+        assert polish_module._active_working_model == "gemini-3.5-flash"
 
 

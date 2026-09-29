@@ -81,13 +81,16 @@ def verify_gemini(key: str) -> tuple:
         return False, "Key is empty"
     key = key.strip()
     url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    req = urllib.request.Request(
+        url,
+        headers={"Accept": "application/json", "x-goog-api-key": key, "User-Agent": "RightSub/1.3"}
+    )
     try:
         with urllib.request.urlopen(req, timeout=7) as resp:
             if resp.status == 200:
                 data = json.loads(resp.read().decode("utf-8"))
                 models = [m.get("name", "") for m in data.get("models", [])]
-                flash_found = any("gemini-2.5-flash" in m or "gemini-1.5-flash" in m for m in models)
+                flash_found = any("flash" in m.lower() for m in models)
                 detail = "Authenticated (gemini-flash verified)" if flash_found else "Authenticated"
                 return True, detail
             return False, f"HTTP Status {resp.status}"

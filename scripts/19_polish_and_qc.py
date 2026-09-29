@@ -340,8 +340,85 @@ JSON SCHEMA:
 ```"""
     return prompt
 
-def query_gemini_api(prompt, api_key=None, model="gemini-2.0-flash"):
-    """Calls Google Gemini API via standard library urllib with model fallback and descriptive errors."""
+_cached_gemini_models = None
+_active_working_model = None
+
+def get_available_gemini_models(api_key):
+    """Discovers active models for this API key via Google Generative Language API, prioritizing Flash models."""
+    global _cached_gemini_models
+    if _cached_gemini_models is not None:
+        return _cached_gemini_models
+
+    discovered = []
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"Accept": "application/json", "x-goog-api-key": api_key, "User-Agent": "RightSub/1.3"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            for m in data.get("models", []):
+                name = m.get("name", "")
+                methods = m.get("supportedGenerationMethods", [])
+                if "generateContent" in methods:
+                    clean = name.replace("models/", "")
+                    discovered.append(clean)
+    except Exception:
+        pass
+
+    def model_priority(m_name):
+        m_lower = m_name.lower()
+        if "gemini-3.8-flash" in m_lower:
+            return 100
+        if "gemini-3.7-flash" in m_lower:
+            return 95
+        if "gemini-3.6-flash" in m_lower:
+            return 90
+        if "gemini-3.5-flash" in m_lower:
+            return 85
+        if "gemini-3.5-flash-lite" in m_lower:
+            return 80
+        if "gemini-flash-lite-latest" in m_lower:
+            return 78
+        if "gemini-3.1-flash-lite" in m_lower:
+            return 75
+        if "gemini-3-flash-preview" in m_lower:
+            return 70
+        if "gemini-flash-latest" in m_lower:
+            return 65
+        if "flash" in m_lower:
+            return 50
+        if "gemini-3" in m_lower:
+            return 40
+        return 10
+
+    if discovered:
+        discovered.sort(key=model_priority, reverse=True)
+        _cached_gemini_models = discovered
+        return _cached_gemini_models
+
+    # Default static waterfall cascade hierarchy matching battle-tested resilience
+    _cached_gemini_models = [
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-flash-lite-latest",
+        "gemini-3-flash-preview",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-flash-latest",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+    ]
+    return _cached_gemini_models
+
+def query_gemini_api(prompt, api_key=None, model=None):
+    """Calls Google Gemini API via standard library urllib with dynamic model discovery and cascade fallback."""
+    global _active_working_model
+
     key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not key:
         config_path = Path.home() / ".config" / "rightsub" / "config.json"
@@ -354,8 +431,18 @@ def query_gemini_api(prompt, api_key=None, model="gemini-2.0-flash"):
     if not key:
         raise ValueError("Gemini API key not found. Run 'rightsub config' or pass --api-key.")
 
-    models_to_try = [model]
-    for fallback in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-flash"]:
+    available_models = get_available_gemini_models(key)
+
+    # If user did not force a specific model, prefer the model that already succeeded previously
+    if model:
+        preferred_model = model
+    elif _active_working_model and _active_working_model in available_models:
+        preferred_model = _active_working_model
+    else:
+        preferred_model = available_models[0] if available_models else "gemini-3.8-flash"
+
+    models_to_try = [preferred_model]
+    for fallback in available_models:
         if fallback not in models_to_try:
             models_to_try.append(fallback)
 
@@ -370,17 +457,24 @@ def query_gemini_api(prompt, api_key=None, model="gemini-2.0-flash"):
 
     last_error = None
     for m in models_to_try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
+        model_path = m if m.startswith("models/") else f"models/{m}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/{model_path}:generateContent?key={key}"
         req = urllib.request.Request(
             url,
             data=raw_data,
-            headers={"Content-Type": "application/json", "User-Agent": "RightSub/1.3"},
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": key,
+                "User-Agent": "RightSub/1.3"
+            },
             method="POST"
         )
         try:
             with urllib.request.urlopen(req, timeout=120) as resp:
                 res_json = json.loads(resp.read().decode("utf-8"))
             text = res_json["candidates"][0]["content"]["parts"][0]["text"]
+            # Lock onto the successful model for subsequent batches
+            _active_working_model = m
             return json.loads(text)
         except urllib.error.HTTPError as e:
             err_msg = ""
@@ -391,8 +485,13 @@ def query_gemini_api(prompt, api_key=None, model="gemini-2.0-flash"):
             except Exception:
                 err_msg = str(e)
 
-            if e.code == 404:
-                last_error = f"Model '{m}' not found: {err_msg}"
+            # Retryable cascade conditions: 404 (not found/deprecated), 429 (quota), 500/502/503/504 (overloaded/server)
+            is_cascadeable = (e.code in (404, 429, 500, 502, 503, 504)) or any(
+                term in err_msg.lower() for term in ("quota", "overloaded", "not found", "no longer available", "resource_exhausted")
+            )
+
+            if is_cascadeable and e.code not in (401, 403):
+                last_error = f"Model '{m}' unavailable (HTTP {e.code}): {err_msg}"
                 continue
             elif e.code in (400, 401, 403):
                 raise RuntimeError(f"Authentication/Permission error (HTTP {e.code}): {err_msg}")
@@ -403,6 +502,8 @@ def query_gemini_api(prompt, api_key=None, model="gemini-2.0-flash"):
             raise e
 
     raise RuntimeError(f"Gemini API request failed across models ({', '.join(models_to_try)}): {last_error}")
+
+
 
 def query_ollama_api(prompt, model="qwen2.5:7b", url="http://localhost:11434"):
     """Calls Ollama generate API with format='json'."""
@@ -618,7 +719,7 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
     offline_only = getattr(args, "offline_canon_only", False)
 
     if not offline_only and (use_ollama or use_gemini):
-        backend_name = f"Ollama ({getattr(args, 'model', None) or 'default'})" if use_ollama else f"Gemini ({getattr(args, 'model', None) or 'gemini-2.0-flash'})"
+        backend_name = f"Ollama ({getattr(args, 'model', None) or 'default'})" if use_ollama else f"Gemini ({getattr(args, 'model', None) or 'gemini-3.8-flash'})"
         print(f"[*] Running Semantic AI Proofreader via {backend_name}...")
 
         batch_size = getattr(args, "batch_size", 60) or 60
@@ -637,7 +738,7 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
                     model = getattr(args, "model", None) or "qwen2.5:7b"
                     res = query_ollama_api(prompt, model=model)
                 else:
-                    model = getattr(args, "model", None) or "gemini-2.0-flash"
+                    model = getattr(args, "model", None) or "gemini-3.8-flash"
                     res = query_gemini_api(prompt, api_key=getattr(args, "api_key", None), model=model)
 
                 batch_cues = res.get("cues", []) if isinstance(res, dict) else []
@@ -723,7 +824,7 @@ def main():
     parser.add_argument("-b", "--bible", help="Path to Translation Bible (translation_bible.json) or directory")
     parser.add_argument("--ollama", action="store_true", help="Use local Ollama engine")
     parser.add_argument("--gemini", action="store_true", help="Force Google Gemini engine")
-    parser.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-2.0-flash for Gemini)")
+    parser.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-3.8-flash for Gemini)")
     parser.add_argument("--api-key", help="TMDb or Gemini API key")
     parser.add_argument("--batch-size", type=int, default=60, help="Number of cues per prompt batch (default: 60)")
     parser.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
