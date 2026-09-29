@@ -792,11 +792,15 @@ def generate_diff_report(title, total_cues, modifications, output_report_path, e
         "| :---: | :--- | :--- | :--- | :--- |"
     ]
 
-    for idx in sorted(modifications.keys()):
-        m = modifications[idx]
+    if isinstance(modifications, dict):
+        mod_items = [(idx, modifications[idx]) for idx in sorted(modifications.keys())]
+    else:
+        mod_items = [(m.get("index", i+1), m) for i, m in enumerate(modifications)]
+
+    for idx, m in mod_items:
         orig_en = en_map.get(idx, "").replace("\n", " ").replace("|", "\\|")
-        old_he = m["original_he"].replace("\n", " ").replace("|", "\\|")
-        new_he = m["polished_he"].replace("\n", " ").replace("|", "\\|")
+        old_he = m.get("original_he", "").replace("\n", " ").replace("|", "\\|")
+        new_he = m.get("polished_he", "").replace("\n", " ").replace("|", "\\|")
         reason = m.get("reason", "הגהה וליטוש").replace("|", "\\|")
         lines.append(f"| **#{idx}** | {orig_en} | {old_he} | {new_he} | {reason} |")
 
@@ -807,6 +811,10 @@ def generate_diff_report(title, total_cues, modifications, output_report_path, e
 
     report_content = "\n".join(lines)
     Path(output_report_path).write_text(report_content, encoding="utf-8")
+    try:
+        os.utime(output_report_path, None)
+    except Exception:
+        pass
     return report_content
 
 def write_mastered_srt(cues, output_path):
@@ -832,6 +840,10 @@ def write_mastered_srt(cues, output_path):
 
     content = "\n\n".join(out_blocks) + "\n"
     Path(output_path).write_text(content, encoding="utf-8")
+    try:
+        os.utime(output_path, None)
+    except Exception:
+        pass
 
 def polish_target(target, en_path=None, args=None):
     """
@@ -1203,6 +1215,10 @@ def polish_target(target, en_path=None, args=None):
             backup_path = he_path.parent / f"{base_stem}.he.original.srt"
             if not backup_path.exists():
                 shutil.copy2(he_path, backup_path)
+                try:
+                    os.utime(backup_path, None)
+                except Exception:
+                    pass
                 print(f"[i] Seed-Safe Backup created: {backup_path.name}")
             output_path = he_path
         else:

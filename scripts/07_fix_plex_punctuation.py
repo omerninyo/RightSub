@@ -444,9 +444,17 @@ def process_file(file_path, output_path=None, in_place=False, force=False, dry_r
     if in_place and backup:
         bak_file = p.with_suffix(".srt.bak")
         shutil.copy2(p, bak_file)
+        try:
+            os.utime(bak_file, None)
+        except Exception:
+            pass
 
     with open(dest, "w", encoding="utf-8") as f:
         f.write(fixed_content)
+    try:
+        os.utime(dest, None)
+    except Exception:
+        pass
 
     status = "already compliant" if modified_lines == 0 and ads_removed == 0 and encoding_detected == 'utf-8' else "fixed"
     print(f"[✓] {p.name}: Processed {total_subs} subs ({modified_lines} lines adjusted{ads_note}{enc_note}, {status}) -> {dest.name}")

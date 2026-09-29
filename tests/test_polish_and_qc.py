@@ -450,6 +450,23 @@ you're on the planet that it's farthest from.
         diff_report_content = (tmp_path / "diff.md").read_text(encoding="utf-8")
         assert "כתוביות שלוטשו ותוקנו:** 0" in diff_report_content
 
+    def test_write_mastered_srt_and_diff_report_utime(self, tmp_path):
+        import time
+        out_srt = tmp_path / "test.srt"
+        out_diff = tmp_path / "test_diff.md"
+
+        cues = [{"index": 1, "timing": "00:00:01,000 --> 00:00:03,000", "text": "שלום עולם"}]
+        polish_module.write_mastered_srt(cues, out_srt)
+        polish_module.generate_diff_report("Test", 1, [], out_diff)
+
+        assert out_srt.exists()
+        assert out_diff.exists()
+        now = time.time()
+        # Ensure file modification time is within 5 seconds of now (not defaulting to 2001 epoch)
+        assert abs(out_srt.stat().st_mtime - now) < 5.0
+        assert abs(out_diff.stat().st_mtime - now) < 5.0
+
+
 
 
 

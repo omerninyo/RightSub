@@ -121,11 +121,19 @@ def extract_from_video(video_path, output_srt=None, track_index=None, lang="eng"
             if external_sub != output_srt:
                 import shutil
                 shutil.copy2(external_sub, output_srt)
+                try:
+                    os.utime(output_srt, None)
+                except Exception:
+                    pass
             clean_srt_tags(output_srt)
             return True, "external_found"
         else:
             print(f"    [+] Converting external {external_sub.suffix} to SRT: {external_sub.name} -> {output_srt.name}")
             if convert_to_srt(external_sub, output_srt):
+                try:
+                    os.utime(output_srt, None)
+                except Exception:
+                    pass
                 return True, "external_converted"
 
     # 3. Inspect video file for embedded subtitle tracks
@@ -171,6 +179,10 @@ def extract_from_video(video_path, output_srt=None, track_index=None, lang="eng"
     res = subprocess.run(extract_cmd, capture_output=True, text=True)
     if res.returncode == 0 and output_srt.exists() and output_srt.stat().st_size > 0:
         clean_srt_tags(output_srt)
+        try:
+            os.utime(output_srt, None)
+        except Exception:
+            pass
         print(f"    [✓] Extracted & sanitized stream #{selected_index} -> {output_srt.name}")
         return True, "extracted"
     else:

@@ -308,6 +308,10 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
 
     with open(output_he_srt_path, "w", encoding="utf-8") as f:
         f.write("\n".join(out_lines))
+    try:
+        os.utime(output_he_srt_path, None)
+    except Exception:
+        pass
 
     print(f"[✓] SUCCESS: Merged {len(en_subs)} subtitles into {output_he_srt_path}")
     print(f"    - Missing subtitles: 0 (100% matched)")
