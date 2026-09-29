@@ -37,7 +37,12 @@ CRITICAL RULES:
 5. If a cue is purely SDH or sound effects (e.g. ♪♪♪, [Music], (sighs), (sobs), [crying], [screaming], [gunshot], [buzzer blares], ***), return an empty string "" for hebrew, but KEEP ITS EXACT INDEX. Remove inline audio descriptions from dialogue.
 6. Use Hebrew gershayim (״ \\u05F4) or single quotes for acronyms (e.g. עו״ד, ארה״ב, ד״ר, FBI, CIA, DNA). NEVER use standard double quotes inside Hebrew strings.
 7. DO NOT VOCALIZE (ללא ניקוד): Write standard modern Hebrew spelling.
-8. Return ONLY a valid JSON array in a single ```json ``` block:
+8. NATURAL IDIOMS & PROPER HEBREW VOCABULARY:
+   - Translate English idioms by their true Hebrew meaning, not literal words. E.g. 'As a matter of fact' -> 'למעשה' or 'למען האמת' (NEVER 'מעשה בראשית').
+   - Sci-Fi & Military: 'snub fighter' -> 'חללית קרב זעירה' or 'קרבית' (NEVER 'מכלית קרב'), 'tractor beam' -> 'קרן גרירה' (NEVER 'קרן משיכה').
+   - Rank & Titles: 'captain' -> 'קברניט' or 'קפטן' (NEVER Arabic-influenced transliterations like 'קאבתן').
+   - Common verbs: use proper Hebrew verb forms e.g. 'לשים' (never 'לשום'), 'מושכת' (never 'מוחב').
+9. Return ONLY a valid JSON array in a single ```json ``` block:
 ```json
 [
   {{"index": {start}, "hebrew": "..."}},

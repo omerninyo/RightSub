@@ -348,6 +348,9 @@ class TestPolishAndQC:
         # Both Hebrew cues get the overlapping English sentence reference
         assert "long English sentence" in aligned[0]["en"]
         assert "long English sentence" in aligned[1]["en"]
+        # Split cues are annotated with split_part
+        assert aligned[0].get("split_part") == "1/2"
+        assert aligned[1].get("split_part") == "2/2"
 
     def test_polish_sanitizes_arabic_homoglyphs_and_rejects_leaks(self):
         # 1. Homoglyphs and phrases are normalized
@@ -360,6 +363,93 @@ class TestPolishAndQC:
         norm_yaa = polish_module.normalize_homoglyphs(line_with_yaa)
         assert norm_yaa == "מאסטרי"
         assert "\u064A" not in norm_yaa
+
+    def test_star_wars_canon_and_idiom_terms(self):
+        _, franchise_data = polish_module.detect_franchise("Star Wars")
+        aligned = [
+            {"index": 1, "timing": "...", "en": "...", "he": "מעשה בראשית, לא הייתי שם."},
+            {"index": 2, "timing": "...", "en": "...", "he": "הקאבתן הודיע לנו."},
+            {"index": 3, "timing": "...", "en": "...", "he": "הם שלחו מכלית קרב."},
+            {"index": 4, "timing": "...", "en": "...", "he": "הם נלכדו בתוך קרן משיכה."},
+            {"index": 5, "timing": "...", "en": "...", "he": "צריך לשום את זה כאן."},
+            {"index": 6, "timing": "...", "en": "...", "he": "הספינה מוחב אותנו."}
+        ]
+        mods = polish_module.run_deterministic_canon_pass(aligned, franchise_data)
+        assert mods[1]["polished_he"] == "למעשה, לא הייתי שם."
+        assert mods[2]["polished_he"] == "הקברניט הודיע לנו."
+        assert mods[3]["polished_he"] == "הם שלחו חללית קרב."
+        assert mods[4]["polished_he"] == "הם נלכדו בתוך קרן גרירה."
+        assert mods[5]["polished_he"] == "צריך לשים את זה כאן."
+        assert mods[6]["polished_he"] == "הספינה מושכת אותנו."
+
+    @patch("urllib.request.urlopen")
+    def test_anticipation_drift_rejection_in_polish(self, mock_urlopen, tmp_path):
+        he_content = """1
+00:00:10,000 --> 00:00:12,000
+לא בכוכב הזה, על כל פנים.
+
+2
+00:00:12,500 --> 00:00:14,500
+אגב, באיזה כוכב אנחנו?
+
+3
+00:00:15,000 --> 00:00:18,000
+זה שהכי רחוק ממרכז הנאורות בתבל.
+"""
+        en_content = """1
+00:00:10,000 --> 00:00:14,500
+As a matter of fact, I'm not even sure which planet I'm on.
+
+2
+00:00:15,000 --> 00:00:18,000
+you're on the planet that it's farthest from.
+"""
+        he_file = tmp_path / "test.he.srt"
+        en_file = tmp_path / "test.en.srt"
+        he_file.write_text(he_content, encoding="utf-8")
+        en_file.write_text(en_content, encoding="utf-8")
+
+        # Mock LLM returning an anticipation drift for cue #2 matching cue #3's English line
+        mock_resp = MagicMock()
+        mock_resp.__enter__.return_value = mock_resp
+        mock_resp.read.return_value = json.dumps({
+            "candidates": [{
+                "content": {
+                    "parts": [{
+                        "text": json.dumps({
+                            "cues": [
+                                {
+                                    "index": 2,
+                                    "original_he": "אגב, באיזה כוכב אנחנו?",
+                                    "polished_he": "אתה נמצא בכוכב שהכי רחוק מכל השאר.",
+                                    "reason": "התאמת שורות לדיאלוג המקורי (You're on the planet that it's farthest from)"
+                                }
+                            ]
+                        })
+                    }]
+                }
+            }]
+        }).encode("utf-8")
+        mock_urlopen.return_value = mock_resp
+
+        args = MagicMock()
+        args.gemini = True
+        args.ollama = False
+        args.offline_canon_only = False
+        args.diff_only = True
+        args.dry_run = True
+        args.in_place = False
+        args.output = None
+        args.diff_report = str(tmp_path / "diff.md")
+        args.title = "Star Wars"
+        args.api_key = "dummy"
+
+        res = polish_module.polish_subtitle_file(he_file, en_file, args)
+        assert res is True
+        # Cue #2's anticipation drift must be rejected, leaving 0 edits
+        diff_report_content = (tmp_path / "diff.md").read_text(encoding="utf-8")
+        assert "כתוביות שלוטשו ותוקנו:** 0" in diff_report_content
+
 
 
 

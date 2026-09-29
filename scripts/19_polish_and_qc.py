@@ -129,6 +129,15 @@ FRANCHISE_GLOSSARIES = {
             (r"(?<![א-ת])חייל\s*סער(?![א-ת])", "לוחם סער", "מינוח קאנוני (Stormtrooper)"),
             (r"(?<![א-ת])חיילי\s*סער(?![א-ת])", "לוחמי סער", "מינוח קאנוני (Stormtroopers)"),
             (r"(?<![א-ת])הצד\s*החשוך(?![א-ת])", "הצד האפל", "מינוח קאנוני (Dark Side)"),
+            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?מעשה\s*בראשית(?![א-ת])", r"\g<1>למעשה", "תיקון ביטוי שגוי (As a matter of fact = למעשה ולא מעשה בראשית)"),
+            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?קאבתן(?![א-ת])", r"\g<1>קברניט", "תיקון תעתיק פונטי שגוי (Captain = קברניט/קפטן ולא קאבתן)"),
+            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?מכלית\s*קרב(?![א-ת])", r"\g<1>חללית קרב", "מינוח מדויק (snub fighter = חללית קרב)"),
+            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?קרן\s*משיכה(?![א-ת])", r"\g<1>קרן גרירה", "מינוח קאנוני (Tractor Beam = קרן גרירה ולא קרן משיכה)"),
+            (r"(?<![א-ת])לשום\s+את(?![א-ת])", "לשים את", "תיקון שגיאת כתיב (לשים ולא לשום)"),
+            (r"(?<![א-ת])מוחב\s+אותנו(?![א-ת])", "מושכת אותנו", "תיקון שגיאת כתיב (מושכת ולא מוחב)"),
+            (r"(?<![א-ת])אובי\s*[-–—]?\s*וואן\s+קאנובי(?![א-ת])", "אובי-וואן קנובי", "תיקון איות קאנוני (קנובי ולא קאנובי)"),
+            (r"(?<![א-ת])סי\s*[-–—]?\s*ת'?ריפיאו(?![א-ת])", "סי-ת'ריפיו", "תיקון איות קאנוני (C-3PO)"),
+            (r"(?<![א-ת])ארטו\s*[-–—]?\s*דיטו(?![א-ת])", "ארטו-דיטו", "תיקון איות קאנוני (R2-D2)"),
         ],
         "characters": [
             {"name": "Princess Leia", "he_name": "הנסיכה ליאה", "gender": "Female", "pronouns": "את/היא"},
@@ -137,6 +146,8 @@ FRANCHISE_GLOSSARIES = {
             {"name": "Darth Vader", "he_name": "דארת' ויידר", "gender": "Male", "pronouns": "אתה/הוא"},
             {"name": "Obi-Wan Kenobi", "he_name": "אובי-וואן קנובי", "gender": "Male", "pronouns": "אתה/הוא"},
             {"name": "Grand Moff Tarkin", "he_name": "גראנד מופ טארקין", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "C-3PO", "he_name": "סי-ת'ריפיו", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "R2-D2", "he_name": "ארטו-דיטו", "gender": "Male", "pronouns": "אתה/הוא"},
         ]
     },
     "lord of the rings": {
@@ -239,7 +250,8 @@ def align_bilingual_cues(en_cues, he_cues):
                     "index": en["index"],
                     "timing": he["timing"],
                     "en": en["text"],
-                    "he": he["text"]
+                    "he": he["text"],
+                    "en_index": en["index"]
                 })
             return aligned
 
@@ -271,8 +283,29 @@ def align_bilingual_cues(en_cues, he_cues):
             "index": he["index"],
             "timing": he["timing"],
             "en": en_text,
-            "he": he["text"]
+            "he": he["text"],
+            "en_index": best_en["index"] if best_en else None
         })
+
+    # 3. Annotate split cues: detect consecutive Hebrew cues sharing the same English master cue
+    i = 0
+    while i < len(aligned):
+        curr_en_idx = aligned[i].get("en_index")
+        curr_en_text = (aligned[i].get("en") or "").strip()
+        if curr_en_text and (curr_en_idx is not None or curr_en_text):
+            j = i
+            while j < len(aligned) and (
+                (curr_en_idx is not None and aligned[j].get("en_index") == curr_en_idx) or
+                (curr_en_idx is None and (aligned[j].get("en") or "").strip() == curr_en_text)
+            ):
+                j += 1
+            total_parts = j - i
+            if total_parts > 1:
+                for part_idx, k in enumerate(range(i, j), start=1):
+                    aligned[k]["split_part"] = f"{part_idx}/{total_parts}"
+            i = j
+        else:
+            i += 1
 
     return aligned
 
@@ -344,7 +377,10 @@ def build_polish_prompt(aligned_batch, title, franchise_name=None, franchise_dat
             char_lines.append(f"- {c_name} ({c_he}): Gender = {c_gen} (Hebrew 2nd/3rd person: {c_pro})")
 
     batch_input = [
-        {"index": c["index"], "en": c["en"], "current_he": c["he"]}
+        {
+            **({"index": c["index"], "en": c["en"], "current_he": c["he"]}),
+            **({"split_part": c["split_part"]} if c.get("split_part") else {})
+        }
         for c in aligned_batch
     ]
 
@@ -370,16 +406,26 @@ CRITICAL INSTRUCTIONS:
    - Fix clumsy literal machine translations into natural, idiomatic Hebrew dialogue.
 5. SUBTITLE CONSTRAINTS:
    - Maximum 38-40 characters per line, maximum 2 lines per cue block.
-6. STRICT TIMELINE INTEGRITY (ZERO DRIFT):
+6. STRICT TIMELINE INTEGRITY & SPLIT CUES (ZERO FORWARD DRIFT):
    - Never merge dialogue across multiple cues, and never shift lines from one cue to another.
    - Each cue must contain ONLY the dialogue spoken during that specific cue.
-   - If the English reference covers multiple consecutive Hebrew cues, keep each Hebrew cue distinct and focused on its piece of dialogue.
+   - SPLIT CUES ('split_part'): When consecutive cues share an English reference (indicated by 'split_part': '1/2', '2/2'):
+     * Part 1/2 must contain ONLY the first segment of the dialogue.
+     * Part 2/2 must contain ONLY the continuation/concluding segment of the dialogue.
+     * STRICTLY FORBIDDEN: Translating the complete sentence into Part 1/2 and then anticipating/guessing upcoming film dialogue for Part 2/2!
+     * NEVER pull dialogue from subsequent scenes or upcoming cues into a split cue.
+     * If the existing Hebrew cues already naturally divide the dialogue, PRESERVE THEM (The Conservation Rule).
 7. NEVER DELETE CUES (NO EMPTY CUES):
    - 'polished_he' must NEVER be empty or whitespace.
    - You are strictly forbidden from returning empty cues ("").
    - If a cue requires no changes, leave it out of the 'cues' array completely.
 8. HEBREW CHARACTERS ONLY:
    - Output must contain only valid Hebrew characters, numbers, and standard punctuation. Never output Arabic or foreign characters.
+9. NATURAL IDIOMS & PROPER HEBREW VOCABULARY:
+   - Translate English idioms by their true Hebrew meaning, not literal words. E.g. 'As a matter of fact' -> 'למעשה' or 'למען האמת' (NEVER 'מעשה בראשית').
+   - Sci-Fi & Military: 'snub fighter' -> 'חללית קרב זעירה' or 'קרבית' (NEVER 'מכלית קרב'), 'tractor beam' -> 'קרן גרירה' (NEVER 'קרן משיכה').
+   - Rank & Titles: 'captain' -> 'קברניט' or 'קפטן' (NEVER Arabic-influenced transliterations like 'קאבתן').
+   - Common verbs: use proper Hebrew verb forms e.g. 'לשים' (never 'לשום'), 'מושכת' (never 'מוחב').
 
 {chr(10).join(glossary_lines)}
 {chr(10).join(char_lines)}
@@ -928,15 +974,35 @@ def polish_target(target, en_path=None, args=None):
     offline_only = getattr(args, "offline_canon_only", False)
 
     if not offline_only and (use_ollama or use_gemini):
-        backend_name = f"Ollama ({getattr(args, 'model', None) or 'default'})" if use_ollama else f"Gemini ({getattr(args, 'model', None) or 'gemini-3.5-flash'})"
+        raw_bs = getattr(args, "batch_size", 60)
+        batch_size = raw_bs if (isinstance(raw_bs, int) and not isinstance(raw_bs, bool) and raw_bs > 0) else 60
+        raw_model = getattr(args, "model", None)
+        model = raw_model if (isinstance(raw_model, str) and raw_model.strip()) else None
+
+        backend_model = model or ("qwen2.5:7b" if use_ollama else "gemini-3.5-flash")
+        backend_name = f"Ollama ({backend_model})" if use_ollama else f"Gemini ({backend_model})"
         print(f"[*] Running Semantic AI Proofreader via {backend_name}...")
 
-        batch_size = getattr(args, "batch_size", 60) or 60
         total_batches = (len(aligned) + batch_size - 1) // batch_size
         consecutive_errors = 0
 
+        # Build forward dialogue lookup to detect and reject anticipation drift
+        next_en_map = {}
+        for i in range(len(aligned) - 1):
+            curr_item = aligned[i]
+            curr_en = (curr_item.get("en") or "").strip()
+            candidates = []
+            for j in range(i + 1, min(i + 5, len(aligned))):
+                cand_en = (aligned[j].get("en") or "").strip()
+                if cand_en and cand_en.lower() != curr_en.lower() and cand_en not in candidates:
+                    candidates.append(cand_en)
+            if candidates:
+                next_en_map[curr_item["index"]] = candidates
+
         for b_idx in range(0, len(aligned), batch_size):
             batch = aligned[b_idx:b_idx + batch_size]
+            if not batch:
+                continue
             b_num = (b_idx // batch_size) + 1
             print(f"    -> Processing batch {b_num}/{total_batches} (cues {batch[0]['index']}..{batch[-1]['index']})...", end="", flush=True)
 
@@ -944,11 +1010,13 @@ def polish_target(target, en_path=None, args=None):
 
             try:
                 if use_ollama:
-                    model = getattr(args, "model", None) or "qwen2.5:7b"
-                    res = query_ollama_api(prompt, model=model)
+                    ollama_model = model or "qwen2.5:7b"
+                    res = query_ollama_api(prompt, model=ollama_model)
                 else:
-                    model = getattr(args, "model", None) or "gemini-3.5-flash"
-                    res = query_gemini_api(prompt, api_key=getattr(args, "api_key", None), model=model)
+                    gemini_model = model or "gemini-3.5-flash"
+                    raw_api_key = getattr(args, "api_key", None)
+                    api_key = raw_api_key if isinstance(raw_api_key, str) else None
+                    res = query_gemini_api(prompt, api_key=api_key, model=gemini_model)
 
                 batch_cues = res.get("cues", []) if isinstance(res, dict) else []
                 valid_count = 0
@@ -959,6 +1027,32 @@ def polish_target(target, en_path=None, args=None):
                     polished_text = (mod.get("polished_he") or "").strip()
                     if not polished_text:
                         continue
+
+                    # Anticipation Drift Guard:
+                    # Reject edit if the LLM's reason indicates it anticipated upcoming dialogue instead of the current cue
+                    reason = (mod.get("reason") or "").strip().lower()
+                    upcoming_en_lines = next_en_map.get(idx, [])
+                    is_anticipation_drift = False
+
+                    for up_en in upcoming_en_lines:
+                        clean_up = re.sub(r'[^\w\s]', '', up_en).lower()
+                        up_words = clean_up.split()
+                        if len(up_words) >= 3:
+                            for w_i in range(len(up_words) - 2):
+                                trigram = " ".join(up_words[w_i:w_i + 3])
+                                if trigram in reason:
+                                    is_anticipation_drift = True
+                                    break
+                        elif clean_up and clean_up in reason:
+                            is_anticipation_drift = True
+
+                        if is_anticipation_drift:
+                            break
+
+                    if is_anticipation_drift:
+                        print(f"\n    [!] Warning: Rejected anticipation drift for cue #{idx} (detected forward line match in reason: '{mod.get('reason')}')")
+                        continue
+
                     cleaned = normalize_homoglyphs(polished_text)
                     if re.search(r'[\u0600-\u06FF]', cleaned):
                         for pat, repl in [
@@ -1010,7 +1104,8 @@ def polish_target(target, en_path=None, args=None):
     else:
         base_stem = stem
 
-    diff_path = getattr(args, "diff_report", None) or (he_path.parent / f"{base_stem}_polish_diff.md")
+    raw_diff = getattr(args, "diff_report", None)
+    diff_path = Path(raw_diff).resolve() if raw_diff else (he_path.parent / f"{base_stem}_polish_diff.md")
     generate_diff_report(title, len(he_cues), modifications, diff_path, en_map)
     print(f"\n[✓] Polish Audit Report saved to: {diff_path.name}")
 
