@@ -16,7 +16,7 @@
 [![גרסת פייתון: 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![פלטפורמה: Windows ו-macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![מאומת ל-Plex ו-Infuse](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-103%2F103%20Passing-success.svg)]()
+[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-104%2F104%20Passing-success.svg)]()
 [![בנצ׳מרק: 101/101 פרקים](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **כתוביות כמו שצריך — מתיקון מהיר ב-Plex ו-BiDi ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**
@@ -384,10 +384,11 @@ pytest -v
 - 🔄 **[תהליך עבודה מלא מקצה לקצה (Pipeline)](docs/PIPELINE_WORKFLOW.he.md)** — שלב אחר שלב מווידאו גולמי לכתובית מושלמת.
 - ⚖️ **[השוואה טכנית מול Bazarr](docs/COMPARISON_BAZARR.he.md)** — פירוט הבדלים ארכיטקטוניים, מתי להשתמש בכל כלי ואיך לשלב ביניהם.
 - 🔄 **[מדריך אינטגרציות ואוטומציה לשרתי מדיה (qBittorrent, Sonarr, Radarr, Bazarr, Daemons)](docs/INTEGRATIONS_GUIDE.he.md)** — חיבור אוטומטי בתצורת "הגדר ושכח", מדוע Hooks עדיפים על דמונים, וסקריפטים לניטור תיקיות.
-- 🔮 **[מפרט אשף פקודה אינטראקטיבי עתידי](docs/FUTURE_INTERACTIVE_CLI.he.md)** — תכנון ממשק שיחה וסוכן מסוף CLI.
-- 🔮 **[מפרט אשף התקנה ואבחון אוטומטי עתידי](docs/FUTURE_SETUP_WIZARD.he.md)** — תכנון התקנה והגדרה מאפס (כולל ללא Homebrew / Winget).
-- 💎 **[מפרט מנוע ליטוש סמנטי ובקרת איכות AI](docs/FEATURE_AI_POLISH_AND_QC.he.md)** — ארכיטקטורה להשבחה והגהה של כתוביות קיימות, מניעת שיבושי קאנון ותיקון מגדר ללא תרגום מאפס.
-- 🌐 **[מפרט שרת RightSub MCP עתידי](docs/FUTURE_MCP_SERVER.he.md)** — ארכיטקטורת שרת Model Context Protocol לסוכני AI.
+- 🗺️ **[מפת דרכים רשמית של המוצר](ROADMAP.he.md)** — אבני-דרך שהושלמו, גרסאות מתוכננות (v1.4, v1.5) ומעקב ב-GitHub.
+- 🧪 **[RFC 001: ממשק טרמינל אינטראקטיבי (TUI)](docs/proposals/RFC_001_INTERACTIVE_TUI.he.md)** — מפרט ממשק טרמינל במסך מלא לאישור שינויי כתוביות.
+- 🔌 **[RFC 002: שרת RightSub MCP ייעודי](docs/proposals/RFC_002_MCP_SERVER.he.md)** — ארכיטקטורת שרת Model Context Protocol לסוכני AI.
+- ⚙️ **[RFC 003: אשף התקנה, חיבורים ואבחון מערכת](docs/proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.he.md)** — חיבור אוטומטי לתוכנות הורדה ומעטפת שירות.
+- 💎 **[מדריך הגהה סמנטית ובקרת איכות (`rightsub polish`)](docs/FEATURE_AI_POLISH_AND_QC.he.md)** — השבחה והגהה של כתוביות קיימות, מניעת שיבושי קאנון ותיקון מגדר ללא תרגום מאפס.
 - 🚀 **[מה חדש ועדכוני גרסאות](docs/WHATS_NEW.he.md)** — עדכוני מוצר מרכזיים, הכרזות אבן-דרך ותכונות חדשות.
 - 📖 **[GitHub Wiki הרשמי](https://github.com/omerninyo/RightSub/wiki)** — תיעוד מקוון מלא ודו-לשוני.
 

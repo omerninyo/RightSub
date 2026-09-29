@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="FUTURE_SETUP_WIZARD.he.md"><b>עברית</b></a>
+  <a href="RFC_003_SYSTEM_INTEGRATION_WIZARD.he.md"><b>עברית</b></a>
 </p>
 
 This document details the architectural design principles, workflow, and edge-case handling for a future **Interactive Setup & Health-Check Wizard** for **RightSub**.  

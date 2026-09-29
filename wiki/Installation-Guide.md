@@ -166,4 +166,4 @@ If typing `rightsub` in Command Prompt returns `'rightsub' is not recognized`:
 ---
 
 ## 🔮 Future Roadmap: Interactive Setup Wizard
-For technical details on the planned autonomous onboarding wizard, see [Architectural Specification: Automated Setup & Health-Check Wizard](FUTURE_SETUP_WIZARD.md).
+For technical details on the planned autonomous onboarding wizard, see [RFC 003: Automated Setup & Health-Check Wizard](Setup-Wizard-Specification) and the [Product Roadmap](Roadmap).

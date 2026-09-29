@@ -13,7 +13,9 @@
 - **[🔄 Home Media & Download Integrations](Integrations-Guide)**
 - **[🔮 Interactive CLI Specification](Interactive-CLI-Specification)**
 - **[🔮 Setup & Health Wizard Specification](Setup-Wizard-Specification)**
+- **[🔌 MCP Server Specification](MCP-Server-Specification)**
 - **[💎 Semantic AI Polish & QC Specification](Semantic-AI-Polish-and-QC)**
+- **[🗺️ Product Roadmap](Roadmap)**
 - **[🚀 What's New & Release Notes](Whats-New)**
 - **[Boston Legal Case Study](Boston-Legal-Case-Study)**
 - **[CLI Reference](Home#cli-commands-reference)**
@@ -33,7 +35,9 @@
 - **[🔄 מדריך אינטגרציות ואוטומציה לשרתי מדיה](מדריך-אינטגרציות-ואוטומציה)**
 - **[🔮 מפרט אשף פקודה אינטראקטיבי](מפרט-אשף-פקודה-אינטראקטיבי)**
 - **[🔮 מפרט אשף התקנה ואבחון](מפרט-אשף-התקנה-ואבחון)**
+- **[🔌 מפרט שרת MCP](מפרט-שרת-MCP)**
 - **[💎 מפרט מנוע ליטוש סמנטי ו-QC](מפרט-מנוע-ליטוש-סמנטי-ובקרת-איכות)**
+- **[🗺️ מפת דרכים ומעקב אבני-דרך](מפת-דרכים)**
 - **[🚀 מה חדש ועדכוני גרסאות](מה-חדש)**
 - **[מקרה בוחן - בוסטון ליגל](מקרה-בוחן-בוסטון-ליגל)**
 - **[מדריך פקודות CLI](Home-HE#מדריך-פקודות-cli-מלא)**

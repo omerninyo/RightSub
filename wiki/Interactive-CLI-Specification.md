@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="FUTURE_INTERACTIVE_CLI.he.md"><b>עברית</b></a>
+  <a href="מפרט-אשף-פקודה-אינטראקטיבי"><b>עברית</b></a>
 </p>
 
 This document details the architectural design principles, workflow, and system requirements for a future **Interactive CLI Wizard (TUI / Terminal Dialog)** for **RightSub**. The goal of the wizard is to empower end users to execute the full suite of RightSub mastering and translation capabilities without memorizing commands, arguments, or CLI flags.

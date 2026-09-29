@@ -14,7 +14,7 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![Platform: Windows & macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-103%2F103%20Passing-success.svg)]()
+[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-104%2F104%20Passing-success.svg)]()
 [![Benchmark: 101/101 Episodes](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **Subtitles Done Right — from 1-Click Plex & BiDi Repair to Autonomous Multi-Agent AI Translation.**
@@ -381,10 +381,11 @@ Tests cover:
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
 - ⚖️ **[RightSub vs. Bazarr Technical Comparison](docs/COMPARISON_BAZARR.md)** — Architectural breakdown, differences, and integration guide.
 - 🔄 **[Home Media & Download Integrations (qBittorrent, Sonarr, Radarr, Bazarr, Daemons)](docs/INTEGRATIONS_GUIDE.md)** — Automated hands-off pipeline setups, why event hooks beat background daemons, and folder watcher scripts.
-- 🔮 **[Future Interactive CLI Specification](docs/FUTURE_INTERACTIVE_CLI.md)** — Interactive CLI wizard specification and design.
-- 🔮 **[Future Setup & Health-Check Wizard Specification](docs/FUTURE_SETUP_WIZARD.md)** — Autonomous clean-slate onboarding and system doctor specification.
-- 💎 **[Semantic AI Polish & Subtitle QC Specification](docs/FEATURE_AI_POLISH_AND_QC.md)** — Architectural specification for proofreading and modernizing existing subtitles without re-translating.
-- 🌐 **[Future MCP Server Specification](docs/FUTURE_MCP_SERVER.he.md)** — RightSub Model Context Protocol (MCP) server architecture.
+- 🗺️ **[Official Product Roadmap](ROADMAP.md)** — Shipped milestones, upcoming releases (v1.4, v1.5), and GitHub tracking.
+- 🧪 **[RFC 001: Interactive TUI Specification](docs/proposals/RFC_001_INTERACTIVE_TUI.md)** — Terminal user interface and diff approval spec.
+- 🔌 **[RFC 002: Native MCP Server Specification](docs/proposals/RFC_002_MCP_SERVER.md)** — Model Context Protocol architecture for AI agents.
+- ⚙️ **[RFC 003: System Integration Wizard Specification](docs/proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md)** — Automated downloader hooks & service setup.
+- 💎 **[Semantic AI Polish & Subtitle QC Guide](docs/FEATURE_AI_POLISH_AND_QC.md)** — Autonomous proofreading, canon harmonization, and diff auditing.
 - 🚀 **[What's New & Release Notes](docs/WHATS_NEW.md)** — Curated product milestone announcements and feature highlights.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.
 

@@ -5,7 +5,7 @@
 <p align="right">
   <b>שפה / Language:</b>
   <b>עברית</b> |
-  <a href="FUTURE_SETUP_WIZARD.md"><b>English</b></a>
+  <a href="RFC_003_SYSTEM_INTEGRATION_WIZARD.md"><b>English</b></a>
 </p>
 
 מסמך זה מתעד את עקרונות התכנון, הארכיטקטורה והתרחישים הטכניים עבור **אשף התקנה ואבחון עצמאי (Interactive Setup & Health-Check Wizard)** עבור **RightSub**.  

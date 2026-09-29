@@ -32,3 +32,14 @@
 - **Strictly forbidden to publish release notes for routine changes**: Minor bug fixes, code refactoring, typo corrections, or incremental tests remain solely in standard git commits and technical changelogs to avoid alert fatigue.
 - Each milestone entry must follow the 4-part value structure: Highlights / TL;DR, Why It Matters, Quick Upgrade / Getting Started, and Deep Dive Links.
 - Releases in GitHub should use `.github/release_template.md`.
+
+## 7. Continuous Product Roadmap Governance (`ROADMAP.md` & GitHub Milestones)
+- **Automatic Lifecycle Tracking**:
+  - Whenever a new feature, architecture idea, or user enhancement request is discussed or proposed, it MUST immediately be logged in `ROADMAP.md` (and `ROADMAP.he.md`) under the appropriate future target release (e.g. `v1.4.0 (Planned)` or `Future / On the Horizon`), and linked to a GitHub Issue/Milestone.
+  - Detailed technical designs or specs must be organized under `docs/proposals/` (as `RFC_*.md`) instead of floating ad-hoc `FUTURE_*.md` files.
+  - Whenever a planned feature is implemented, verified, and shipped:
+    1. It MUST be moved from "Planned" to "Shipped" in `ROADMAP.md` and `ROADMAP.he.md`.
+    2. Its corresponding GitHub Issue/Milestone must be closed/updated.
+    3. Documented in `docs/WHATS_NEW.md` and `docs/WHATS_NEW.he.md` for major releases.
+  - No new feature idea may be left solely in chat memory; it must be persisted to the Roadmap.
+

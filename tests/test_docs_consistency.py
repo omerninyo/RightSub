@@ -80,3 +80,24 @@ def test_readme_hebrew_direction_wrapper():
     content = README_HE.read_text(encoding="utf-8").strip()
     assert content.startswith('<div dir="rtl">'), "README.he.md must start with <div dir=\"rtl\">"
     assert content.endswith('</div>'), "README.he.md must end with </div>"
+
+
+def test_roadmap_links_and_direction():
+    """Ensure ROADMAP files exist, resolve internal doc links, and comply with RTL wrappers."""
+    roadmap_en = REPO_ROOT / "ROADMAP.md"
+    roadmap_he = REPO_ROOT / "ROADMAP.he.md"
+    assert roadmap_en.exists(), "ROADMAP.md must exist"
+    assert roadmap_he.exists(), "ROADMAP.he.md must exist"
+
+    content_he = roadmap_he.read_text(encoding="utf-8").strip()
+    assert content_he.startswith('<div dir="rtl">'), "ROADMAP.he.md must start with <div dir=\"rtl\">"
+    assert content_he.endswith('</div>'), "ROADMAP.he.md must end with </div>"
+
+    link_pattern = re.compile(r'\[([^\]]+)\]\((docs/[^\)#]+)(?:#[^\)]+)?\)')
+    for roadmap_path in [roadmap_en, roadmap_he]:
+        content = roadmap_path.read_text(encoding="utf-8")
+        matches = link_pattern.findall(content)
+        assert len(matches) > 0, f"Expected doc links in {roadmap_path.name}"
+        for text, rel_path in matches:
+            target = REPO_ROOT / rel_path
+            assert target.exists(), f"Broken link in {roadmap_path.name}: '{rel_path}' does not exist on disk."

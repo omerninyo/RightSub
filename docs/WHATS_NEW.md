@@ -39,7 +39,7 @@ This document tracks **major milestone releases** and product capabilities in Ri
 - **Architectural Shift — Why No 24/7 Daemon:** Proved why event-driven completion hooks beat heavy background polling daemons: **0% idle CPU, 0 MB RAM**, and absolute elimination of race conditions on multi-gigabyte active torrent downloads.
 - **Clean-Slate / Bare System Support:** Guided setups for users starting without basic package managers (no Homebrew on macOS or no Winget on Windows).
 - **Safe-Zone Social Preview & Hero Banner:** 1280x640 OpenGraph-compliant cards featuring authentic Hebrew and Arabic subtitles designed with 65% central safe margins.
-- **Architectural Specifications:** Published comprehensive future roadmaps for the [Interactive CLI Wizard](FUTURE_INTERACTIVE_CLI.md) and the [Autonomous Setup & Health-Check Wizard](FUTURE_SETUP_WIZARD.md).
+- **Architectural Specifications:** Published comprehensive future RFC specifications for the [Interactive CLI Wizard](proposals/RFC_001_INTERACTIVE_TUI.md) and the [Autonomous Setup & Health-Check Wizard](proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md).
 
 ---
 
