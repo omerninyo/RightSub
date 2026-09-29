@@ -1,5 +1,4 @@
 class Rightsub < Formula
-  include Language::Python::Virtualenv
 
   desc "Universal Subtitle Mastering & Translation Suite for Movies & TV Series"
   homepage "https://github.com/omerninyo/RightSub"
@@ -9,25 +8,23 @@ class Rightsub < Formula
   license "MIT"
   head "https://github.com/omerninyo/RightSub.git", branch: "main"
 
+  bottle do
+    root_url "https://github.com/omerninyo/homebrew-tap/releases/download/v1.2.0"
+    sha256 cellar: :any_skip_relocation, all: "18a04e9e584d9a506c27667fd5846e668615fe033047a99bd94b7eb5bc405065"
+  end
+
   depends_on "ffmpeg"
-  depends_on "python@3.11"
 
   def install
-    # 1. Create an isolated virtual environment in libexec
-    venv = virtualenv_create(libexec, "python3.11")
-
-    # 2. Copy application scripts and assets
     libexec.install Dir["*"]
 
-    # 3. Install required Python packages inside the private virtual environment
-    system libexec/"bin/pip", "install", "--upgrade", "pip"
-    system libexec/"bin/pip", "install", "-r", libexec/"requirements.txt"
-
-    # 4. Generate the global bin/rightsub launcher script
-    (bin/"rightsub").write_env_script(
-      libexec/"rightsub.py",
-      PATH: "#{libexec}/bin:$PATH"
-    )
+    (bin/"rightsub").write <<~SH
+      #!/bin/bash
+      DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+      export PYTHONPATH="$DIR/libexec:$PYTHONPATH"
+      exec python3 "$DIR/libexec/rightsub.py" "$@"
+    SH
+    chmod 0755, bin/"rightsub"
   end
 
   def caveats
