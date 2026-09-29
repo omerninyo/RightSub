@@ -332,8 +332,8 @@ JSON SCHEMA:
 ```"""
     return prompt
 
-def query_gemini_api(prompt, api_key=None, model="gemini-2.5-flash"):
-    """Calls Google Gemini API via standard library urllib."""
+def query_gemini_api(prompt, api_key=None, model="gemini-2.0-flash"):
+    """Calls Google Gemini API via standard library urllib with model fallback and descriptive errors."""
     key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not key:
         config_path = Path.home() / ".config" / "rightsub" / "config.json"
@@ -344,9 +344,13 @@ def query_gemini_api(prompt, api_key=None, model="gemini-2.5-flash"):
             except Exception:
                 pass
     if not key:
-        raise ValueError("Gemini API key not found. Set GEMINI_API_KEY environment variable or pass --api-key.")
+        raise ValueError("Gemini API key not found. Run 'rightsub config' or pass --api-key.")
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    models_to_try = [model]
+    for fallback in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"]:
+        if fallback not in models_to_try:
+            models_to_try.append(fallback)
+
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -355,17 +359,42 @@ def query_gemini_api(prompt, api_key=None, model="gemini-2.5-flash"):
         }
     }
     raw_data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=raw_data,
-        headers={"Content-Type": "application/json", "User-Agent": "RightSub/1.2"},
-        method="POST"
-    )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        res_json = json.loads(resp.read().decode("utf-8"))
-    
-    text = res_json["candidates"][0]["content"]["parts"][0]["text"]
-    return json.loads(text)
+
+    last_error = None
+    for m in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
+        req = urllib.request.Request(
+            url,
+            data=raw_data,
+            headers={"Content-Type": "application/json", "User-Agent": "RightSub/1.3"},
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                res_json = json.loads(resp.read().decode("utf-8"))
+            text = res_json["candidates"][0]["content"]["parts"][0]["text"]
+            return json.loads(text)
+        except urllib.error.HTTPError as e:
+            err_msg = ""
+            try:
+                err_body = e.read().decode("utf-8")
+                err_json = json.loads(err_body)
+                err_msg = err_json.get("error", {}).get("message", err_body)
+            except Exception:
+                err_msg = str(e)
+
+            if e.code == 404:
+                last_error = f"Model '{m}' not found: {err_msg}"
+                continue
+            elif e.code in (400, 401, 403):
+                raise RuntimeError(f"Authentication/Permission error (HTTP {e.code}): {err_msg}")
+            else:
+                raise RuntimeError(f"Google API HTTP {e.code}: {err_msg}")
+        except Exception as e:
+            last_error = str(e)
+            raise e
+
+    raise RuntimeError(f"Gemini API request failed across models ({', '.join(models_to_try)}): {last_error}")
 
 def query_ollama_api(prompt, model="qwen2.5:7b", url="http://localhost:11434"):
     """Calls Ollama generate API with format='json'."""
@@ -532,11 +561,12 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
     offline_only = getattr(args, "offline_canon_only", False)
 
     if not offline_only and (use_ollama or use_gemini):
-        backend_name = f"Ollama ({getattr(args, 'model', None) or 'default'})" if use_ollama else f"Gemini ({getattr(args, 'model', None) or 'gemini-2.5-flash'})"
+        backend_name = f"Ollama ({getattr(args, 'model', None) or 'default'})" if use_ollama else f"Gemini ({getattr(args, 'model', None) or 'gemini-2.0-flash'})"
         print(f"[*] Running Semantic AI Proofreader via {backend_name}...")
 
         batch_size = getattr(args, "batch_size", 60) or 60
         total_batches = (len(aligned) + batch_size - 1) // batch_size
+        consecutive_errors = 0
 
         for b_idx in range(0, len(aligned), batch_size):
             batch = aligned[b_idx:b_idx + batch_size]
@@ -550,7 +580,7 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
                     model = getattr(args, "model", None) or "qwen2.5:7b"
                     res = query_ollama_api(prompt, model=model)
                 else:
-                    model = getattr(args, "model", None) or "gemini-2.5-flash"
+                    model = getattr(args, "model", None) or "gemini-2.0-flash"
                     res = query_gemini_api(prompt, api_key=getattr(args, "api_key", None), model=model)
 
                 batch_cues = res.get("cues", []) if isinstance(res, dict) else []
@@ -559,9 +589,15 @@ def polish_subtitle_file(he_path, en_path=None, args=None):
                     if idx in en_map:
                         modifications[idx] = mod
 
+                consecutive_errors = 0
                 print(f" [✓ {len(batch_cues)} edits]")
             except Exception as e:
+                consecutive_errors += 1
                 print(f" [!] Error in batch {b_num}: {e}")
+                if consecutive_errors >= 2 and any(term in str(e) for term in ("API key", "Authentication", "failed across models", "HTTP 4")):
+                    print(f"\n[!] Aborting remaining AI batches due to persistent API error: {e}")
+                    print("    Proceeding with offline canon corrections.")
+                    break
     else:
         if offline_only:
             print("[i] Running in --offline-canon-only mode (skipping LLM calls).")
@@ -629,7 +665,7 @@ def main():
     parser.add_argument("--title", help="Explicit title for metadata/canon resolution")
     parser.add_argument("--ollama", action="store_true", help="Use local Ollama engine")
     parser.add_argument("--gemini", action="store_true", help="Force Google Gemini engine")
-    parser.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-2.5-flash for Gemini)")
+    parser.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-2.0-flash for Gemini)")
     parser.add_argument("--api-key", help="TMDb or Gemini API key")
     parser.add_argument("--batch-size", type=int, default=60, help="Number of cues per prompt batch (default: 60)")
     parser.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
