@@ -10,7 +10,8 @@ class Rightsub < Formula
 
   bottle do
     root_url "https://github.com/omerninyo/homebrew-tap/releases/download/v1.2.0"
-    sha256 cellar: :any_skip_relocation, all: "18a04e9e584d9a506c27667fd5846e668615fe033047a99bd94b7eb5bc405065"
+    rebuild 1
+    sha256 cellar: :any_skip_relocation, all: "0f6ead853d7fbdb32a831245d112baf9f4d67c791ccdada1126526269a7859ee"
   end
 
   depends_on "ffmpeg"
@@ -20,9 +21,16 @@ class Rightsub < Formula
 
     (bin/"rightsub").write <<~SH
       #!/bin/bash
-      DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-      export PYTHONPATH="$DIR/libexec:$PYTHONPATH"
-      exec python3 "$DIR/libexec/rightsub.py" "$@"
+      set -e
+      TARGET="${BASH_SOURCE[0]}"
+      while [ -L "$TARGET" ]; do
+        DIR="$(cd -P "$(dirname "$TARGET")" >/dev/null 2>&1 && pwd)"
+        TARGET="$(readlink "$TARGET")"
+        [[ $TARGET != /* ]] && TARGET="$DIR/$TARGET"
+      done
+      REAL_PREFIX="$(cd -P "$(dirname "$TARGET")/.." >/dev/null 2>&1 && pwd)"
+      export PYTHONPATH="$REAL_PREFIX/libexec:$PYTHONPATH"
+      exec python3 "$REAL_PREFIX/libexec/rightsub.py" "$@"
     SH
     chmod 0755, bin/"rightsub"
   end
