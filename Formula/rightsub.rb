@@ -3,15 +3,15 @@ class Rightsub < Formula
   desc "Universal Subtitle Mastering & Translation Suite for Movies & TV Series"
   homepage "https://github.com/omerninyo/RightSub"
   url "https://github.com/omerninyo/RightSub/archive/refs/tags/v1.3.0.tar.gz"
-  sha256 "2893a54ac4b97e1291e67325fd319f464805a238aec3e50f34e1828f02458ca0"
+  sha256 "bcc44b9fd0af4cb08c8a5da0e9eddd022edaf8bb82dbb5bcf879bb67461522fe"
   version "1.3.0"
   license "MIT"
   head "https://github.com/omerninyo/RightSub.git", branch: "main"
 
   bottle do
     root_url "https://github.com/omerninyo/homebrew-tap/releases/download/v1.3.0"
-    rebuild 7
-    sha256 cellar: :any_skip_relocation, all: "096b1e941cc6b751a8ea8c0adec62b1ce11fd1b4f2e7a658ef7659cdc05bc88a"
+    rebuild 8
+    sha256 cellar: :any_skip_relocation, all: "b44c6bbc23fd93e6f5558adbff3879bf0bbe2b271cbd628f8dd0351c6bb504b7"
   end
 
   depends_on "ffmpeg"
