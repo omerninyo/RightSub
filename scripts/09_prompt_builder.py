@@ -37,11 +37,7 @@ CRITICAL RULES:
 5. If a cue is purely SDH or sound effects (e.g. ♪♪♪, [Music], (sighs), (sobs), [crying], [screaming], [gunshot], [buzzer blares], ***), return an empty string "" for hebrew, but KEEP ITS EXACT INDEX. Remove inline audio descriptions from dialogue.
 6. Use Hebrew gershayim (״ \\u05F4) or single quotes for acronyms (e.g. עו״ד, ארה״ב, ד״ר, FBI, CIA, DNA). NEVER use standard double quotes inside Hebrew strings.
 7. DO NOT VOCALIZE (ללא ניקוד): Write standard modern Hebrew spelling.
-8. NATURAL IDIOMS & PROPER HEBREW VOCABULARY:
-   - Translate English idioms by their true Hebrew meaning, not literal words. E.g. 'As a matter of fact' -> 'למעשה' or 'למען האמת' (NEVER 'מעשה בראשית').
-   - Sci-Fi & Military: 'snub fighter' -> 'חללית קרב זעירה' or 'קרבית' (NEVER 'מכלית קרב'), 'tractor beam' -> 'קרן גרירה' (NEVER 'קרן משיכה').
-   - Rank & Titles: 'captain' -> 'קברניט' or 'קפטן' (NEVER Arabic-influenced transliterations like 'קאבתן').
-   - Common verbs: use proper Hebrew verb forms e.g. 'לשים' (never 'לשום'), 'מושכת' (never 'מוחב').
+{domain_guidelines_block}
 9. Return ONLY a valid JSON array in a single ```json ``` block:
 ```json
 [
@@ -150,6 +146,29 @@ def build_prompts(srt_path, title="", context="", genre="", bible_path="", overl
         output_dir = os.path.join(os.path.dirname(srt_path), f"prompts_{title}")
     os.makedirs(output_dir, exist_ok=True)
 
+    # Resolve domain profile and dynamic guidelines
+    domain_guidelines = ""
+    try:
+        from domain_knowledge import classify_media_domain
+        domain_prof = classify_media_domain(
+            title=title,
+            overview=context,
+            genres=bible_meta.get("genres") or ([genre] if genre else None),
+            sample_cues=cues[:60]
+        )
+        domain_guidelines = domain_prof.get_prompt_guidelines()
+    except Exception:
+        pass
+
+    if domain_guidelines:
+        domain_guidelines_block = f"8. DOMAIN CONVENTIONS & NATURAL IDIOMS:\n{domain_guidelines}"
+    else:
+        domain_guidelines_block = (
+            "8. NATURAL IDIOMS & PROPER HEBREW VOCABULARY:\n"
+            "   - Translate English idioms by their true Hebrew meaning, not literal words. E.g. 'As a matter of fact' -> 'למעשה' or 'למען האמת' (NEVER 'מעשה בראשית').\n"
+            "   - Common verbs: use proper Hebrew verb forms e.g. 'לשים' (never 'לשום'), 'מושכת' (never 'מוחב')."
+        )
+
     # Calculate splits
     num_chunks = (total_cues + chunk_size - 1) // chunk_size
     agents = []
@@ -188,7 +207,8 @@ def build_prompts(srt_path, title="", context="", genre="", bible_path="", overl
             context_block=context_block,
             bible_block=bible_block,
             overlap_block=overlap_block,
-            cues_json=cues_json
+            cues_json=cues_json,
+            domain_guidelines_block=domain_guidelines_block
         )
 
         agent_obj = {

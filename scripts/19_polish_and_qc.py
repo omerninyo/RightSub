@@ -51,6 +51,28 @@ except (ImportError, ModuleNotFoundError):
         is_tmdb_available = lambda *args, **kwargs: False
 
 try:
+    from domain_knowledge import (
+        classify_media_domain, DomainProfile, FRANCHISE_PACKS, DOMAIN_PACKS,
+        UNIVERSAL_BILINGUAL_RULES, UNIVERSAL_IDIOM_GUIDELINES
+    )
+    FRANCHISE_GLOSSARIES = FRANCHISE_PACKS
+except (ImportError, ModuleNotFoundError):
+    try:
+        from scripts.domain_knowledge import (
+            classify_media_domain, DomainProfile, FRANCHISE_PACKS, DOMAIN_PACKS,
+            UNIVERSAL_BILINGUAL_RULES, UNIVERSAL_IDIOM_GUIDELINES
+        )
+        FRANCHISE_GLOSSARIES = FRANCHISE_PACKS
+    except Exception:
+        classify_media_domain = None
+        DomainProfile = None
+        FRANCHISE_PACKS = {}
+        DOMAIN_PACKS = {}
+        UNIVERSAL_BILINGUAL_RULES = []
+        UNIVERSAL_IDIOM_GUIDELINES = ""
+        FRANCHISE_GLOSSARIES = {}
+
+try:
     import importlib
     m18 = importlib.import_module("18_auto_pipeline")
     find_companion_hebrew_subtitle = m18.find_companion_hebrew_subtitle
@@ -311,32 +333,68 @@ def align_bilingual_cues(en_cues, he_cues):
 
 def detect_franchise(title, overview=""):
     """Detects if title belongs to a supported franchise with canonical glossary."""
+    if classify_media_domain:
+        prof = classify_media_domain(title=title, overview=overview)
+        if prof.franchise and prof.franchise in FRANCHISE_GLOSSARIES:
+            return prof.franchise, FRANCHISE_GLOSSARIES[prof.franchise]
     combo = re.sub(r'[\._\-+]+', ' ', f"{title} {overview}".lower())
     for key, data in FRANCHISE_GLOSSARIES.items():
         if key in combo:
             return key, data
     if "star wars" in combo or "4k77" in combo or "4k80" in combo or "4k83" in combo or "skywalker" in combo:
-        return "star wars", FRANCHISE_GLOSSARIES["star wars"]
+        return "star wars", FRANCHISE_GLOSSARIES.get("star wars", {})
     return None, None
 
-def run_deterministic_canon_pass(aligned_cues, franchise_data):
+def run_deterministic_canon_pass(aligned_cues, franchise_data=None, domain_profile=None):
     """
-    Executes a deterministic, offline regex pass to fix established canon terms
-    even without an LLM backend (0 tokens).
+    Executes a deterministic, offline regex pass to fix canon terms, domain terms,
+    and bilingual cross-lingual idioms (0 tokens).
     """
-    if not franchise_data:
-        return {}
-
     modifications = {}
-    canon_terms = franchise_data.get("canon_terms", [])
     
+    # 1. Franchise canon terms (run unconditionally on Hebrew text)
+    canon_terms = []
+    if franchise_data:
+        canon_terms.extend(franchise_data.get("canon_terms", []))
+    elif domain_profile:
+        canon_terms.extend(domain_profile.get_canon_terms())
+
+    # 2. Bilingual cross-lingual anchor rules (run when English master confirms the context)
+    bilingual_rules = []
+    if domain_profile:
+        bilingual_rules.extend(domain_profile.get_bilingual_rules())
+    elif UNIVERSAL_BILINGUAL_RULES:
+        bilingual_rules.extend(UNIVERSAL_BILINGUAL_RULES)
+
+    # 3. Universal safe typographical corrections
+    universal_corrections = [
+        (r'\b(ו|ה|ב|ל|כ|מ|ש)?קאבתן\b', r'\g<1>קברניט', "תיקון תעתיק פונטי שגוי (Captain = קברניט)"),
+        (r'\bלשום\s+את\b', 'לשים את', "תיקון שגיאת כתיב (לשים את)"),
+        (r'\bמוחב\s+אותנו\b', 'מושכת אותנו', "תיקון שגיאת כתיב (מושכת אותנו)"),
+    ]
+
     for item in aligned_cues:
         idx = item["index"]
         current_he = item["he"]
+        current_en = (item.get("en") or "").strip()
         modified = current_he
         reasons = []
 
+        # A. Franchise canon pass
         for pattern, replacement, reason in canon_terms:
+            if re.search(pattern, modified):
+                modified = re.sub(pattern, replacement, modified)
+                reasons.append(reason)
+
+        # B. Bilingual anchor pass (English master confirms Hebrew correction)
+        if current_en:
+            for en_pat, he_pat, replacement, reason in bilingual_rules:
+                if re.search(en_pat, current_en, flags=re.IGNORECASE) and re.search(he_pat, modified):
+                    modified = re.sub(he_pat, replacement, modified)
+                    reasons.append(reason)
+
+        # C. Universal typographical pass
+        for pattern, replacement, reason in universal_corrections:
             if re.search(pattern, modified):
                 modified = re.sub(pattern, replacement, modified)
                 reasons.append(reason)
@@ -351,14 +409,25 @@ def run_deterministic_canon_pass(aligned_cues, franchise_data):
 
     return modifications
 
-def build_polish_prompt(aligned_batch, title, franchise_name=None, franchise_data=None, characters=None, overview="", genres=None):
+def build_polish_prompt(aligned_batch, title, franchise_name=None, franchise_data=None, characters=None, overview="", genres=None, domain_profile=None):
     """Builds a constrained, high-efficiency Polish prompt with rich context & characters."""
-    glossary_lines = []
-    if franchise_data:
-        glossary_lines.append(f"FRANCHISE CANON GUIDELINES ({franchise_name.upper()}):")
-        for pat, rep, reas in franchise_data.get("canon_terms", []):
-            clean_term = pat.replace(r"\b", "").replace(r"\s*", " ")
-            glossary_lines.append(f"- '{clean_term}' MUST BE TRANSLATED AS '{rep}' ({reas})")
+    if domain_profile is None and classify_media_domain:
+        domain_profile = classify_media_domain(title=title, overview=overview, genres=genres, sample_cues=aligned_batch)
+
+    guidelines_blocks = []
+    if domain_profile:
+        guidelines_blocks.append(domain_profile.get_prompt_guidelines())
+    else:
+        glossary_lines = []
+        if franchise_data:
+            glossary_lines.append(f"FRANCHISE CANON GUIDELINES ({franchise_name.upper()}):")
+            for pat, rep, reas in franchise_data.get("canon_terms", []):
+                clean_term = pat.replace(r"\b", "").replace(r"\s*", " ")
+                glossary_lines.append(f"- '{clean_term}' MUST BE TRANSLATED AS '{rep}' ({reas})")
+        if glossary_lines:
+            guidelines_blocks.append("\n".join(glossary_lines))
+        if UNIVERSAL_IDIOM_GUIDELINES:
+            guidelines_blocks.append(UNIVERSAL_IDIOM_GUIDELINES)
 
     context_lines = []
     if genres:
@@ -421,13 +490,8 @@ CRITICAL INSTRUCTIONS:
    - If a cue requires no changes, leave it out of the 'cues' array completely.
 8. HEBREW CHARACTERS ONLY:
    - Output must contain only valid Hebrew characters, numbers, and standard punctuation. Never output Arabic or foreign characters.
-9. NATURAL IDIOMS & PROPER HEBREW VOCABULARY:
-   - Translate English idioms by their true Hebrew meaning, not literal words. E.g. 'As a matter of fact' -> 'למעשה' or 'למען האמת' (NEVER 'מעשה בראשית').
-   - Sci-Fi & Military: 'snub fighter' -> 'חללית קרב זעירה' or 'קרבית' (NEVER 'מכלית קרב'), 'tractor beam' -> 'קרן גרירה' (NEVER 'קרן משיכה').
-   - Rank & Titles: 'captain' -> 'קברניט' or 'קפטן' (NEVER Arabic-influenced transliterations like 'קאבתן').
-   - Common verbs: use proper Hebrew verb forms e.g. 'לשים' (never 'לשום'), 'מושכת' (never 'מוחב').
 
-{chr(10).join(glossary_lines)}
+{chr(10).join(guidelines_blocks)}
 {chr(10).join(char_lines)}
 
 INPUT BATCH:
@@ -952,8 +1016,26 @@ def polish_target(target, en_path=None, args=None):
         except Exception as e:
             print(f"[!] TMDb query notice: {e}")
 
-    # Inject franchise characters if missing from TMDb/Bible
-    if franchise_data and "characters" in franchise_data:
+    # 5.5 Resolve Multi-Tiered Domain Profile (TMDb / Bible / Lexical Offline Classifier)
+    domain_profile = None
+    if classify_media_domain:
+        domain_profile = classify_media_domain(
+            title=title,
+            overview=overview,
+            genres=genres,
+            sample_cues=aligned
+        )
+        print(f"[+] Domain Profile: {domain_profile.primary_domain.upper()} (Active: {', '.join(sorted(domain_profile.active_domains)) or 'general'})")
+        if domain_profile.franchise:
+            franchise_name = domain_profile.franchise
+            franchise_data = FRANCHISE_GLOSSARIES.get(franchise_name, {})
+            print(f"[+] Franchise Lore Detected: {franchise_name.upper()} (Enforcing canonical terms)")
+            existing_names = {c["name"].lower() for c in characters if c.get("name")}
+            for fc in domain_profile.get_characters():
+                if fc["name"].lower() not in existing_names:
+                    characters.append(fc)
+                    existing_names.add(fc["name"].lower())
+    elif franchise_data and "characters" in franchise_data:
         existing_names = {c["name"].lower() for c in characters if c.get("name")}
         for fc in franchise_data["characters"]:
             if fc["name"].lower() not in existing_names:
@@ -964,7 +1046,7 @@ def polish_target(target, en_path=None, args=None):
         print(f"[+] Active Character Bible: {len(characters)} confirmed character roles.")
 
     # 6. Deterministic Heuristic Canon Pass (Offline baseline, 0 tokens)
-    modifications = run_deterministic_canon_pass(aligned, franchise_data)
+    modifications = run_deterministic_canon_pass(aligned, franchise_data, domain_profile=domain_profile)
     if modifications:
         print(f"[✓] Offline Canon Pass identified {len(modifications)} terminology corrections.")
 
@@ -1006,7 +1088,7 @@ def polish_target(target, en_path=None, args=None):
             b_num = (b_idx // batch_size) + 1
             print(f"    -> Processing batch {b_num}/{total_batches} (cues {batch[0]['index']}..{batch[-1]['index']})...", end="", flush=True)
 
-            prompt = build_polish_prompt(batch, title, franchise_name, franchise_data, characters, overview=overview, genres=genres)
+            prompt = build_polish_prompt(batch, title, franchise_name, franchise_data, characters, overview=overview, genres=genres, domain_profile=domain_profile)
 
             try:
                 if use_ollama:
