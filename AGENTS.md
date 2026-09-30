@@ -49,12 +49,29 @@
      - Create the corresponding wiki page under `wiki/` (e.g. `wiki/<RFC-Title>.md`).
      - Add the entry to both language sections of `wiki/_Sidebar.md`.
      - Execute `python3 scripts/sync_wiki.py` to push changes to `RightSub.wiki.git`.
-  5. **Implementation, Verification & Closure**:
-     - Once implemented and all unit tests pass, the git commit MUST include `closes #X`.
-     - GitHub will automatically close the issue, link the commit, and advance the milestone's completion percentage.
-     - Move the feature from "Planned" to "Shipped" in `ROADMAP.he.md` and `ROADMAP.md`, and document in `WHATS_NEW` for major releases.
+  5. **Implementation, Verification & Closure (Definition of Done)**:
+     - A feature, integration, or CLI command is strictly NEVER considered "Done" without:
+       a. Complete unit and integration test coverage in `tests/` with 100% passing test suite.
+       b. CLI command reference table updated in both `README.md` and `README.he.md` (validated by `test_docs_consistency.py`).
+       c. Corresponding operational guide updated or created under `docs/` (e.g. `INTEGRATIONS_GUIDE`, `AI_INSTRUCTIONS`).
+       d. Bidirectional GitHub Wiki synchronization executed via `python3 scripts/sync_wiki.py`.
+       e. Git commit message containing `closes #X` to automatically close the tracking issue, link commits, and advance milestone progress.
+     - Move the feature from "Planned" to "Shipped" in `ROADMAP.he.md` and `ROADMAP.md`, and document in `WHATS_NEW` for major milestone releases.
 - **Strict Issue Taxonomy**:
   - `enhancement` (light blue): Feature requests, architecture expansions, and RFC tasks.
   - `bug` (red): Runtime defects or regression errors.
   - No new feature idea or user request may remain solely in conversation context; it must immediately be codified into the project's tracked lifecycle.
+
+## 8. Core Engineering Invariants & Resource Discipline
+1. **Zero-Heavy-Dependency Servers & Daemons**:
+   - Webhook listeners, event daemons, and background servers must be built exclusively using Python standard library modules (`http.server.ThreadingHTTPServer` or `asyncio`).
+   - Heavy web frameworks (Flask, FastAPI, Django, Tornado) are strictly prohibited for internal listeners to maintain an idle memory footprint of <15 MB RAM and keep Docker images slim.
+   - Any server receiving payloads from containerized environments (Sonarr, Radarr, Bazarr) MUST provide native cross-container path translation via `PATH_MAP`.
+2. **Seed-Safe by Default & Media Player Acceleration**:
+   - Automation pipelines and listeners must never modify original torrent download files in-place if doing so risks altering file hashes and breaking active seeding. Always produce companion sidecar `.he.srt` files by default.
+   - Any script or daemon modifying or generating subtitle files must touch the file's access and modification timestamps (`os.utime(target, None)`) to force immediate index detection by Plex and Infuse without requiring library rescans.
+3. **Source-Audited Competitive Analysis**:
+   - Comparative claims against external or competing tools (e.g. Bazarr, Subtitle Edit, Whisper, Plex) in technical documentation or RFCs must be verified directly against the target project's upstream source code or official technical documentation.
+   - Hand-waving assertions, unverified assumptions, or promotional exaggeration are strictly prohibited.
+
 
