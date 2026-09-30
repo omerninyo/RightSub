@@ -1,25 +1,31 @@
 # 📊 RightSub — Historical Traffic & Analytics Report
 
-> **Last Updated**: `2026-09-29 02:51:56 UTC`  
+> **Last Updated**: `2026-09-30 02:33:23 UTC`  
 > *This report archives continuous visitor and clone statistics, overcoming GitHub's standard 14-day limit.*
 
 ## 📈 Lifetime Cumulative Totals
 
 | Metric | Total Count | Total Uniques |
 | :--- | :---: | :---: |
-| **Page Views** | **6** | **3** |
-| **Git Clones** | **164** | **93** |
+| **Page Views** | **39** | **22** |
+| **Git Clones** | **354** | **185** |
 
 ## 🌐 Top Referring Sites & Networks
 
 | Referring Source | Total Views | Unique Visitors | Last Active |
 | :--- | :---: | :---: | :---: |
-| `org.telegram.plus` | 5 | 2 | 2026-09-29 |
+| `org.telegram.plus` | 5 | 2 | 2026-09-30 |
+| `github.com` | 3 | 3 | 2026-09-30 |
 
 ## 📅 Daily Activity Breakdown
 
 | Date | Page Views | Unique Visitors | Git Clones | Unique Cloners |
 | :---: | :---: | :---: | :---: | :---: |
+| 2026-09-28 | 32 | 18 | 132 | 62 |
+| 2026-09-27 | 1 | 1 | 40 | 19 |
+| 2026-09-26 | 0 | 0 | 13 | 8 |
+| 2026-09-25 | 0 | 0 | 5 | 3 |
+| 2026-09-24 | 0 | 0 | 0 | 0 |
 | 2026-09-23 | 0 | 0 | 4 | 4 |
 | 2026-09-22 | 0 | 0 | 3 | 3 |
 | 2026-09-21 | 0 | 0 | 31 | 16 |
