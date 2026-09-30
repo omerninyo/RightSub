@@ -8,6 +8,7 @@ Powered by the SubRefine Algorithmic Engine & SubSwarm Multi-Agent Orchestrator.
 
 Commands:
   auto          Zero-flag autonomous runner: processes single file, season, or directory.
+  serve         Run native Webhook daemon for Sonarr, Radarr, and Bazarr automation.
   translate-ollama 100% offline, free local subtitle translation using Ollama (LLaMA 3, Qwen).
   polish        Semantic AI proofreading, canon harmonization & subtitle QC on existing subtitles.
   split         Split master English SRT into JSON batches (~210 items) for translation.
@@ -36,7 +37,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 default_engine = "apple" if sys.platform == "darwin" else "whisper"
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -185,6 +186,16 @@ def main():
     # Command: doctor (System Diagnostics & Health Check)
     p_doctor = subparsers.add_parser("doctor", help="Run comprehensive health check on dependencies and services")
 
+    # Command: serve (Webhook Daemon for Sonarr, Radarr, Bazarr)
+    p_serve = subparsers.add_parser("serve", help="Run native Webhook daemon for Sonarr, Radarr, and Bazarr")
+    p_serve.add_argument("--host", "-H", help="Host/IP to bind to (default: 0.0.0.0 or RIGHTSUB_HOST)")
+    p_serve.add_argument("--port", "-p", type=int, help="Port to listen on (default: 8775 or RIGHTSUB_PORT)")
+    p_serve.add_argument("--path-map", help="Container volume prefix mappings (e.g. /data/media:/media or PATH_MAP)")
+    p_serve.add_argument("--seed-safe", action="store_true", help="Never modify original torrent subtitle files; produce .he.srt sidecars")
+    p_serve.add_argument("--no-clean-ads", action="store_true", help="Do not strip promo spam and credits")
+    p_serve.add_argument("--backup", action="store_true", help="Create .bak backups before in-place modifications")
+    p_serve.add_argument("--dry-run", action="store_true", help="Log actions without modifying any files on disk")
+
     args, unknown = parser.parse_known_args()
 
     if not args.command:
@@ -193,6 +204,7 @@ def main():
 
     script_mapping = {
         "auto": "18_auto_pipeline.py",
+        "serve": "21_webhook_server.py",
         "translate-ollama": "17_translate_ollama.py",
         "polish": "19_polish_and_qc.py",
         "config": "20_config_and_doctor.py",

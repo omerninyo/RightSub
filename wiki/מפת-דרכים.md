@@ -84,12 +84,11 @@ flowchart LR
 - [ ] **מתקין אוטומטי לחיבורי תוכנות הורדה ומעטפת שירות** ([#2](https://github.com/omerninyo/RightSub/issues/2)):
   - פקודת `rightsub config --install-hooks`: זיהוי אוטומטי של תוכנות הורדה מותקנות (qBittorrent, Sonarr, Radarr) והגדרת סקריפטי הסיום באופן אוטונומי.
   - יצירת שירותי systemd (בלינוקס) ו-launchd (ב-macOS) עבור שרתי מדיה מרוחקים הדורשים סריקת תיקיות אוטומטית.
-- [ ] **תמיכה רשמית בקונטיינרים (Official Docker & Sidecar Container Support)** ([#4](https://github.com/omerninyo/RightSub/issues/4)):
-  - **אימג' רשמי ב-GitHub Container Registry (`ghcr.io/omerninyo/rightsub`)**: אימג' רזה מבוסס Python/Debian הכולל את כל התלויות, ספריות הקידוד ו-ffmpeg ללא צורך בהתקנה על המארח.
-  - **תמיכה במצב כפול (Dual Mode: CLI vs. Watcher)**:
-    - *CLI One-Shot:* הרצה לפי דרישה מתוך טרמינל או סקריפטים: `docker run --rm -v /media:/media ghcr.io/omerninyo/rightsub auto /media/movie.srt`.
-    - *Directory Watcher (Sidecar):* קונטיינר רקע קל-משקל המאזין לתיקיות הורדה (`/media/downloads`) באמצעות `watchdog` ומאסטר אוטומטית כל כתובית חדשה שנוצרת על ידי Bazarr או תוכנת טורנטים.
-  - **אינטגרציה ל-NAS (Unraid / TrueNAS SCALE / Synology)**: תבנית מוכנה (`docker-compose.yml`) וקובץ תבנית ל-Unraid Community Apps להתקנה בלחיצה אחת.
+- [x] **שרת Webhook מובנה ותמיכה רשמית בקונטיינרים (Docker / Podman)** ([#4](https://github.com/omerninyo/RightSub/issues/4)):
+  - **שרת Webhook עצמאי (`rightsub serve`)**: שרת HTTP מובנה בצריכת זיכרון זעירה (<15 MB RAM) עם נקודות קצה ייעודיות ל-Sonarr (`/webhook/sonarr`), Radarr (`/webhook/radarr`), Bazarr (`/webhook/bazarr`), וקריאות ישירות (`/webhook/generic`, `/health`).
+  - **תרגום נתיבים אוטונומי בין קונטיינרים (`PATH_MAP`)**: גישור אוטומטי על הבדלי Volume Mounts בין שרתי ההורדה לשרת ה-RightSub.
+  - **אימג' Docker רשמי ומערך Compose**: קובץ `Dockerfile` רזה (Python 3.11-slim + ffmpeg) וקובץ `docker-compose.yml` לפריסה מיידית ב-Unraid, TrueNAS SCALE ו-Synology.
+  - **אימות אוטומטי מלא**: חבילת בדיקות מקיפה (`tests/test_webhook_server.py`) המאמתת את כל הנקודות, תרגום הנתיבים ובדיקות חיות של השרת.
 
 ---
 

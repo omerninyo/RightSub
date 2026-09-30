@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  rightsub:
+    build: .
+    image: ghcr.io/omerninyo/rightsub:latest
+    container_name: rightsub
+    restart: unless-stopped
+    ports:
+      - "8775:8775"
+    environment:
+      - RIGHTSUB_PORT=8775
+      - RIGHTSUB_HOST=0.0.0.0
+      - PATH_MAP=/data/media:/media
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Jerusalem
+    volumes:
+      - /mnt/storage/media:/media
+      - /mnt/storage/appdata/rightsub:/config

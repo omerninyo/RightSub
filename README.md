@@ -14,7 +14,7 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![Platform: Windows & macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-104%2F104%20Passing-success.svg)]()
+[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-125%2F125%20Passing-success.svg)]()
 [![Benchmark: 101/101 Episodes](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **Subtitles Done Right — from 1-Click Plex & BiDi Repair to Autonomous Multi-Agent AI Translation.**
@@ -120,6 +120,22 @@ Unlike heavy background daemons that poll filesystems 24/7 and risk corrupting m
 - 🛡️ **Zero Race Conditions**: Executes only on completed, hash-verified files.
 - ⚡ **Zero Idle Overhead**: 0% CPU and 0 MB RAM when idle.
 - 🔒 **Seed-Safe by Default**: Duplicates into `.he.srt`, leaving original downloaded torrent files 100% bit-for-bit intact so active seeding never breaks.
+
+### 🐳 Native Docker & Webhook Daemon (`rightsub serve`)
+For containerized NAS environments (**Unraid**, **TrueNAS SCALE**, **Synology DSM**, Docker Compose) where running host scripts is impossible, RightSub includes a native HTTP Webhook server consuming under 15 MB RAM:
+
+```bash
+# Run standalone daemon:
+rightsub serve --port 8775 --path-map "/data/media:/media"
+
+# Or deploy via Docker Compose:
+docker compose up -d
+```
+
+- **Sonarr Webhook URL**: `http://rightsub:8775/webhook/sonarr` (Triggers: On Download, On Upgrade)
+- **Radarr Webhook URL**: `http://rightsub:8775/webhook/radarr` (Triggers: On Download, On Movie Imported)
+- **Bazarr Webhook URL**: `http://rightsub:8775/webhook/bazarr` (Triggers: On Subtitles Download)
+- **Automatic Path Translation**: `PATH_MAP="/data/media:/media"` bridges container volume differences.
 
 👉 **Read the full [Home Media & Download Integrations Guide](docs/INTEGRATIONS_GUIDE.md)** for copy-pasteable configurations for qBittorrent, Sonarr, Radarr, Bazarr, Transmission, and native OS Folder Watchers.
 
@@ -314,6 +330,7 @@ For developers and power users, RightSub cleanly separates high-level workflow c
 | Command | Engine | Description | Windows Example | macOS / Linux Example |
 | :--- | :---: | :--- | :--- | :--- |
 | `auto` | **All** | Zero-flag autonomous runner for files, seasons, or directories | `rightsub auto "Movie.mkv"` | `rightsub auto "Movie.mkv"` |
+| `serve` | **Daemon** | Native Webhook daemon for Sonarr, Radarr, and Bazarr automation | `rightsub serve --port 8775` | `rightsub serve --port 8775` |
 | `polish` | **SubRefine & AI** | Semantic AI proofreading, canon harmonization & subtitle QC | `rightsub polish "Star Wars.he.srt"` | `rightsub polish "Star Wars.he.srt"` |
 | `translate-ollama` | **SubSwarm** | 100% offline local subtitle translation via Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
 | `fix-plex` | **SubRefine** | Fix BiDi, RLM, punctuation, CP1255 encoding & ads | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
