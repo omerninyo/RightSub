@@ -77,19 +77,53 @@ rightsub auto "%F"
 
 ---
 
-## 2. Sonarr ו-Radarr (סקריפטי חיבור Connect)
+## 2. Sonarr ו-Radarr (אינטגרציית Webhook או סקריפט ייבוא)
 
-Sonarr ו-Radarr מאפשרות להריץ סקריפטים חיצוניים מיד לאחר שסדרה או סרט עברו סיווג, שינוי שם והעברה לספריית המדיה הסופית (`On Download` ו-`On Upgrade`).
+Sonarr ו-Radarr מאפשרות להפעיל עיבוד חיצוני מיד לאחר שסדרה או סרט עברו סיווג, שינוי שם והעברה לספריית המדיה הסופית (`On Download`, `On Upgrade` ו-`On Movie Imported`).
 
-### מה קורה באופן אוטומטי?
-RightSub סורקת את קובץ המדיה החדש:
-1. מחלצת כתוביות מובנות (באנגלית או עברית) מתוך קובץ ה-MKV/MP4.
-2. אם קיימת כתובית בעברית — מתקנת אותה מיידית לפלקס (הזרקת RLM ל-BiDi, המרת קידוד ל-UTF-8 וניקוי פרסומות ורעשי שמע).
-3. אם אין כתובית בעברית — מכינה מראש מנות תרגום באנגלית מוכנות לתרגום AI.
+RightSub מציעה שתי שיטות חיבור:
+- **שיטה א' (מומלצת ל-Docker, Unraid, TrueNAS, Synology)**: שרת Webhook עצמאי ללא צורך בהתקנת פייתון או סקריפטים בתוך הקונטיינר.
+- **שיטה ב' (למערכות Bare-Metal)**: סקריפט מקומי (Custom Script).
 
-### שלב א': יצירת קובץ ה-Hook המתווך
+---
 
-#### ב-Windows: יצירת הקובץ `C:\Scripts\rightsub_arr_hook.bat`
+### שיטה א' (מומלצת): שרת Webhook לקונטיינרים (`rightsub serve`)
+
+כאשר Sonarr ו-Radarr רצות בקונטיינרים מבודדים, אין אפשרות להריץ סקריפטים של המחשב המארח. שרת ה-Webhook המובנה של RightSub פותר זאת בחיבור HTTP ישיר:
+
+#### שלב 1: הפעלת שרת ה-Webhook של RightSub
+```bash
+# הרצה מקומית או בתוך Docker:
+rightsub serve --port 8775 --path-map "/data/media:/media"
+
+# או פריסה באמצעות docker-compose.yml:
+docker compose up -d
+```
+*(לפרטים נוספים על תרגום נתיבים ראו [פרק תרגום נתיבים PATH_MAP](#-תרגום-נתיבים-חוצה-קונטיינרים-path_map))*
+
+#### שלב 2: הגדרה ב-Sonarr / Radarr
+1. היכנסו לממשק ה-Web של **Sonarr** או **Radarr**.
+2. נווטו ל: **Settings** -> **Connect**.
+3. לחצו על כפתור ה-**`+`** ובחרו באפשרות **Webhook**.
+4. מלאו את השדות:
+   - **Name**: `RightSub Subtitle Master`
+   - **Notification Triggers**: סמנו ב-V את ☑ **On Download**, ☑ **On Upgrade**, וב-Radarr גם ☑ **On Movie Imported**.
+   - **URL**: 
+     - אם RightSub רץ באותה רשת Docker: `http://rightsub:8775/webhook/sonarr` (או `/webhook/radarr`).
+     - אם RightSub רץ במארח/שרת נפרד: `http://IP-OF-SERVER:8775/webhook/sonarr`.
+   - **Method**: `POST`
+5. לחצו על **Test** — שרת ה-RightSub יחזיר תשובת `200 OK` מיידית ויאשר את החיבור.
+6. לחצו על **Save**.
+
+---
+
+### שיטה ב': סקריפט מקומי (Custom Script למשתמשי Bare-Metal)
+
+למשתמשים המתקינים ישירות על מערכת ההפעלה המארחת:
+
+#### שלב א': יצירת קובץ ה-Hook המתווך
+
+##### ב-Windows: יצירת הקובץ `C:\Scripts\rightsub_arr_hook.bat`
 ```cmd
 @echo off
 setlocal
@@ -104,7 +138,7 @@ if defined TARGET_PATH (
 )
 ```
 
-#### ב-macOS / Linux: יצירת הקובץ `/usr/local/bin/rightsub_arr_hook.sh`
+##### ב-macOS / Linux: יצירת הקובץ `/usr/local/bin/rightsub_arr_hook.sh`
 ```bash
 #!/usr/bin/env bash
 TARGET_PATH="${sonarr_episodefile_path:-$radarr_moviefile_path}"
@@ -115,7 +149,7 @@ fi
 ```
 *(יש לתת הרשאת הרצה: `chmod +x /usr/local/bin/rightsub_arr_hook.sh`)*
 
-### שלב ב': הגדרה בממשק של Sonarr / Radarr
+#### שלב ב': הגדרה בממשק של Sonarr / Radarr
 1. היכנסו ל: **Settings** -> **Connect**.
 2. לחצו על כפתור ה-**`+`** ובחרו באפשרות **Custom Script**.
 3. מלאו את השדות:
@@ -126,11 +160,63 @@ fi
 
 ---
 
-## 3. Bazarr (עיבוד והשבחה לאחר הורדה)
+## 3. Bazarr (אינטגרציית Webhook או Post-Processing)
 
-Bazarr מאתרת כתוביות קהילתיות ברשת ומורידה אותן, אך ברוב המקרים כתוביות אלו כוללות היפוכי פיסוק, קידודי ג'יבריש ופרסומות. חיבור RightSub כ-Post-Processing משלים את הפעולה והופך כל קובץ ש-Bazarr מורידה למושלם עבור פלקס.
+Bazarr מורידה כתוביות ממעל 30 מאגרים ברשת. אולם כתוביות אלו סובלות באופן קבוע מבעיות חמורות:
+- ❌ סימני פיסוק הפוכים ב-Plex וב-Apple TV (`?`, `!`, `...`, נקודות ומקפים).
+- ❌ קידודי עברית מיושנים (Windows-1255 / ISO-8859-8) המופיעים כג'יבריש מוחלט.
+- ❌ שורות פרסומת וקרדיטים מטרידים ("סונכרן ע\"י Torec", "SubCenter", כתובות טלגרם).
 
-### כיצד להגדיר:
+RightSub פותרת את הבעיה הזו בדיוק בשנייה שהכתובית נוחתת על הדיסק:
+- **שיטה א' (מומלצת): Webhook ישיר מ-Bazarr לשרת RightSub** (עובד מעולה בקונטיינרים וב-NAS).
+- **שיטה ב': Post-Processing פנימי** (לסביבות שאינן בקונטיינר).
+
+---
+
+### שיטה א' (מומלצת): חיבור Webhook מובנה מ-Bazarr ל-RightSub
+
+זוהי הדרך האלגנטית, המהירה והיציבה ביותר, שאינה דורשת התקנת סקריפטים בתוך קונטיינר ה-Bazarr:
+
+#### שלב 1: ודאו ששרת ה-RightSub פעיל
+```bash
+# הרצת השרת בפורט 8775 (ברירת מחדל):
+rightsub serve --port 8775 --path-map "/data/media:/media"
+```
+
+#### שלב 2: הגדרה בממשק Bazarr
+1. פתחו את ממשק ה-Web של Bazarr (`http://localhost:6767` או ה-IP של השרת שלכם).
+2. נווטו בסרגל העליון/צדדי ל: **Settings** -> **Notifications**.
+3. לחצו על כפתור ה-**`+`** (הוספת התראה חדשה) ובחרו ב-**Webhook**.
+4. הגדירו את הפרמטרים הבאים:
+   - **Name**: `RightSub BiDi & Hebrew Master`
+   - **URL**: 
+     - ברשת Docker פנימית: `http://rightsub:8775/webhook/bazarr`
+     - או עם כתובת שרת המדיה: `http://192.168.1.X:8775/webhook/bazarr`
+   - **HTTP Method**: `POST`
+   - **Notification Types**:
+     - סמנו ב-V אך ורק את: ☑ **On Subtitles Download** (או `On subtitles download`).
+5. לחצו על כפתור **Test**:
+   - שרת ה-RightSub ירשום ביומן: `[Webhook] Received Bazarr test ping.` ויחזיר `200 OK`.
+6. לחצו על **Save**.
+
+#### מה קורה עכשיו בכל פעם ש-Bazarr מורידה כתובית?
+1. Bazarr שולחת קריאת `POST /webhook/bazarr` עם נתיב הכתובית ושפתה (`language: "he"`).
+2. שרת ה-RightSub:
+   - מוודא שהשפה היא עברית (מדלג אוטומטית ובשקט על הורדות בשפות אחרות כמו אנגלית או צרפתית).
+   - מתרגם את נתיב הקובץ דרך `PATH_MAP` אם Bazarr רואה נתיב שונה מהשרת.
+   - מפעיל את מנוע ה-**SubRefine**:
+     - הופך סימני פיסוק והוראות כיווניות בעזרת תווי RLM נסתרים.
+     - מזהה וממיר קידוד מ-Windows-1255 ל-UTF-8 נקי.
+     - מנקה שורות פרסומת ורעשי שמע (SDH).
+   - מעדכן את חותמת הזמן של הקובץ (`os.utime`) כך ש-Plex ו-Infuse מזהים מיד את העדכון ללא צורך בסריקה מחדש.
+3. כל התהליך מתבצע תוך **0.05 עד 0.1 שניות בלבד**!
+
+---
+
+### שיטה ב': Custom Post-Processing (למשתמשי Bare-Metal)
+
+למשתמשים שאינם משתמשים בקונטיינרים ומריצים את Bazarr ישירות על ה-Host:
+
 1. היכנסו לממשק ה-Web של Bazarr (`http://localhost:6767`).
 2. נווטו ל: **Settings** -> **Subtitles** -> **Post-processing**.
 3. תחת **Custom Post-Processing**:
@@ -147,6 +233,26 @@ rightsub auto "{{subtitles_path}}"
 rightsub auto "{{subtitles_path}}"
 ```
 4. לחצו על **Save** בפינה השמאלית העליונה לשמירה.
+
+---
+
+### 🌐 תרגום נתיבים חוצה-קונטיינרים (PATH_MAP)
+
+בסביבות קונטיינרים (כגון Docker Compose, Unraid, TrueNAS SCALE), שרתי ה-`*arr` וה-Bazarr עשויים למפות את תיקיית המדיה לנתיב שונה מזה של RightSub.
+לדוגמה:
+- Bazarr רואה את הכתובית ב: `/data/media/tv/show.he.srt`
+- RightSub ממפה את כונן המדיה ל: `/media/tv/show.he.srt`
+
+הגדירו את המשתנה `PATH_MAP` בהרצת השרת:
+```bash
+# תחביר: FROM_PREFIX:TO_PREFIX
+rightsub serve --path-map "/data/media:/media"
+
+# או בסביבת Docker / Compose:
+environment:
+  - PATH_MAP=/data/media:/media
+```
+RightSub יחליף אוטומטית את קידומת הנתיב עבור כל Webhook שמגיע מ-Bazarr או מ-Sonarr/Radarr!
 
 ---
 

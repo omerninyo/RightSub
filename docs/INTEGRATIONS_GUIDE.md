@@ -75,19 +75,53 @@ rightsub auto "%F"
 
 ---
 
-## 2. Sonarr & Radarr (Connect Scripts)
+## 2. Sonarr & Radarr (Webhook Integration or Post-Import Script)
 
-Sonarr and Radarr allow custom scripts to execute immediately after an episode or movie has been imported and organized into your library (`On Download` and `On Upgrade`).
+Sonarr and Radarr allow external automation to execute immediately after an episode or movie has been imported and organized into your library (`On Download`, `On Upgrade`, and `On Movie Imported`).
 
-### What Happens Automatically:
-RightSub inspects the newly imported media file:
-1. Extracts embedded English or Hebrew subtitle streams from MKV/MP4 containers.
-2. If an external Hebrew subtitle exists, masters it immediately for Plex (BiDi RLM injection, UTF-8 charset normalization, SDH and ad cleaning).
-3. If no Hebrew subtitle exists, pre-splits the master English track into ~210 cue waves ready for AI translation.
+RightSub supports two integration methods:
+- **Method A (Recommended for Docker, Unraid, TrueNAS, Synology)**: Native Webhook Server with zero host script or Python dependencies.
+- **Method B (For Bare-Metal Systems)**: Custom Script invocation.
 
-### Step 1: Create the Hook Script
+---
 
-#### Windows: `C:\Scripts\rightsub_arr_hook.bat`
+### Method A (Recommended): Container Webhook Server (`rightsub serve`)
+
+When Sonarr and Radarr run inside isolated Docker containers, invoking host scripts is impossible. RightSub's built-in Webhook daemon provides native, seamless HTTP event handling:
+
+#### Step 1: Start the RightSub Webhook Server
+```bash
+# Direct CLI run or container launch:
+rightsub serve --port 8775 --path-map "/data/media:/media"
+
+# Or deploy via docker-compose.yml:
+docker compose up -d
+```
+*(For path mapping details across volumes, see [Cross-Container Path Translation (PATH_MAP)](#-cross-container-path-translation-path_map))*
+
+#### Step 2: Configure in Sonarr / Radarr UI
+1. Open the **Sonarr** or **Radarr** Web UI.
+2. Navigate to: **Settings** -> **Connect**.
+3. Click the **`+`** icon and select **Webhook**.
+4. Fill in the parameters:
+   - **Name**: `RightSub Subtitle Master`
+   - **Notification Triggers**: Check ☑ **On Download**, ☑ **On Upgrade**, and in Radarr also ☑ **On Movie Imported**.
+   - **URL**:
+     - Within same Docker bridge network: `http://rightsub:8775/webhook/sonarr` (or `/webhook/radarr`).
+     - Across network / host IP: `http://SERVER-IP:8775/webhook/sonarr`.
+   - **Method**: `POST`
+5. Click **Test** — RightSub will respond with `200 OK` and log the test ping.
+6. Click **Save**.
+
+---
+
+### Method B: Custom Script (For Bare-Metal Installations)
+
+For users running Sonarr/Radarr directly on the host operating system:
+
+#### Step 1: Create the Hook Script
+
+##### Windows: `C:\Scripts\rightsub_arr_hook.bat`
 ```cmd
 @echo off
 setlocal
@@ -102,7 +136,7 @@ if defined TARGET_PATH (
 )
 ```
 
-#### macOS / Linux: `/usr/local/bin/rightsub_arr_hook.sh`
+##### macOS / Linux: `/usr/local/bin/rightsub_arr_hook.sh`
 ```bash
 #!/usr/bin/env bash
 TARGET_PATH="${sonarr_episodefile_path:-$radarr_moviefile_path}"
@@ -113,7 +147,7 @@ fi
 ```
 *(Make sure to grant execution permissions: `chmod +x /usr/local/bin/rightsub_arr_hook.sh`)*
 
-### Step 2: Configure in Sonarr / Radarr UI
+#### Step 2: Configure in Sonarr / Radarr UI
 1. Navigate to **Settings** -> **Connect**.
 2. Click the **`+`** icon and select **Custom Script**.
 3. Fill in the fields:
@@ -124,13 +158,63 @@ fi
 
 ---
 
-## 3. Bazarr (Post-Processing Hook)
+## 3. Bazarr (Webhook Daemon or Post-Processing Hook)
 
-Bazarr crawls 30+ internet providers to find community-uploaded subtitles. However, downloaded Hebrew subtitles routinely suffer from reversed punctuation (`? ! .`), legacy CP1255 encoding, and promo spam.
+Bazarr crawls 30+ internet subtitle providers. However, community-uploaded Hebrew subtitles routinely suffer from serious flaws:
+- ❌ Reversed punctuation (`?`, `!`, `...`, hyphens) in Plex, Apple TV, and Infuse.
+- ❌ Legacy Windows-1255 / ISO-8859-8 charsets rendering as unreadable gibberish / mojibake.
+- ❌ Annoying promotional ads and translation credit lines ("סונכרן ע\"י Torec", "SubCenter", Telegram links).
 
-By attaching RightSub as a Post-Processing script, Bazarr handles the downloading while RightSub automatically masters every downloaded file.
+RightSub completely eliminates these anomalies the exact moment Bazarr saves the subtitle file to disk:
+- **Method A (Recommended): Direct Webhook from Bazarr to RightSub Server** (Turnkey for Docker & NAS).
+- **Method B: Custom Post-Processing** (For bare-metal non-containerized setups).
 
-### How to Configure:
+---
+
+### Method A (Recommended): Native Bazarr Webhook Connection
+
+This is the cleanest, fastest, and most robust approach. It requires **zero custom scripts** inside your Bazarr container:
+
+#### Step 1: Ensure RightSub Webhook Server is Running
+```bash
+# Run server on port 8775:
+rightsub serve --port 8775 --path-map "/data/media:/media"
+```
+
+#### Step 2: Configure in Bazarr Web UI
+1. Open your Bazarr Web UI (`http://localhost:6767` or your NAS IP).
+2. Navigate to: **Settings** -> **Notifications**.
+3. Click the **`+`** button (Add Notification) and select **Webhook**.
+4. Configure the settings:
+   - **Name**: `RightSub BiDi & Hebrew Master`
+   - **URL**:
+     - Inside Docker network: `http://rightsub:8775/webhook/bazarr`
+     - Or using server IP: `http://192.168.1.X:8775/webhook/bazarr`
+   - **HTTP Method**: `POST`
+   - **Notification Types**:
+     - Check **ONLY**: ☑ **On Subtitles Download** (or `On subtitles download`).
+5. Click **Test**:
+   - RightSub logs: `[Webhook] Received Bazarr test ping.` and responds with `200 OK`.
+6. Click **Save**.
+
+#### What Happens Under the Hood Whenever Bazarr Downloads a Subtitle?
+1. Bazarr issues a `POST /webhook/bazarr` event containing the subtitle path and language code (`language: "he"`).
+2. RightSub Webhook Daemon:
+   - **Language Verification**: Confirms language is Hebrew (`he`/`heb`); silently ignores non-Hebrew downloads (English, French, etc.) with 0 overhead.
+   - **Path Translation**: Translates paths according to `PATH_MAP` if volume mounts differ between containers.
+   - **SubRefine Engine Execution**:
+     - Injects invisible Unicode RLM marks for flawless BiDi punctuation in Plex & Infuse.
+     - Auto-converts legacy Windows-1255/CP1255 encoding to clean UTF-8.
+     - Strips translator spam, promotional ads, and SDH noise tags.
+   - **Metadata Touch**: Flushes file timestamps via `os.utime()` so Plex and Infuse detect modifications instantly.
+3. The entire mastering cycle completes in **under 0.1 seconds**!
+
+---
+
+### Method B: Custom Post-Processing (For Bare-Metal Setups)
+
+For users running Bazarr directly on the host machine without Docker:
+
 1. Open the Bazarr Web UI (`http://localhost:6767`).
 2. Go to **Settings** -> **Subtitles** -> **Post-processing**.
 3. Under **Custom Post-Processing**:
@@ -147,6 +231,26 @@ rightsub auto "{{subtitles_path}}"
 rightsub auto "{{subtitles_path}}"
 ```
 4. Click **Save** in the upper left corner.
+
+---
+
+### 🌐 Cross-Container Path Translation (PATH_MAP)
+
+In Docker environments (Docker Compose, Unraid, TrueNAS SCALE, Synology DSM), `*arr` containers and Bazarr often mount media shares under different directory prefixes than RightSub.
+For example:
+- Bazarr perceives subtitles at: `/data/media/tv/show.he.srt`
+- RightSub mounts the media volume at: `/media/tv/show.he.srt`
+
+Specify `PATH_MAP` when launching RightSub:
+```bash
+# Syntax: FROM_PREFIX:TO_PREFIX
+rightsub serve --path-map "/data/media:/media"
+
+# Or in docker-compose.yml:
+environment:
+  - PATH_MAP=/data/media:/media
+```
+RightSub automatically rewrites path prefixes for every incoming Sonarr, Radarr, and Bazarr webhook event.
 
 ---
 
