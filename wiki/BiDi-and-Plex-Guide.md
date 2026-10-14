@@ -22,11 +22,17 @@ Unicode character `U+200F` (RIGHT-TO-LEFT MARK - RLM) is a non-printable, zero-w
 ### 1. Leading RLM
 Injecting `\u200F` as the very first character of every line forces the text shaper to start with an RTL base level, ensuring dialogue dashes (`-`) stay on the right.
 
-### 2. Trailing RLM
-Injecting `\u200F` immediately before trailing punctuation (`?`, `!`, `.`, `...`, `)`) binds the punctuation strongly to the preceding Hebrew text, preventing it from flipping across the screen.
+### 2. Trailing RLM & Dialogue Hyphen Protection
+Injecting `\u200F` immediately before trailing punctuation (`?`, `!`, `.`, `...`, `…`, `)`, `"`, `'`, `״`, `׳`) binds the punctuation strongly to the preceding Hebrew text, preventing it from flipping across the screen. Additionally, dialogue hyphens followed by English words (`- FBI כאן.`) receive an extra `\u200F` after the hyphen space (`\u200F- \u200FFBI כאן\u200F.`) so the hyphen is never pulled to the left side of the English token.
+
+### 3. HTML & ASS Tag Preservation
+SubRefine strips existing RLM marks and re-applies them strictly **inside** HTML formatting wrappers (`<i>...</i>`, `<b>...</b>`, `<font color="#ffff00">...</font>`) while preserving leading ASS/SSA positioning tags (`{\an8}`, `{\pos(x,y)}`). `\u200F` is never injected inside `<...>` or `{...}` syntax.
+
+### 4. Loanword-Safe Final Letter Normalization
+Final Hebrew letters (`ך`, `ם`, `ן`, `ץ`) are normalized only at true Hebrew word boundaries (`(?<=[א-ת])`), preserving acronyms with mid-word quotes (`בימ"ש`, `צה"ל`) and loanwords ending in `/p/` (`ג'יפ`, `קטשופ`, `טלסקופ`, `סטארטאפ`).
 
 ## Automatic Rule Enforcement in RightSub
-`./rightsub merge` and `./rightsub fix-plex` automatically apply these rules along with homoglyph normalization, CP1255 encoding conversion, and SDH noise stripping via the **SubRefine Engine**.
+`./rightsub merge` and `./rightsub fix-plex` automatically apply these rules along with homoglyph normalization, CP1255/UTF-16 encoding conversion, and SDH noise stripping via the **SubRefine Engine**.
 
 ### 3 Execution Modes for `fix-plex`:
 
@@ -51,7 +57,9 @@ Recursively scan an entire season or library folder, cleaning ads and creating b
 
 ## Smart Safety & Filtering Architecture
 The tool is engineered for worry-free batch operations on large, heterogeneous media libraries:
-- **Hebrew-Only Detection**: Automatically inspects character distribution in each `.srt` file. English subtitles (`.en.srt`), Spanish, French, etc. are identified and skipped entirely (`[SKIP] Not Hebrew`). The script never touches non-Hebrew files.
+- **Hebrew-Only Detection & Encoding Heuristics**: Automatically inspects byte and character distributions in each `.srt` file (supporting UTF-8, UTF-16 LE/BE BOM, Windows-1255, and ISO-8859-8). English subtitles (`.en.srt`) and Western European Windows-1252 subtitles (French, Spanish, German) are distinguished via contiguous Hebrew word-pair heuristics and skipped entirely (`[SKIP] Not Hebrew`).
+- **Line-Granular Ad Cleaning**: Promotional credit lines (`תרגום:`, `סנכרון:`) are removed at the individual line level without deleting legitimate dialogue sharing the same subtitle cue.
+- **Crash-Safe Atomic Writes**: All file updates write to a temporary sibling file and execute an atomic `os.replace()` + `os.utime()` timestamp touch, ensuring zero partial files and instant Plex/Infuse index refresh.
 - **Subtitle-Only Filtering**: Completely ignores video containers (MKV, MP4, AVI), poster art, or metadata files (`.nfo`).
 - **Strict Idempotency**: Running repeatedly on already-fixed subtitles does not duplicate RLM marks or corrupt dialogue text.
 - **Safety Flags**: Full support for `--dry-run` (preview mode with zero disk writes) and `--backup` (creates `.srt.bak` before editing in-place).

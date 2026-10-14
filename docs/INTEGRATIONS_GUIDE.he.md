@@ -253,6 +253,8 @@ environment:
   - PATH_MAP=/data/media:/media
 ```
 RightSub יחליף אוטומטית את קידומת הנתיב עבור כל Webhook שמגיע מ-Bazarr או מ-Sonarr/Radarr!
+- **קדימות תחילית ארוכה (Longest-Prefix Precedence):** כאשר מוגדרות מספר תחיליות מקוננות (למשל `/data` ו-`/data/media`), השרת ממיין אותן אוטומטית מהספציפית ביותר לכללית ביותר, ותומך בהתאמת אותיות כונן ב-Windows ללא תלות ברישיות (`C:\` מול `c:\`).
+- **הקשחת אבטחה ומקביליות (Daemon Hardening):** השרת אוכף מניעת Path Traversal (`..`), מגביל את גודל ה-Payload ל-2MB (`HTTP 413`), ומפעיל נעילה ברמת קובץ (`_get_file_lock`) וכתיבה אטומית למניעת התנגשויות בעת קבלת אירועים מקביליים מ-Sonarr ומ-Bazarr.
 
 ---
 

@@ -41,14 +41,36 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 try:
-    from tmdb_client import parse_media_filename, fetch_media_metadata, is_tmdb_available
+    from tmdb_client import parse_media_filename, fetch_show_or_movie_metadata, is_tmdb_available
 except (ImportError, ModuleNotFoundError):
     try:
-        from scripts.tmdb_client import parse_media_filename, fetch_media_metadata, is_tmdb_available
+        from scripts.tmdb_client import parse_media_filename, fetch_show_or_movie_metadata, is_tmdb_available
     except Exception:
         parse_media_filename = None
-        fetch_media_metadata = None
+        fetch_show_or_movie_metadata = None
         is_tmdb_available = lambda *args, **kwargs: False
+
+def fetch_media_metadata(filepath=None, title=None, api_key=None):
+    """Wrapper around fetch_show_or_movie_metadata extracting season/episode/year from filepath if present."""
+    if not fetch_show_or_movie_metadata:
+        return {"success": False, "error": "tmdb_client unavailable"}
+    season = None
+    episode = None
+    year = None
+    if filepath and parse_media_filename:
+        parsed = parse_media_filename(str(filepath))
+        title = title or parsed.get("title")
+        season = parsed.get("season")
+        episode = parsed.get("episode")
+        year = parsed.get("year")
+    return fetch_show_or_movie_metadata(
+        title=title,
+        filepath=str(filepath) if filepath else None,
+        season=season,
+        episode=episode,
+        year=year,
+        api_key=api_key
+    )
 
 try:
     from domain_knowledge import (
@@ -99,30 +121,16 @@ except Exception:
 try:
     import importlib
     m07 = importlib.import_module("07_fix_plex_punctuation")
-    normalize_homoglyphs = getattr(m07, "normalize_homoglyphs", getattr(m07, "clean_and_sanitize_text", lambda t: t))
-    clean_subtitles = getattr(m07, "clean_subtitles", lambda c, **kw: c)
+    normalize_homoglyphs = getattr(m07, "clean_and_sanitize_text", lambda t: t)
+    clean_subtitles = getattr(m07, "process_srt_content", lambda c, **kw: c)
     clean_line = getattr(m07, "clean_line", lambda l, **kw: l)
+    apply_bidi_and_punctuation = getattr(m07, "apply_rlm_to_line", lambda l: l)
+    RLM = getattr(m07, "RLM", "\u200F")
 except Exception:
+    RLM = "\u200F"
     normalize_homoglyphs = lambda t: t
     clean_subtitles = lambda c, **kw: c
     clean_line = lambda l, **kw: l
-
-try:
-    import importlib
-    m00 = importlib.import_module("00_transcribe_audio")
-    transcribe_audio = m00.transcribe_audio
-    is_quicksubs_available = m00.is_quicksubs_available
-except Exception:
-    transcribe_audio = None
-    is_quicksubs_available = lambda: False
-
-try:
-    import importlib
-    m5 = importlib.import_module("05_merge_and_validate")
-    apply_bidi_and_punctuation = m5.apply_bidi_and_punctuation
-    RLM = m5.RLM
-except Exception:
-    RLM = "\u200F"
     def apply_bidi_and_punctuation(line):
         if not line:
             return line
@@ -132,6 +140,15 @@ except Exception:
             if not line.startswith(RLM):
                 line = RLM + line
         return line
+
+try:
+    import importlib
+    m00 = importlib.import_module("00_transcribe_audio")
+    transcribe_audio = m00.transcribe_audio
+    is_quicksubs_available = m00.is_quicksubs_available
+except Exception:
+    transcribe_audio = None
+    is_quicksubs_available = lambda: False
 
 # Built-in franchise canonical glossaries & character gender hints
 FRANCHISE_GLOSSARIES = {

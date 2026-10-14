@@ -14,7 +14,7 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![Platform: Windows & macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-125%2F125%20Passing-success.svg)]()
+[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-142%2F142%20Passing-success.svg)]()
 [![Benchmark: 101/101 Episodes](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **Subtitles Done Right — from 1-Click Plex & BiDi Repair to Autonomous Multi-Agent AI Translation.**
@@ -367,7 +367,7 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (103 unit tests):
+RightSub comes with a comprehensive automated test suite (142 unit tests):
 ```bash
 pytest -v
 ```

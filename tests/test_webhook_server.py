@@ -299,3 +299,65 @@ class TestLiveWebhookDaemon:
         with pytest.raises(urllib.error.HTTPError) as exc_info:
             urllib.request.urlopen(req)
         assert exc_info.value.code == 400
+
+    def test_path_map_longest_prefix_precedence_and_traversal_guard(self):
+        # Even if /data is listed before /data/media, /data/media must match first
+        pmap = srv.parse_path_map("/data:/mnt/root,/data/media:/mnt/media")
+        assert pmap[0] == ("/data/media", "/mnt/media")
+        mapped = srv.translate_path("/data/media/tv/Show.mkv", pmap)
+        assert str(mapped).replace("\\", "/") == "/mnt/media/tv/Show.mkv"
+
+        # Case-insensitive Windows drive letter matching
+        win_map = srv.parse_path_map(r"C:\data\media:/mnt/win_media")
+        win_translated = srv.translate_path(r"c:\data\media\Movie.mkv", win_map)
+        assert str(win_translated).replace("\\", "/") == "/mnt/win_media/Movie.mkv"
+
+        # Path traversal guard: '..' inside suffix cannot escape above /mnt/media
+        traversed = srv.translate_path("/data/media/../../../etc/passwd", pmap)
+        assert str(traversed).replace("\\", "/") == "/mnt/media/etc/passwd"
+
+    def test_oversized_payload_returns_413(self, live_server):
+        req = urllib.request.Request(
+            f"{live_server['url']}/webhook/generic",
+            data=b"{}",
+            headers={
+                "Content-Type": "application/json",
+                "Content-Length": str(srv.MAX_PAYLOAD_BYTES + 1024)
+            }
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc_info:
+            urllib.request.urlopen(req)
+        assert exc_info.value.code == 413
+
+    def test_concurrent_webhook_requests_thread_safety(self, live_server):
+        media_dir = live_server["media_dir"]
+        vid = media_dir / "Concurrent.Test.S01E01.mkv"
+        vid.touch()
+        sub = media_dir / "Concurrent.Test.S01E01.he.srt"
+        sub.write_text("1\n00:00:01,000 --> 00:00:02,000\nשלום עולם!\n", encoding="utf-8")
+
+        virtual_path = f"{live_server['virtual_prefix']}/Concurrent.Test.S01E01.mkv"
+        payload = {"eventType": "Download", "episodeFile": {"path": virtual_path}}
+
+        results = []
+        errors = []
+
+        def worker():
+            try:
+                status, data = self._send_post(f"{live_server['url']}/webhook/sonarr", payload)
+                results.append((status, data))
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        assert len(results) == 8
+        assert all(s == 200 and d["status"] == "ok" for s, d in results)
+        final_text = sub.read_text(encoding="utf-8")
+        assert "\u200Fשלום עולם\u200F!" in final_text
+

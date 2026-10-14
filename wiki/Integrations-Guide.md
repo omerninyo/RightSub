@@ -234,7 +234,7 @@ rightsub auto "{{subtitles_path}}"
 
 ---
 
-### 🌐 Cross-Container Path Translation (PATH_MAP)
+### 🌐 Cross-Container Path Translation (PATH_MAP) & Security Hardening
 
 In Docker environments (Docker Compose, Unraid, TrueNAS SCALE, Synology DSM), `*arr` containers and Bazarr often mount media shares under different directory prefixes than RightSub.
 For example:
@@ -243,14 +243,18 @@ For example:
 
 Specify `PATH_MAP` when launching RightSub:
 ```bash
-# Syntax: FROM_PREFIX:TO_PREFIX
-rightsub serve --path-map "/data/media:/media"
+# Syntax: FROM_PREFIX:TO_PREFIX (multiple mappings separated by commas or semicolons)
+rightsub serve --path-map "/data/media/tv:/media/tv,/data/media:/media"
 
 # Or in docker-compose.yml:
 environment:
-  - PATH_MAP=/data/media:/media
+  - PATH_MAP=/data/media/tv:/media/tv,/data/media:/media
 ```
-RightSub automatically rewrites path prefixes for every incoming Sonarr, Radarr, and Bazarr webhook event.
+RightSub automatically rewrites path prefixes for every incoming Sonarr, Radarr, and Bazarr webhook event:
+- **Longest-Prefix Priority**: Overlapping prefixes (e.g., `/data/media` and `/data/media/tv`) are automatically sorted by descending prefix length so the most specific mount always matches first.
+- **Windows Drive Support**: Case-insensitive Windows drive prefixes (`C:\Media` -> `/media`) and backslash normalization are handled natively.
+- **Path Traversal Protection**: Mapped paths are normalized via `posixpath.normpath` and validated to ensure relative `..` segments cannot escape the target mount root.
+- **Concurrency & Payload Guards**: The server enforces a 2 MB request body limit (`HTTP 413`), runs daemon worker threads, and serializes concurrent Sonarr/Bazarr hooks targeting the same subtitle file via per-file locks and atomic `os.replace()` writes.
 
 ---
 

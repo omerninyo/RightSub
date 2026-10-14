@@ -51,7 +51,9 @@ Recursively scan an entire season or library folder, cleaning ads and creating b
 
 ## Smart Safety & Filtering Architecture
 The tool is engineered for worry-free batch operations on large, heterogeneous media libraries:
-- **Hebrew-Only Detection**: Automatically inspects character distribution in each `.srt` file. English subtitles (`.en.srt`), Spanish, French, etc. are identified and skipped entirely (`[SKIP] Not Hebrew`). The script never touches non-Hebrew files.
-- **Subtitle-Only Filtering**: Completely ignores video containers (MKV, MP4, AVI), poster art, or metadata files (`.nfo`).
+- **Hebrew-Only & Multi-Charset Detection (`UTF-8`, `UTF-16`, `Windows-1255` vs `Windows-1252`)**: Automatically inspects byte and character distributions in each `.srt` file, distinguishing Hebrew `CP1255` multi-byte words from Western European `CP1252` accented text (French, Spanish, German) and 3-byte UTF-8 punctuation (`0xE2`). Non-Hebrew subtitles are skipped entirely (`[SKIP] Not Hebrew`).
+- **Tag-Safe BiDi & Loanword Preservation (`{\an8}`, `<i>`, `<font>`)**: RLM marks are injected strictly around inner dialogue text (`{\an8}<font color="#ffff00"><i>\u200Fטקסט\u200F!</i></font>`), never inside tag brackets. Handles dialogue hyphens before English words (`\u200F- \u200FFBI כאן\u200F.`) and preserves Hebrew loanwords ending in `/p/` (`ג'יפ`, `קטשופ`, `טלסקופ`).
+- **Subtitle-Only Filtering & Atomic Writes**: Completely ignores video containers (MKV, MP4, AVI), poster art, or metadata files (`.nfo`), and writes files atomically via temporary sibling replacement.
 - **Strict Idempotency**: Running repeatedly on already-fixed subtitles does not duplicate RLM marks or corrupt dialogue text.
 - **Safety Flags**: Full support for `--dry-run` (preview mode with zero disk writes) and `--backup` (creates `.srt.bak` before editing in-place).
+

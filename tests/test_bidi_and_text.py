@@ -110,3 +110,52 @@ class TestBiDiAndTextFormatting:
             assert expected in fixed
             assert not re.search(fix_plex_module.DISALLOWED_FOREIGN_SCRIPTS, fixed)
 
+    def test_ssa_override_tag_preservation(self):
+        raw = "{\\an8}שלום עולם."
+        fixed = fix_plex_module.apply_rlm_to_line(raw)
+        assert fixed.startswith("{\\an8}")
+        assert fixed == f"{{\\an8}}{RLM}שלום עולם{RLM}."
+        # Idempotency check
+        assert fix_plex_module.apply_rlm_to_line(fixed) == fixed
+
+    def test_html_font_and_nested_tags_preservation(self):
+        raw = '<font color="#ffff00"><i>שלום עולם!</i></font>'
+        fixed = fix_plex_module.apply_rlm_to_line(raw)
+        assert fixed == f'<font color="#ffff00"><i>{RLM}שלום עולם{RLM}!</i></font>'
+        # Ensure RLM is never injected inside HTML tag brackets
+        for tag in re.findall(r'<[^>]+>', fixed):
+            assert RLM not in tag
+        # Idempotency check
+        assert fix_plex_module.apply_rlm_to_line(fixed) == fixed
+
+    def test_loanword_pe_and_single_letter_preserved(self):
+        raw = "נסענו בג'יפ עם קטשופ וטלסקופ לפי סעיף כ."
+        fixed = fix_plex_module.clean_and_sanitize_text(raw)
+        assert "בג'יפ" in fixed
+        assert "קטשופ" in fixed
+        assert "וטלסקופ" in fixed
+        assert "סעיף כ." in fixed
+        assert "ג'יף" not in fixed
+        assert "קטשוף" not in fixed
+
+    def test_dialogue_hyphen_with_english_word_bidi(self):
+        raw = "- FBI כאן."
+        fixed = fix_plex_module.apply_rlm_to_line(raw)
+        assert fixed == f"{RLM}- {RLM}FBI כאן{RLM}."
+        # Idempotency check
+        assert fix_plex_module.apply_rlm_to_line(fixed) == fixed
+
+    def test_decimal_percentage_and_trailing_quotes_bidi(self):
+        raw_pct = "הסיכוי הוא 99.5%."
+        fixed_pct = fix_plex_module.apply_rlm_to_line(raw_pct)
+        # Ensure 99.5% is not split by an internal RLM before %
+        assert "99.5%" in fixed_pct
+        assert fixed_pct.endswith(f"{RLM}.")
+
+        raw_quote = 'הוא אמר "שלום"…'
+        fixed_quote = fix_plex_module.apply_rlm_to_line(raw_quote)
+        assert fixed_quote.startswith(RLM)
+        assert fixed_quote.endswith(f'{RLM}"…')
+        assert fix_plex_module.apply_rlm_to_line(fixed_quote) == fixed_quote
+
+

@@ -26,6 +26,8 @@ import sys
 import json
 import time
 import re
+import posixpath
+import threading
 import argparse
 from pathlib import Path
 from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -41,6 +43,7 @@ if sys.platform == "win32":
 SERVER_VERSION = "1.4.0"
 DEFAULT_PORT = 8775
 DEFAULT_HOST = "0.0.0.0"
+MAX_PAYLOAD_BYTES = 2 * 1024 * 1024  # 2 MB cap against memory exhaustion
 
 VIDEO_EXTENSIONS = {".mp4", ".mkv", ".m4v", ".avi", ".ts", ".mov", ".webm"}
 SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass", ".ssa", ".sub"}
@@ -59,8 +62,12 @@ except Exception as e:
     process_file = None
     detect_hebrew = None
 
-# Global server metrics
+# Global server metrics & concurrency locks
 START_TIME = time.time()
+_METRICS_LOCK = threading.Lock()
+_FILE_LOCKS_GUARD = threading.Lock()
+_FILE_LOCKS: Dict[str, threading.Lock] = {}
+
 METRICS = {
     "events_count": 0,
     "processed_count": 0,
@@ -68,11 +75,23 @@ METRICS = {
 }
 
 
+def _get_file_lock(file_path: Path) -> threading.Lock:
+    """Returns a per-file threading.Lock to serialize concurrent webhooks targeting the same subtitle."""
+    key = str(file_path.resolve()) if file_path.exists() else str(file_path)
+    with _FILE_LOCKS_GUARD:
+        if key not in _FILE_LOCKS:
+            if len(_FILE_LOCKS) > 2048:
+                _FILE_LOCKS.clear()
+            _FILE_LOCKS[key] = threading.Lock()
+        return _FILE_LOCKS[key]
+
+
 def parse_path_map(mapping_str: Optional[str]) -> List[Tuple[str, str]]:
     """
     Parses PATH_MAP environment variable or CLI argument.
     Format: FROM_PREFIX:TO_PREFIX[,FROM_2:TO_2]
     Example: '/data/media:/media,/downloads:/mnt/downloads'
+    Sorted by longest FROM_PREFIX first so specific nested mounts take precedence over parent mounts.
     """
     if not mapping_str:
         return []
@@ -85,7 +104,6 @@ def parse_path_map(mapping_str: Optional[str]) -> List[Tuple[str, str]]:
         if not item or ":" not in item:
             continue
         # Split on the first colon or handle Windows drive letters (e.g. C:\from:D:\to)
-        # If drive letter is present on the right or left:
         parts = item.split(":")
         if len(parts) == 2:
             from_p, to_p = parts[0].strip(), parts[1].strip()
@@ -109,26 +127,53 @@ def parse_path_map(mapping_str: Optional[str]) -> List[Tuple[str, str]]:
         to_norm = to_p.replace("\\", "/").rstrip("/")
         if from_norm:
             pairs.append((from_norm, to_norm))
+
+    # Sort descending by length of from_norm (longest-prefix match first)
+    pairs.sort(key=lambda item: len(item[0]), reverse=True)
     return pairs
+
+
+def _match_prefix(clean_path: str, from_p: str) -> Optional[str]:
+    """
+    Checks if clean_path matches from_p (case-insensitive for Windows drive letters like C:/ vs c:/).
+    Returns the remaining suffix (starting with '/' or empty) if matched, else None.
+    """
+    if len(from_p) >= 2 and from_p[1] == ":" and len(clean_path) >= 2 and clean_path[1] == ":":
+        path_cmp = clean_path[0].lower() + clean_path[1:]
+        from_cmp = from_p[0].lower() + from_p[1:]
+    else:
+        path_cmp = clean_path
+        from_cmp = from_p
+
+    if path_cmp == from_cmp:
+        return ""
+    if path_cmp.startswith(from_cmp + "/"):
+        return clean_path[len(from_p):]
+    return None
 
 
 def translate_path(raw_path: str, path_map: List[Tuple[str, str]]) -> Path:
     """
     Translates an incoming file path from another container's perspective
-    into the local file system path according to path_map.
+    into the local file system path according to path_map (longest-prefix first)
+    and prevents '..' path traversal outside the mapped root.
     """
     if not raw_path:
         return Path("")
     
     clean_path = str(raw_path).replace("\\", "/")
+    # Sort longest-prefix first even if caller passed an unsorted list
+    sorted_map = sorted(path_map, key=lambda item: len(item[0]), reverse=True)
     
-    for from_p, to_p in path_map:
-        if clean_path == from_p:
-            clean_path = to_p
-            break
-        elif clean_path.startswith(from_p + "/"):
-            suffix = clean_path[len(from_p):]
-            clean_path = to_p + suffix
+    for from_p, to_p in sorted_map:
+        suffix = _match_prefix(clean_path, from_p)
+        if suffix is not None:
+            if suffix:
+                # Normalize suffix and prevent '..' traversal escaping above to_p
+                norm_suffix = posixpath.normpath("/" + suffix.lstrip("/"))
+                clean_path = to_p.rstrip("/") + ("" if norm_suffix == "/" else norm_suffix)
+            else:
+                clean_path = to_p
             break
     
     return Path(clean_path)
@@ -137,22 +182,36 @@ def translate_path(raw_path: str, path_map: List[Tuple[str, str]]) -> Path:
 def is_hebrew_content_sample(file_path: Path) -> bool:
     """
     Quickly samples an SRT file to verify whether it contains Hebrew dialogue.
+    Distinguishes UTF-8, UTF-16, and Windows-1255 Hebrew from Western European Windows-1252.
     """
     if not file_path.is_file():
         return False
     try:
         raw = file_path.read_bytes()[:65536]
-        # Check UTF-8 / UTF-8-SIG
+        if not raw:
+            return False
+        # 1. Check UTF-16 BOM
+        if raw.startswith(b'\xff\xfe') or raw.startswith(b'\xfe\xff'):
+            try:
+                text16 = raw.decode("utf-16", errors="replace")
+                return sum(1 for c in text16 if '\u0590' <= c <= '\u05FF') >= 5
+            except Exception:
+                pass
+        # 2. Check UTF-8 / UTF-8-SIG
         try:
             text = raw.decode("utf-8-sig")
             he_chars = sum(1 for c in text if '\u0590' <= c <= '\u05FF')
-            if he_chars >= 5:
-                return True
+            return he_chars >= 5
         except UnicodeDecodeError:
             pass
-        # Check Windows-1255 / CP1255
+        # 3. Check Windows-1255 / CP1255 (require consecutive 0xE0..0xFA Hebrew word bytes)
         cp1255_he_bytes = sum(1 for b in raw if 0xE0 <= b <= 0xFA)
-        if cp1255_he_bytes >= 5:
+        consecutive_hebrew_words = len(re.findall(rb'[\xE0-\xFA]{2,}', raw))
+        ascii_alpha_bytes = sum(1 for b in raw if (0x41 <= b <= 0x5A) or (0x61 <= b <= 0x7A))
+        if cp1255_he_bytes >= 5 and (
+            consecutive_hebrew_words >= 2
+            or (consecutive_hebrew_words >= 1 and cp1255_he_bytes > ascii_alpha_bytes * 0.5)
+        ):
             return True
         return False
     except Exception:
@@ -208,6 +267,7 @@ def master_subtitle_file(
 ) -> Dict[str, Any]:
     """
     Applies SubRefine mastering (RLM, BiDi, CP1255 fix, ad cleaning) to a subtitle file.
+    Thread-safe via per-file lock and atomic metrics updates.
     Returns status dictionary.
     """
     if not file_path.is_file():
@@ -235,46 +295,50 @@ def master_subtitle_file(
         output_path = file_path.parent / f"{stem}.he.srt"
         actual_in_place = False
     
-    try:
-        subs, mods, ads, status = process_file(
-            file_path,
-            output_path=output_path,
-            in_place=actual_in_place,
-            dry_run=dry_run,
-            backup=backup,
-            clean_ads=clean_ads,
-            force=False
-        )
-        
-        # Accelerate media server detection via timestamp touch
-        target_dest = file_path if actual_in_place else (output_path or file_path)
-        if not dry_run and target_dest.exists():
-            try:
-                os.utime(target_dest, None)
-            except Exception:
-                pass
+    file_lock = _get_file_lock(file_path)
+    with file_lock:
+        try:
+            subs, mods, ads, status = process_file(
+                file_path,
+                output_path=output_path,
+                in_place=actual_in_place,
+                dry_run=dry_run,
+                backup=backup,
+                clean_ads=clean_ads,
+                force=False
+            )
+            
+            # Accelerate media server detection via timestamp touch
+            target_dest = file_path if actual_in_place else (output_path or file_path)
+            if not dry_run and target_dest.exists():
+                try:
+                    os.utime(target_dest, None)
+                except Exception:
+                    pass
+                    
+            if status in ("processed", "dry_run"):
+                with _METRICS_LOCK:
+                    METRICS["processed_count"] += 1
                 
-        if status in ("processed", "dry_run"):
-            METRICS["processed_count"] += 1
-            
-        detailed_status = status
-        if status == "processed":
-            detailed_status = "already compliant" if mods == 0 and ads == 0 else "fixed"
-            
-        return {
-            "file": str(target_dest),
-            "status": detailed_status,
-            "total_subtitles": subs,
-            "lines_adjusted": mods,
-            "ads_removed": ads
-        }
-    except Exception as exc:
-        METRICS["error_count"] += 1
-        return {
-            "file": str(file_path),
-            "status": "error",
-            "message": str(exc)
-        }
+            detailed_status = status
+            if status == "processed":
+                detailed_status = "already compliant" if mods == 0 and ads == 0 else "fixed"
+                
+            return {
+                "file": str(target_dest),
+                "status": detailed_status,
+                "total_subtitles": subs,
+                "lines_adjusted": mods,
+                "ads_removed": ads
+            }
+        except Exception as exc:
+            with _METRICS_LOCK:
+                METRICS["error_count"] += 1
+            return {
+                "file": str(file_path),
+                "status": "error",
+                "message": str(exc)
+            }
 
 
 def process_target_path(
@@ -389,27 +453,44 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(response_bytes)
         
-    def _read_json_payload(self) -> Optional[Dict[str, Any]]:
-        content_length = int(self.headers.get("Content-Length", 0))
+    def _read_json_payload(self) -> Tuple[Optional[Dict[str, Any]], int]:
+        raw_cl = self.headers.get("Content-Length", "0")
+        try:
+            content_length = int(raw_cl)
+        except (ValueError, TypeError):
+            self.log_message("Invalid Content-Length header: %s", str(raw_cl))
+            return None, 400
+
+        if content_length < 0:
+            return None, 400
         if content_length == 0:
-            return {}
+            return {}, 200
+        if content_length > MAX_PAYLOAD_BYTES:
+            self.log_message("Rejected oversized payload (%d bytes > %d max)", content_length, MAX_PAYLOAD_BYTES)
+            return None, 413
+
         try:
             body = self.rfile.read(content_length).decode("utf-8")
-            return json.loads(body)
+            parsed = json.loads(body)
+            if not isinstance(parsed, dict):
+                return None, 400
+            return parsed, 200
         except Exception as e:
             self.log_message("Failed to parse JSON body: %s", str(e))
-            return None
+            return None, 400
 
     def do_GET(self):
         url_path = self.path.split("?")[0].rstrip("/")
         if url_path in ("", "/health"):
             uptime = round(time.time() - START_TIME, 2)
+            with _METRICS_LOCK:
+                metrics_snapshot = dict(METRICS)
             self._send_json(200, {
                 "status": "healthy",
                 "service": "RightSub Webhook Daemon",
                 "version": SERVER_VERSION,
                 "uptime_seconds": uptime,
-                "metrics": METRICS,
+                "metrics": metrics_snapshot,
                 "endpoints": [
                     "/health",
                     "/webhook/sonarr",
@@ -427,11 +508,15 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         url_path = self.path.split("?")[0].rstrip("/")
-        METRICS["events_count"] += 1
+        with _METRICS_LOCK:
+            METRICS["events_count"] += 1
         
-        payload = self._read_json_payload()
+        payload, err_code = self._read_json_payload()
         if payload is None:
-            self._send_json(400, {"error": "Invalid or malformed JSON payload"})
+            if err_code == 413:
+                self._send_json(413, {"error": f"Payload Too Large (max {MAX_PAYLOAD_BYTES} bytes)"})
+            else:
+                self._send_json(400, {"error": "Invalid or malformed JSON payload"})
             return
             
         if url_path == "/webhook/sonarr":
@@ -674,6 +759,7 @@ def run_server(
     
     server_address = (host, port)
     httpd = ThreadingHTTPServer(server_address, WebhookRequestHandler)
+    httpd.daemon_threads = True
     
     print("==================================================================")
     print(f"  RightSub Webhook Daemon v{SERVER_VERSION}")

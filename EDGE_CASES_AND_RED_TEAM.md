@@ -222,13 +222,14 @@ graph LR
 | **4** | היפוך סימני פיסוק בפלקס (RLM בסוף שורה) | `tests/test_bidi_and_text.py` | `test_apply_rlm_trailing_punctuation` | **PASSED** |
 | **5** | סימני שאלה וקריאה עבריים | `tests/test_bidi_and_text.py` | `test_apply_rlm_question_and_exclamation` | **PASSED** |
 | **6** | גרשיים עבריים בראשי תיבות (`״` במקום `"`) | `tests/test_bidi_and_text.py` | `test_gershayim_conversion_for_acronyms` | **PASSED** |
-| **7** | שמירה על תגיות HTML (`<i>...</i>`) מפירוק | `tests/test_bidi_and_text.py` | `test_html_tag_preservation` | **PASSED** |
-| **8** | מניעת כפילויות RLM (אידמפוטנטיות) | `tests/test_bidi_and_text.py` | `test_idempotency_no_duplicate_rlm` | **PASSED** |
-| **9** | ניקוי מקפים יתומים (`-` ו-`—`) | `tests/test_bidi_and_text.py` | `test_orphaned_hyphens_filtering` | **PASSED** |
-| **10** | פענוח קידוד Windows-1255 ישן ל-UTF-8 | `tests/test_encoding_and_detection.py` | `test_windows_1255_conversion` | **PASSED** |
-| **11** | אימות שפה אוטומטי (דילוג על קבצים לועזיים) | `tests/test_encoding_and_detection.py` | `test_language_verification_skips_english` | **PASSED** |
-| **12** | ניקוי פרסומות, אתרים וקרדיטים ברשת | `tests/test_junk_and_sdh_cleaning.py` | `test_promo_and_ad_detection` | **PASSED** |
+| **7** | שמירה על תגיות HTML (`<i>`, `<font>`) ותגי מיקום (`{\an8}`) | `tests/test_bidi_and_text.py` | `test_ssa_override_tag_preservation`, `test_html_font_and_nested_tags_preservation` | **PASSED** |
+| **8** | מניעת כפילויות RLM (אידמפוטנטיות) ומקפי דיאלוג באנגלית | `tests/test_bidi_and_text.py` | `test_idempotency_no_duplicate_rlm`, `test_dialogue_hyphen_with_english_word_bidi` | **PASSED** |
+| **9** | ניקוי מקפים יתומים ושימור מילים לועזיות ב-`פ` סופית (`ג'יפ`, `קטשופ`) | `tests/test_bidi_and_text.py` | `test_orphaned_hyphens_filtering`, `test_loanword_pe_and_single_letter_preserved` | **PASSED** |
+| **10** | פענוח קידוד Windows-1255 ו-UTF-16 BOM ל-UTF-8 | `tests/test_encoding_and_detection.py` | `test_windows_1255_conversion`, `test_utf16_bom_detection` | **PASSED** |
+| **11** | אימות שפה והבחנה בין CP1255 עברי ל-CP1252 אירופאי ו-UTF-8 (`0xE2`) | `tests/test_encoding_and_detection.py` | `test_windows_1252_european_not_misidentified_as_hebrew`, `test_utf8_english_with_3byte_punctuation_not_corrupted` | **PASSED** |
+| **12** | ניקוי פרסומות וקרדיטים תוך שימור דיאלוג באותו בלוק ומשפטים עם נקודתיים | `tests/test_junk_and_sdh_cleaning.py` | `test_promo_and_ad_detection`, `test_mid_sentence_colon_not_flagged_as_ad`, `test_partial_cue_ad_stripping_preserves_dialogue` | **PASSED** |
 | **13** | סינון תיאורי רעש ומוזיקה לכבדי שמיעה (SDH) | `tests/test_junk_and_sdh_cleaning.py` | `test_sdh_sound_pattern_matching` | **PASSED** |
-| **14** | התרעה קריטית על כתובית חסרה (Fail Loudly) | `tests/test_split_merge_pipeline.py` | `test_merge_fails_loudly_on_missing_index` | **PASSED** |
-| **15** | אימות סנכרון ו-100% התאמה לכל 101 הפרקים | `tests/test_boston_legal_dataset.py` | `test_subtitle_cue_parity_with_english` | **PASSED** |
+| **14** | התרעה קריטית על כתובית חסרה, תיקון חפיפות זמנים וסינון ערוצי PGS/Bitmap | `tests/test_split_merge_pipeline.py` | `test_merge_fails_loudly_on_missing_index`, `test_merge_clamps_overlapping_timestamps`, `test_extract_filters_bitmap_subtitle_streams` | **PASSED** |
+| **15** | אבטחת שרת Webhook: קדימות `PATH_MAP`, מניעת Path Traversal, תקרת 2MB (413) ונעילה מקבילית | `tests/test_webhook_server.py` | `test_path_map_longest_prefix_precedence_and_traversal_guard`, `test_oversized_payload_returns_413`, `test_concurrent_webhook_requests_thread_safety` | **PASSED** |
+
 

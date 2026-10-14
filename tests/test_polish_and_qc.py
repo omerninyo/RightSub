@@ -466,6 +466,34 @@ you're on the planet that it's farthest from.
         assert abs(out_srt.stat().st_mtime - now) < 5.0
         assert abs(out_diff.stat().st_mtime - now) < 5.0
 
+    def test_tmdb_metadata_wrapper_wiring(self, monkeypatch):
+        assert polish_module.fetch_media_metadata is not None
+        captured = {}
+        def fake_fetch(title=None, filepath=None, season=None, episode=None, year=None, api_key=None):
+            captured.update({"title": title, "season": season, "episode": episode, "api_key": api_key})
+            return {"success": True, "title": title, "characters": []}
+
+        monkeypatch.setattr(polish_module, "fetch_show_or_movie_metadata", fake_fetch)
+        res = polish_module.fetch_media_metadata(filepath="Boston.Legal.S02E05.he.srt", api_key="k123")
+        assert res["success"] is True
+        assert captured["season"] == 2
+        assert captured["episode"] == 5
+
+    def test_write_mastered_srt_strips_ad_lines_and_preserves_ssa(self, tmp_path):
+        out_srt = tmp_path / "mastered.he.srt"
+        cues = [
+            {
+                "index": 1,
+                "timing": "00:00:01,000 --> 00:00:03,000",
+                "text": "תרגום: סאבסנטר\n{\\an8}שלום עולם!"
+            }
+        ]
+        polish_module.write_mastered_srt(cues, out_srt)
+        written = out_srt.read_text(encoding="utf-8")
+        assert "סאבסנטר" not in written
+        assert "{\\an8}\u200Fשלום עולם\u200F!" in written
+
+
 
 
 

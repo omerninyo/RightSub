@@ -251,6 +251,8 @@ environment:
   - PATH_MAP=/data/media:/media
 ```
 RightSub automatically rewrites path prefixes for every incoming Sonarr, Radarr, and Bazarr webhook event.
+- **Longest-Prefix Precedence**: When multiple nested mappings are configured (e.g. `/data` and `/data/media`), RightSub automatically sorts rules from longest prefix to shortest and matches Windows drive letters case-insensitively (`C:\` vs `c:\`).
+- **Daemon Security & Concurrency Hardening**: Enforces path traversal protection (`..` normalization within the mapped target root), a 2 MB `Content-Length` cap (`HTTP 413`), and per-file thread locks with atomic disk replacement when Sonarr and Bazarr fire simultaneous webhooks on the same release.
 
 ---
 

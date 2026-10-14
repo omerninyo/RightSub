@@ -34,13 +34,20 @@ except Exception:
 
 VIDEO_EXTENSIONS = {".mp4", ".mkv", ".m4v", ".avi", ".ts", ".mov", ".webm"}
 SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass", ".ssa", ".sub"}
+BITMAP_SUBTITLE_CODECS = {"hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle", "xsub", "dvb_teletext"}
 
 def inspect_video(file_path):
     cmd = [
         "ffprobe", "-v", "quiet", "-print_format", "json",
         "-show_format", "-show_streams", str(file_path)
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        print(f"    [-] ffprobe timed out inspecting {file_path}")
+        return None
+    except Exception:
+        return None
     if res.returncode != 0:
         return None
     try:
@@ -73,8 +80,17 @@ def clean_srt_tags(srt_path):
 
 def convert_to_srt(source_sub_path, target_srt_path):
     """Convert .vtt, .ass, etc. to standard .srt via FFmpeg."""
-    cmd = ["ffmpeg", "-y", "-i", str(source_sub_path), str(target_srt_path)]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    cmd = [
+        "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
+        "-i", str(source_sub_path), str(target_srt_path)
+    ]
+    try:
+        res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        print(f"    [-] FFmpeg conversion timed out for {source_sub_path}")
+        return False
+    except Exception:
+        return False
     if res.returncode == 0 and os.path.exists(target_srt_path):
         clean_srt_tags(target_srt_path)
         return True
@@ -154,14 +170,39 @@ def extract_from_video(video_path, output_srt=None, track_index=None, lang="eng"
         if 0 <= track_index < len(sub_streams):
             selected_index = sub_streams[track_index]["index"]
     else:
+        # Filter out non-text bitmap subtitle streams (PGS, VobSub, DVB) which cannot be converted to SRT by FFmpeg
+        text_streams = [
+            s for s in sub_streams
+            if s.get("codec_name", "").lower() not in BITMAP_SUBTITLE_CODECS
+        ]
+        if not text_streams:
+            print(f"    [-] Only bitmap subtitle streams ({', '.join(s.get('codec_name', 'unknown') for s in sub_streams)}) found in {video_path.name}")
+            if fallback_transcribe:
+                return _attempt_quicksubs_transcription(video_path, output_srt, engine)
+            return False, "bitmap_only"
+
         lang_prefixes = ["eng", "en"] if lang in ["eng", "en"] else [lang.lower()]
-        for s in sub_streams:
-            stream_lang = s.get("tags", {}).get("language", "").lower()
-            if any(stream_lang.startswith(prefix) for prefix in lang_prefixes):
-                selected_index = s["index"]
-                break
-        if selected_index is None and len(sub_streams) > 0:
-            selected_index = sub_streams[0]["index"]
+        matching_lang_streams = [
+            s for s in text_streams
+            if any(s.get("tags", {}).get("language", "").lower().startswith(prefix) for prefix in lang_prefixes)
+        ]
+        candidate_pool = matching_lang_streams if matching_lang_streams else text_streams
+
+        def _stream_score(s):
+            disp = s.get("disposition", {}) or {}
+            title_tag = (s.get("tags", {}).get("title", "") or "").lower()
+            is_forced = bool(disp.get("forced", 0)) or ("forced" in title_tag)
+            is_commentary = bool(disp.get("comment", 0)) or ("commentary" in title_tag)
+            # Prefer full dialogue tracks (not forced, not commentary)
+            score = 0
+            if not is_forced:
+                score += 10
+            if not is_commentary:
+                score += 5
+            return score
+
+        best_stream = max(candidate_pool, key=_stream_score)
+        selected_index = best_stream["index"]
 
     if selected_index is None:
         print(f"    [-] No matching subtitle stream for language '{lang}' in {video_path.name}")
@@ -171,12 +212,19 @@ def extract_from_video(video_path, output_srt=None, track_index=None, lang="eng"
 
     output_srt.parent.mkdir(parents=True, exist_ok=True)
     extract_cmd = [
-        "ffmpeg", "-y",
+        "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
         "-i", str(video_path),
         "-map", f"0:{selected_index}",
         str(output_srt)
     ]
-    res = subprocess.run(extract_cmd, capture_output=True, text=True)
+    try:
+        res = subprocess.run(extract_cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        print(f"    [-] FFmpeg extraction timed out for {video_path.name}")
+        if fallback_transcribe:
+            return _attempt_quicksubs_transcription(video_path, output_srt, engine)
+        return False, "ffmpeg_timeout"
+
     if res.returncode == 0 and output_srt.exists() and output_srt.stat().st_size > 0:
         clean_srt_tags(output_srt)
         try:

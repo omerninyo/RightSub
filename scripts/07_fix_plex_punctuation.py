@@ -41,8 +41,8 @@ AD_PATTERNS = [
     r'ktuvit',
     r'סונכרן\s+(?:על\s+ידי|ע["״\']?י)',
     r'תורגם\s+(?:על\s+ידי|ע["״\']?י)',
-    r'תרגום:\s*',
-    r'סנכרון:\s*',
+    r'^[‏\u200F\s\-–—]*(?:מלאכת\s+)?ה?תרגום\s*:\s*\S+',
+    r'^[‏\u200F\s\-–—]*(?:מלאכת\s+)?ה?סנכרון\s*:\s*\S+',
     r'הורד\s+מ[-–—]',
     r'הועלה\s+על\s+ידי',
     r'הצטרפו\s+ל.*טלגרם',
@@ -55,35 +55,48 @@ AD_REGEX = re.compile('|'.join(AD_PATTERNS), re.IGNORECASE)
 
 def read_file_with_auto_encoding(file_path):
     """
-    Reads a subtitle file, automatically detecting if it's UTF-8, UTF-8-SIG,
-    or legacy Windows-1255 / CP1255 / ISO-8859-8.
+    Reads a subtitle file, automatically detecting if it's UTF-16, UTF-8, UTF-8-SIG,
+    or legacy Windows-1255 / CP1255 / ISO-8859-8 vs Western European Windows-1252.
     Returns (content_str, detected_encoding).
     """
     raw_bytes = Path(file_path).read_bytes()
+    if not raw_bytes:
+        return "", "utf-8"
 
-    # 1. Try UTF-8 / UTF-8-SIG
-    try:
-        text = raw_bytes.decode('utf-8-sig')
-        # Verify it does not look like double-encoded mojibake
-        hebrew_chars = len(re.findall(r'[\u0590-\u05FF]', text))
-        latin_chars = len(re.findall(r'[a-zA-Z]', text))
-        if hebrew_chars > 0 or latin_chars > 0:
-            return text, 'utf-8'
-    except UnicodeDecodeError:
-        pass
-
-    # 2. Check for Windows-1255 (Hebrew ANSI)
-    # Hebrew characters in CP1255 reside in 0xE0..0xFA
-    cp1255_hebrew_bytes = sum(1 for b in raw_bytes if 0xE0 <= b <= 0xFA)
-    if cp1255_hebrew_bytes >= 10:
+    # 1. Check UTF-16 BOM (LE / BE)
+    if raw_bytes.startswith(b'\xff\xfe') or raw_bytes.startswith(b'\xfe\xff'):
         try:
-            text = raw_bytes.decode('cp1255')
-            return text, 'windows-1255'
+            return raw_bytes.decode('utf-16'), 'utf-16'
         except Exception:
             pass
 
-    # 3. Fallbacks
-    for enc in ['cp1255', 'iso-8859-8', 'latin1', 'utf-8']:
+    # 2. Try UTF-8 / UTF-8-SIG strictly
+    try:
+        text = raw_bytes.decode('utf-8-sig')
+        return text, 'utf-8'
+    except UnicodeDecodeError:
+        pass
+
+    # 3. Distinguish Windows-1255 (Hebrew ANSI) from Windows-1252 (Western European ANSI)
+    # Hebrew characters in CP1255 reside in 0xE0..0xFA and form consecutive multi-byte words,
+    # whereas French/Spanish/German accented letters in CP1252 are isolated inside ASCII words.
+    cp1255_hebrew_bytes = sum(1 for b in raw_bytes if 0xE0 <= b <= 0xFA)
+    consecutive_hebrew_words = len(re.findall(rb'[\xE0-\xFA]{2,}', raw_bytes))
+    ascii_alpha_bytes = sum(1 for b in raw_bytes if (0x41 <= b <= 0x5A) or (0x61 <= b <= 0x7A))
+
+    if cp1255_hebrew_bytes >= 4 and (
+        consecutive_hebrew_words >= 2
+        or (consecutive_hebrew_words >= 1 and cp1255_hebrew_bytes > ascii_alpha_bytes * 0.5)
+    ):
+        for heb_enc in ('cp1255', 'iso-8859-8'):
+            try:
+                text = raw_bytes.decode(heb_enc)
+                return text, 'windows-1255' if heb_enc == 'cp1255' else heb_enc
+            except Exception:
+                continue
+
+    # 4. Non-Hebrew legacy fallbacks (Windows-1252 / Latin-1 first so European files aren't mapped to Hebrew)
+    for enc in ['cp1252', 'latin1', 'utf-8']:
         try:
             return raw_bytes.decode(enc, errors='replace'), enc
         except Exception:
@@ -224,13 +237,15 @@ DISALLOWED_FOREIGN_SCRIPTS = (
 
 def normalize_final_letters(text):
     # Punctuation or whitespace indicating end of word, excluding hyphen attached to numbers/words (prefixes like מ-100, כ-50)
-    punct = r'(?:[\s\.\?!,:;\—\)\]»]|$)'
-    text = re.sub(r'כ(?=' + punct + r')', 'ך', text)
-    text = re.sub(r'מ(?=' + punct + r')', 'ם', text)
-    text = re.sub(r'נ(?=' + punct + r')', 'ן', text)
-    text = re.sub(r'פ(?=' + punct + r')', 'ף', text)
-    text = re.sub(r'צ(?=' + punct + r')', 'ץ', text)
-    
+    # and excluding quotes/gershayim inside acronyms or loanwords (e.g. בימ"ש, מנכ"ל, צ'יפס).
+    # Require a preceding Hebrew letter (?<=[א-ת]) so single-letter labels (e.g. "סעיף כ.") are not altered,
+    # and exclude 'פ' -> 'ף' to preserve loanwords ending in /p/ (ג'יפ, קטשופ, טלסקופ, קליפ, וואטסאפ, טראמפ).
+    punct = r'(?:[\u200F\s\.\?!,:;\–\—\)\]»…]|["\'״׳”’](?![א-ת])|$)'
+    text = re.sub(r'(?<=[א-ת])כ(?=' + punct + r')', 'ך', text)
+    text = re.sub(r'(?<=[א-ת])מ(?=' + punct + r')', 'ם', text)
+    text = re.sub(r'(?<=[א-ת])נ(?=' + punct + r')', 'ן', text)
+    text = re.sub(r'(?<=[א-ת])צ(?=' + punct + r')', 'ץ', text)
+
     # Explicitly repair prefixes mistakenly normalized before hyphens (e.g. ם-100 -> מ-100, ך-50 -> כ-50)
     text = re.sub(r'\bם-(?=\d|[א-תa-zA-Z])', 'מ-', text)
     text = re.sub(r'\bך-(?=\d|[א-תa-zA-Z])', 'כ-', text)
@@ -242,10 +257,18 @@ def normalize_final_letters(text):
 def clean_and_sanitize_text(text):
     """
     Cleans transcript truncation tags, stray JSON syntax, unescapes literal \\n,
-    and normalizes foreign homoglyphs (Arabic, Cyrillic, Georgian, Armenian, Greek, Asian) into pure Hebrew.
+    and normalizes foreign homoglyphs (Arabic, Cyrillic, Georgian, Armenian, Greek, Asian) into pure Hebrew
+    while preserving valid leading SSA override tags such as {\\an8}.
     """
     if not text:
         return ""
+
+    # Preserve leading SSA tags (e.g. {\an8}, {\pos(x,y)}) before stripping stray JSON braces
+    ssa_lead = ""
+    ssa_match = re.match(r'^\s*(\{\\[^}]+\})\s*(.*)$', text, flags=re.DOTALL)
+    if ssa_match:
+        ssa_lead = ssa_match.group(1)
+        text = ssa_match.group(2)
 
     # 1. Clean transcript truncation tags and leaked tool artifacts
     text = re.sub(r'<truncated\s+\d+\s+bytes>', '', text)
@@ -289,8 +312,8 @@ def clean_and_sanitize_text(text):
     text = re.sub(r'[\u0591-\u05BD\u05BF-\u05C7]', '', text)
 
     # Clean double spaces or broken quotes
-    text = re.sub(r'[ \t]+', ' ', text)
-    return text.strip()
+    text = re.sub(r'[ \t]+', ' ', text).strip()
+    return f"{ssa_lead}{text}" if ssa_lead else text
 
 # Alias for external script compatibility
 normalize_homoglyphs = clean_and_sanitize_text
@@ -315,9 +338,21 @@ def is_ad_line(line):
     clean = re.sub(r'<[^>]+>', '', line).strip()
     return bool(AD_REGEX.search(clean))
 
+def clean_line(line, clean_ads=True):
+    """Filters out advertising/credit lines within a multi-line cue text."""
+    if not line:
+        return ""
+    kept = []
+    for l in line.splitlines():
+        if clean_ads and is_ad_line(l):
+            continue
+        kept.append(l)
+    return "\n".join(kept)
+
 def apply_rlm_to_line(line):
     """
-    Applies RLM formatting safely around tags (<i>, <b>, <u>, {\\anX}).
+    Applies RLM formatting safely around tags (<i>, <b>, <u>, <font...>, {\\anX})
+    according to Unicode UAX #9 without ever injecting RLM inside tag brackets.
     """
     # Sanitize and normalize line first
     line = clean_and_sanitize_text(line)
@@ -329,35 +364,44 @@ def apply_rlm_to_line(line):
     if not re.search(r'[\u0590-\u05FF]', stripped):
         return line
 
-    # Convert standard double quotes in Hebrew acronyms to Hebrew gershayim (״)
-    stripped = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', stripped)
+    # Strip any stray outer RLM before extracting leading tags
+    stripped = stripped.lstrip(RLM)
 
-    # Separate SSA coordinate prefix if present, e.g. "{\\an8}..."
+    # Separate SSA override prefix if present, e.g. "{\an8}..."
     ssa_prefix = ""
-    ssa_match = re.match(r'^(\{\\an\d+\})(.*)$', stripped)
+    ssa_match = re.match(r'^((?:\{\\[^}]+\})+)\s*(.*)$', stripped)
     if ssa_match:
         ssa_prefix = ssa_match.group(1)
-        stripped = ssa_match.group(2).strip()
+        stripped = ssa_match.group(2).strip().lstrip(RLM)
 
-    # Separate opening tags like <i>, <b>
+    # Separate opening HTML tags like <i>, <b>, <u>, <font color="...">
     tag_prefix = ""
-    tag_open_match = re.match(r'^((?:<[iIuUbB]>)+)(.*)$', stripped)
+    tag_open_match = re.match(r'^((?:<(?:[iIuUbB]|font\b[^>]*)>\s*)+)(.*)$', stripped, flags=re.IGNORECASE)
     if tag_open_match:
         tag_prefix = tag_open_match.group(1)
-        stripped = tag_open_match.group(2).strip()
+        stripped = tag_open_match.group(2).strip().lstrip(RLM)
 
-    # Separate closing tags like </i>, </b>
+    # Separate closing HTML tags like </i>, </b>, </u>, </font>
     tag_suffix = ""
-    tag_close_match = re.search(r'((?:<\/[iIuUbB]>)+)$', stripped)
+    tag_close_match = re.search(r'((?:\s*<\/(?:[iIuUbB]|font)>)+)$', stripped, flags=re.IGNORECASE)
     if tag_close_match:
         tag_suffix = tag_close_match.group(1)
         stripped = stripped[:tag_close_match.start()].strip()
 
-    # Clean existing trailing RLMs
-    stripped = re.sub(rf'{RLM}+([\.!\?,:;\-\—\)»\]]+)$', r'\1', stripped)
-    
+    # Convert standard double quotes in Hebrew acronyms to Hebrew gershayim (״)
+    stripped = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', stripped)
+
+    # Clean existing trailing RLMs (both before and after trailing punctuation) for idempotency
+    stripped = stripped.rstrip(RLM)
+    trailing_punct_pattern = r'([\.!\?,:;\-\–\—\)»\]"\'״׳”’…]+)$'
+    stripped = re.sub(rf'{RLM}+{trailing_punct_pattern}', r'\1', stripped)
+
+    # Clean existing RLM after leading dialogue hyphen, then re-inject if followed by an English word
+    stripped = re.sub(rf'^([-\–\—]\s*){RLM}+', r'\1', stripped)
+    stripped = re.sub(r'^([-\–\—]\s+)(?=[A-Za-z])', rf'\1{RLM}', stripped)
+
     # Add RLM before trailing neutral punctuation
-    stripped = re.sub(r'([\.!\?,:;\-\—\)»\]]+)$', f'{RLM}\\1', stripped)
+    stripped = re.sub(trailing_punct_pattern, f'{RLM}\\1', stripped)
 
     # Clean and add leading RLM
     stripped = stripped.lstrip(RLM)
@@ -365,6 +409,9 @@ def apply_rlm_to_line(line):
 
     # Reconstruct with original tags
     return f"{ssa_prefix}{tag_prefix}{stripped}{tag_suffix}"
+
+# Backward/cross-module alias
+apply_bidi_and_punctuation = apply_rlm_to_line
 
 SPEAKER_TAG_REGEX = re.compile(
     r'^[‏\u200F\s]*(?:'
@@ -388,24 +435,35 @@ def process_srt_content(content, clean_ads=False, clean_speakers=True):
             timeline = lines[1]
             text_lines = lines[2:] if len(lines) >= 3 else []
 
-            if clean_ads and any(is_ad_line(l) for l in text_lines):
-                ads_removed += 1
-                continue
-
-            total_subs += 1
             flat_text = "\n".join(text_lines).replace(r'\n', '\n')
             expanded_lines = [l for l in flat_text.splitlines() if l.strip()]
 
+            if clean_ads:
+                filtered_lines = []
+                for l in expanded_lines:
+                    if is_ad_line(l):
+                        ads_removed += 1
+                    else:
+                        filtered_lines.append(l)
+                expanded_lines = filtered_lines
+                if not expanded_lines:
+                    continue
+
+            total_subs += 1
             new_text_lines = []
             for tl in expanded_lines:
+                orig_tl = tl
                 if clean_speakers:
                     tl = SPEAKER_TAG_REGEX.sub('', tl)
                 fixed = apply_rlm_to_line(tl)
                 # Discard orphan dashes or empty lines
                 if fixed.strip() not in ['', '-', f'{RLM}-', f'{RLM} -', '—', f'{RLM}—']:
                     new_text_lines.append(fixed)
-                if fixed != tl:
+                if fixed != orig_tl:
                     modified_lines += 1
+
+            if not new_text_lines:
+                continue
 
             new_block = [str(idx_counter), timeline] + new_text_lines
             idx_counter += 1
@@ -415,6 +473,26 @@ def process_srt_content(content, clean_ads=False, clean_speakers=True):
 
     result_text = "\n\n".join(new_blocks) + "\n" if new_blocks else ""
     return result_text, total_subs, modified_lines, ads_removed
+
+def _atomic_write_text(dest_path, content):
+    """Writes text atomically via a temporary sibling file and touches mtime for Plex/Infuse."""
+    dest = Path(dest_path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = dest.with_name(f".{dest.name}.tmp.{os.getpid()}")
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp_path, dest)
+    finally:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except Exception:
+                pass
+    try:
+        os.utime(dest, None)
+    except Exception:
+        pass
 
 def process_file(file_path, output_path=None, in_place=False, force=False, dry_run=False, backup=False, clean_ads=False):
     p = Path(file_path)
@@ -449,12 +527,7 @@ def process_file(file_path, output_path=None, in_place=False, force=False, dry_r
         except Exception:
             pass
 
-    with open(dest, "w", encoding="utf-8") as f:
-        f.write(fixed_content)
-    try:
-        os.utime(dest, None)
-    except Exception:
-        pass
+    _atomic_write_text(dest, fixed_content)
 
     status = "already compliant" if modified_lines == 0 and ads_removed == 0 and encoding_detected == 'utf-8' else "fixed"
     print(f"[✓] {p.name}: Processed {total_subs} subs ({modified_lines} lines adjusted{ads_note}{enc_note}, {status}) -> {dest.name}")

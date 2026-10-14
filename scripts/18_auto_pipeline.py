@@ -57,8 +57,8 @@ def run_cmd(cmd):
 
 def read_srt_sample_auto_encoding(srt_path, max_bytes=65536):
     """
-    Reads raw bytes from srt_path and decodes text, detecting UTF-8, UTF-8-BOM,
-    Windows-1255 / CP1255, ISO-8859-8, or UTF-16.
+    Reads raw bytes from srt_path and decodes text, detecting UTF-16, UTF-8, UTF-8-BOM,
+    Windows-1255 / CP1255, ISO-8859-8, or Western European Windows-1252.
     """
     try:
         with open(srt_path, "rb") as f:
@@ -73,31 +73,30 @@ def read_srt_sample_auto_encoding(srt_path, max_bytes=65536):
             except Exception:
                 pass
 
-        # 2. Check UTF-8 / UTF-8-SIG
+        # 2. Check UTF-8 / UTF-8-SIG strictly
+        # Note: Valid UTF-8 English files containing 3-byte punctuation (’, —, …, ♪) have 0xE2 lead bytes.
+        # Never re-decode valid UTF-8 as CP1255!
         try:
-            text = raw.decode('utf-8-sig')
-            he_chars = sum(1 for c in text if '\u0590' <= c <= '\u05FF')
-            cp1255_hebrew_bytes = sum(1 for b in raw if 0xE0 <= b <= 0xFA)
-            # If valid UTF-8 has zero Hebrew, but contains extensive CP1255 Hebrew bytes
-            if cp1255_hebrew_bytes > 15 and he_chars == 0:
-                try:
-                    return raw.decode('cp1255', errors='replace')
-                except Exception:
-                    pass
-            return text
+            return raw.decode('utf-8-sig')
         except UnicodeDecodeError:
             pass
 
-        # 3. Check CP1255 (Hebrew ANSI - bytes 0xE0..0xFA)
+        # 3. Check CP1255 (Hebrew ANSI - bytes 0xE0..0xFA forming consecutive multi-byte Hebrew words)
+        import re as _re
         cp1255_bytes = sum(1 for b in raw if 0xE0 <= b <= 0xFA)
-        if cp1255_bytes >= 5:
+        consecutive_hebrew_words = len(_re.findall(rb'[\xE0-\xFA]{2,}', raw))
+        ascii_alpha_bytes = sum(1 for b in raw if (0x41 <= b <= 0x5A) or (0x61 <= b <= 0x7A))
+        if cp1255_bytes >= 4 and (
+            consecutive_hebrew_words >= 2
+            or (consecutive_hebrew_words >= 1 and cp1255_bytes > ascii_alpha_bytes * 0.5)
+        ):
             try:
                 return raw.decode('cp1255', errors='replace')
             except Exception:
                 pass
 
-        # 4. Fallbacks
-        for enc in ['cp1255', 'iso-8859-8', 'utf-8', 'latin1']:
+        # 4. Non-Hebrew legacy fallbacks (Windows-1252 / Latin-1 first)
+        for enc in ['cp1252', 'latin1', 'utf-8']:
             try:
                 return raw.decode(enc, errors='replace')
             except Exception:

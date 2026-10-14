@@ -41,3 +41,37 @@ class TestJunkAndSDHCleaning:
         for sample in test_samples:
             is_sound = any(re.match(p, sample.strip()) for p in sound_patterns)
             assert is_sound is True
+
+    def test_mid_sentence_colon_not_flagged_as_ad(self):
+        legitimate_with_colons = [
+            "יש לי בעיה בבקשת תרגום: המילה הזו לא ברורה.",
+            "בזמן סנכרון: השעון קפץ קדימה.",
+            "הוא ביקש תרגום: עברית לאנגלית."
+        ]
+        for line in legitimate_with_colons:
+            assert fix_plex.is_ad_line(line) is False
+
+        credit_headers = [
+            "תרגום: סאבסנטר",
+            "סנכרון: צוות כתובית",
+            "- מלאכת התרגום: יוסי"
+        ]
+        for line in credit_headers:
+            assert fix_plex.is_ad_line(line) is True
+
+    def test_partial_cue_ad_stripping_preserves_dialogue(self):
+        srt_content = (
+            "1\n"
+            "00:00:01,000 --> 00:00:03,000\n"
+            "תרגום: סאבסנטר\n"
+            "שלום לכולם!\n\n"
+            "2\n"
+            "00:00:04,000 --> 00:00:06,000\n"
+            "סונכרן על ידי צוות טורק\n"
+        )
+        result_text, total_subs, modified_lines, ads_removed = fix_plex.process_srt_content(srt_content, clean_ads=True)
+        assert ads_removed == 2
+        assert total_subs == 1
+        assert "סאבסנטר" not in result_text
+        assert "שלום לכולם" in result_text
+
