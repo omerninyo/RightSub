@@ -73,5 +73,9 @@
 3. **Source-Audited Competitive Analysis**:
    - Comparative claims against external or competing tools (e.g. Bazarr, Subtitle Edit, Whisper, Plex) in technical documentation or RFCs must be verified directly against the target project's upstream source code or official technical documentation.
    - Hand-waving assertions, unverified assumptions, or promotional exaggeration are strictly prohibited.
+4. **Version Single Source of Truth (SSOT) & Milestone Gate**:
+   - `rightsub.py` (`__version__`), `pyproject.toml` (`version`), and `scripts/21_webhook_server.py` (`SERVER_VERSION`) must always be 100% identical (enforced by `tests/test_docs_consistency.py` and `scripts/update_docs.py`).
+   - Never bump to a new `.0` milestone version (e.g. `1.4.0`) while any task under that milestone in `ROADMAP.md` remains unchecked (`- [ ]`). Intermediate hardening, bugfixes, or partial milestone deliverables must use patch versions (`1.3.1`, `1.3.2`) and matching Git tags (`v1.3.1`).
+
 
 

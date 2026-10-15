@@ -37,7 +37,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-__version__ = "1.4.0"
+__version__ = "1.3.1"
 default_engine = "apple" if sys.platform == "darwin" else "whisper"
 
 BASE_DIR = Path(__file__).resolve().parent

@@ -86,7 +86,31 @@ def update_test_badges(count):
 
     return True
 
+def sync_project_version():
+    """Ensures pyproject.toml version stays synchronized with rightsub.py __version__."""
+    rightsub_py = BASE_DIR / "rightsub.py"
+    pyproject_toml = BASE_DIR / "pyproject.toml"
+    if not rightsub_py.exists() or not pyproject_toml.exists():
+        return
+    rs_text = rightsub_py.read_text(encoding="utf-8")
+    m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', rs_text, flags=re.MULTILINE)
+    if not m:
+        return
+    ver = m.group(1)
+    pp_text = pyproject_toml.read_text(encoding="utf-8")
+    updated = re.sub(
+        r'^(version\s*=\s*["\'])([^"\']+)(["\'])',
+        rf'\g<1>{ver}\g<3>',
+        pp_text,
+        count=1,
+        flags=re.MULTILINE
+    )
+    if updated != pp_text:
+        pyproject_toml.write_text(updated, encoding="utf-8")
+        print(f"[✓] Synchronized pyproject.toml version to {ver}")
+
 if __name__ == "__main__":
+    sync_project_version()
     count = get_pytest_test_count()
     if count:
         update_test_badges(count)

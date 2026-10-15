@@ -40,18 +40,24 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-SERVER_VERSION = "1.4.0"
+# Dynamically import SubRefine engine from 07_fix_plex_punctuation.py and version from rightsub.py
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+for _p in (str(SCRIPT_DIR), str(REPO_ROOT)):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+try:
+    from rightsub import __version__ as SERVER_VERSION
+except Exception:
+    SERVER_VERSION = "1.3.1"
+
 DEFAULT_PORT = 8775
 DEFAULT_HOST = "0.0.0.0"
 MAX_PAYLOAD_BYTES = 2 * 1024 * 1024  # 2 MB cap against memory exhaustion
 
 VIDEO_EXTENSIONS = {".mp4", ".mkv", ".m4v", ".avi", ".ts", ".mov", ".webm"}
 SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass", ".ssa", ".sub"}
-
-# Dynamically import SubRefine engine from 07_fix_plex_punctuation.py
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
 
 try:
     import importlib

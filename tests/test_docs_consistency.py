@@ -101,3 +101,54 @@ def test_roadmap_links_and_direction():
         for text, rel_path in matches:
             target = REPO_ROOT / rel_path
             assert target.exists(), f"Broken link in {roadmap_path.name}: '{rel_path}' does not exist on disk."
+
+
+def test_version_single_source_of_truth_and_milestone_gate():
+    """
+    Prevent version drift across pyproject.toml, rightsub.py, and webhook server,
+    and forbid premature minor/major milestone version bumps while ROADMAP tasks remain open.
+    """
+    pyproject_path = REPO_ROOT / "pyproject.toml"
+    pyproject_content = pyproject_path.read_text(encoding="utf-8")
+    pyproject_match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', pyproject_content, flags=re.MULTILINE)
+    assert pyproject_match, "Could not find version = '...' in pyproject.toml"
+    pyproject_version = pyproject_match.group(1)
+
+    rightsub_content = RIGHTSUB_PY.read_text(encoding="utf-8")
+    rightsub_match = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', rightsub_content, flags=re.MULTILINE)
+    assert rightsub_match, "Could not find __version__ = '...' in rightsub.py"
+    rightsub_version = rightsub_match.group(1)
+
+    assert re.match(r'^\d+\.\d+\.\d+$', rightsub_version), f"Invalid SemVer in rightsub.py: {rightsub_version}"
+    assert pyproject_version == rightsub_version, (
+        f"Version drift detected! pyproject.toml has '{pyproject_version}' "
+        f"while rightsub.py has '{rightsub_version}'."
+    )
+
+    # Verify webhook server imports the exact same version
+    import importlib.util
+    ws_path = REPO_ROOT / "scripts" / "21_webhook_server.py"
+    spec = importlib.util.spec_from_file_location("webhook_server_ver_check", ws_path)
+    ws_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ws_mod)
+    assert ws_mod.SERVER_VERSION == rightsub_version, (
+        f"21_webhook_server.py SERVER_VERSION ('{ws_mod.SERVER_VERSION}') "
+        f"does not match rightsub.py ('{rightsub_version}')."
+    )
+
+    # Milestone Gate: if version ends with .0 (e.g. 1.4.0), ensure its section in ROADMAP.md has no unchecked '- [ ]' items
+    if rightsub_version.endswith(".0"):
+        roadmap_content = (REPO_ROOT / "ROADMAP.md").read_text(encoding="utf-8")
+        section_pattern = re.compile(
+            rf'^##+ [^\n]*(?:v|Version\s+){re.escape(rightsub_version)}\b(.*?)(?=^## |\Z)',
+            flags=re.MULTILINE | re.DOTALL
+        )
+        sec_match = section_pattern.search(roadmap_content)
+        if sec_match:
+            unchecked = re.findall(r'^\s*-\s*\[\s\]\s+', sec_match.group(1), flags=re.MULTILINE)
+            assert len(unchecked) == 0, (
+                f"Premature milestone version '{rightsub_version}'! ROADMAP.md still has "
+                f"{len(unchecked)} unchecked '- [ ]' task(s) for v{rightsub_version}. "
+                f"Use a patch version (e.g. 1.3.x) until all milestone tasks are shipped."
+            )
+
