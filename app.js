@@ -1,12 +1,12 @@
 /**
- * app.js — RightSub v1.5.0 Interactive Web UI Controller
- * ------------------------------------------------------
+ * app.js — RightSub v1.5.0 Interactive Web UI & Live Sandbox Controller
+ * ----------------------------------------------------------------------
  * Powers:
  * 1. Instant Client-Side `.srt` Drag & Drop Mastering (single file, batch, or HE+EN bilingual pair).
- * 2. Interactive "Try Broken Sample Subtitle" button showcasing CP1255/Subabi/Homoglyph/Ad/Number repair.
+ * 2. Live Single-Line & Preset Subtitle Sandbox (works effortlessly on mobile & desktop).
  * 3. Plex / Infuse / Apple TV Before & After Visual Screen Simulator.
  * 4. Platform Installation Tabs & 1-Click Clipboard Copy.
- * 5. Bilingual RTL (Hebrew) <-> LTR (English) UI Switcher.
+ * 5. Bilingual RTL (Hebrew) <-> LTR (English) & Flat Light/Dark Theme Switcher.
  * 6. Live Health Probe when served by `rightsub serve` (`GET /health`).
  */
 (function () {
@@ -15,157 +15,231 @@
   const I18N = {
     he: {
       dir: "rtl",
-      toggleLabel: "English",
+      toggleLabel: "EN",
       skip_link: "דלג לתוכן הראשי",
-      nav_fixer: "תיקון מיידי בדפדפן",
-      nav_showcase: "הדגמת מסך Plex",
-      nav_install: "התקנה ואשפים",
-      nav_matrix: "0 טוקנים מול AI",
-      hero_eyebrow: "תקן UAX #9 Rule N1 · הגנת טורנט Seed-Safe · שרת MCP מובנה",
-      hero_title: "כתוביות עברית מושלמות ב-Plex, Infuse ו-Apple TV — בשנייה אחת.",
+      nav_studio: "התנסות חיה",
+      nav_capabilities: "מה הכלי עושה",
+      nav_simulator: "תצוגת נגן",
+      nav_install: "התקנה ו-CLI",
+      nav_architecture: "דטרמיניסטי מול AI",
+      hero_kicker: "OPEN-SOURCE SUBTITLE ENGINEERING · UAX #9 RULE N1",
+      hero_title: "תיקון כיווניות, קידוד ומאסטרינג לכתוביות עברית.",
       hero_lead:
-        'סימני שאלה ונקודות קופצים לימין? ג׳יבריש בכתוביות ישנות (Windows-1255)? מספרים הפוכים מ-Subabi? גררו קובץ <code>.srt</code> לתיבה ממול לתיקון מיידי בדפדפן (100% מקומי על המחשב שלכם, 0 העלאה לשרת) — או התקינו את חבילת ה-CLI ושרת ה-MCP לאוטומציה מלאה.',
-      hero_cta_install: "⚡ התקנת חבילה מלאה (CLI + MCP)",
-      hero_cta_demo: "🧪 נסה על כתובית שבורה לדוגמה",
-      trust_1:
-        "🔒 <strong>100% פרטיות בדפדפן:</strong> הקובץ מעובד בזיכרון המקומי בלבד ולעולם אינו מועלה לשום שרת.",
-      trust_2:
-        "🛡️ <strong>Seed-Safe לטורנטים:</strong> מפיק קובץ <code>.he.srt</code> תקני ומשאיר את קובץ המקור ללא נגיעה.",
-      trust_3:
-        "🤖 <strong>אפס צורך ב-AI לתיקון טכני:</strong> 99% מהכתוביות הקיימות מתוקנות ב-100% דטרמיניזם וב-0 טוקנים.",
-      drop_title: "🛠️ מתקן כתוביות מיידי בדפדפן (SubRefine Engine)",
-      drop_badge: "100% Client-Side JS",
-      drop_prompt: "גררו לכאן קובץ <code>.srt</code> בעברית (או לחצו לבחירה)",
+        "RightSub מתקנת את הבעיות שנגני מדיה (Plex, Infuse, Apple TV, LG WebOS) אינם פותרים לבד: סימני שאלה ונקודות שקופצים לימין, כתוביות שעברו היפוך ויזואלי ישן (Subabi), קידוד Windows-1255 שמופיע כג׳יבריש, ומספרים דו-ספרתיים שהתהפכו.",
+      pillar1_title: "עיבוד דטרמיניסטי מקומי (0 טוקנים)",
+      pillar1_desc:
+        "תיקון טכני של כתוביות קיימות רץ ב-100% אלגוריתמיקה מקומית — בדפדפן או בטרמינל — ללא מפתח AI וללא שליחת מידע לשרת.",
+      pillar2_title: "הגנת טורנט (Seed-Safe)",
+      pillar2_desc:
+        "מזהה אוטומטית עברית בתוך כל קובץ <code>.srt</code>, שומר על הקובץ המקורי ללא שינוי בדיסק, ומייצר קובץ <code>.he.srt</code> נפרד.",
+      pillar3_title: "CLI, אוטומציה ושרת MCP לסוכני AI",
+      pillar3_desc:
+        "חבילה מלאה ל-macOS, Windows ו-Docker עם חיבור ל-Sonarr/qBittorrent ותרגום מלא מאנגלית לעברית דרך סוכני AI או Ollama.",
+      hero_cta_cli: "התקנת CLI ושרת MCP",
+      hero_cta_how: "איך המנוע עובד",
+      wb_tab_file: "תיקון קובץ .srt",
+      wb_tab_sandbox: "בדיקת שורה חיה",
+      wb_privacy: "רץ מקומית בדפדפן",
+      drop_prompt: "גררו לכאן קובץ <code>.srt</code> או לחצו לבחירה מהמכשיר",
       drop_subprompt:
-        "טיפ: ניתן לגרור מספר קובצי <code>.srt</code> יחד, או לגרור זוג <code>Movie.srt</code> + <code>Movie.en.srt</code> להצלבת מספרים הפוכים (<code>84</code> ← <code>48</code>)!",
-      opt_clean_ads: "נקה פרסומות וקרדיטים (Torec, Wizdom, טלגרם)",
-      opt_clean_speakers: "הסר תוויות דוברים בראש שורה (אלן:, שופט:)",
-      diff_heading: "🔍 השוואת שורות שתוקנו בקובץ (לפני ← אחרי):",
-      diff_col_before: "לפני (שבור בפלקס / Subabi)",
-      diff_col_after: "אחרי (RightSub + RLM)",
-      showcase_title: "📺 סימולטור מסך Plex / Infuse / Apple TV",
+        "תומך בקובץ בודד, מספר קבצים יחד, או זוג <code>Movie.srt</code> + <code>Movie.en.srt</code> להצלבת מספרים הפוכים (<code>84</code> ← <code>48</code>).",
+      opt_clean_ads: "נקה פרסומות וקרדיטים",
+      opt_clean_speakers: "הסר תוויות דובר (אלן:)",
+      hero_cta_demo: "טען קובץ דוגמה שבור",
+      diff_heading: "שורות שתוקנו בקובץ (לפני לעומת אחרי)",
+      diff_col_before: "לפני (מקור שבור)",
+      diff_col_after: "אחרי (RightSub + UAX #9)",
+      sb_preset_label: "דוגמאות מוכנות:",
+      sb_chip_1: "פיסוק קופץ",
+      sb_chip_2: "היפוך Subabi",
+      sb_chip_3: "מילה באנגלית (FBI.)",
+      sb_chip_4: "תו זר (דეייט) + ראשי תיבות",
+      sb_input_label: "הקלידו או הדביקו שורת כתובית לבדיקה:",
+      sb_out_broken: "תצוגה שבורה בנגן (ללא RightSub)",
+      sb_out_fixed: "תצוגה מתוקנת בנגן (אחרי RightSub)",
+      sb_unicode_label: "מבנה תווים סמויים (Unicode Memory View):",
+      cap_kicker: "SYSTEM CAPABILITIES",
+      cap_title: "מה RightSub עושה בפועל",
+      cap_subtitle:
+        "המערכת מפרידה בין שני מנועים עצמאיים: מנוע מאסטרינג דטרמיניסטי לכתוביות קיימות (SubRefine), ומנוע תרגום והגהה מבוסס סוכני AI (SubSwarm).",
+      badge_deterministic: "100% דטרמיניסטי · 0 טוקנים",
+      badge_seedsafe: "הגנת טורנט פעילה",
+      badge_ai: "סוכני AI / Ollama",
+      cap1_title: "תיקון כיווניות (BiDi) וביטול היפוכי Subabi",
+      cap1_desc:
+        "נגנים כמו Plex ו-Apple TV מציגים סימני פיסוק בסוף משפט עברי (?, !, .) בצד ימין של השורה. בנוסף, אלפי כתוביות ישנות ברשת עברו היפוך ויזואלי (Subabi) שהפך פיזית את הנקודות והסוגריים בקובץ. RightSub מזהה את קוטביות הקובץ, משחזר 18 תבניות היפוך ישנות, ועוטף כל שורה בתווי RLM לפי תקן Unicode UAX #9 Rule N1.",
+      cap2_title: "הצלת קידוד Windows-1255, הומוגליפים והצלבת מספרים",
+      cap2_desc:
+        "זיהוי אוטומטי ברמת הבייטים של קובצי CP1255 / ISO-8859-8 והמרתם ל-UTF-8 תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-דეייט ← דייט), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (84 ← 48) בהצלבה מול כתובית באנגלית.",
+      cap3_title: "זיהוי עברית לפי תוכן ושמירת .he.srt נפרד",
+      cap3_desc:
+        "הורדתם סרט עם קובץ Movie.srt רגיל (ללא סיומת .he.srt) או תיקיית Subs/? RightSub סורקת את תוכן הקובץ, מזהה שמדובר בעברית, משאירה את קובץ ה-.srt המקורי ללא שום שינוי בדיסק כדי לא לשבור שיתוף טורנט ב-qBittorrent/Transmission, ושומרת קובץ Movie.he.srt מתוקן לצד הווידאו.",
+      cap4_title: "תרגום מאנגלית לעברית וחיבור MCP לסוכני AI",
+      cap4_desc:
+        "כאשר אין כתוביות בעברית כלל, RightSub מחלצת כתוביות מובנות מ-.mkv/.mp4 (או מתמללת שמע מקומית), בונה מילון דמויות ומגדר מ-TMDb (את/היא מול אתה/הוא), ומתרגמת בהתאמת שורות 1:1 דרך שרת ה-MCP המובנה (Claude, Cursor, Antigravity), Gemini או Ollama מקומי.",
+      sim_kicker: "VISUAL COMPARISON",
+      showcase_title: "השוואת תצוגה בנגן: לפני לעומת אחרי",
       showcase_subtitle:
-        "ראו כיצד נגנים מודרניים מציגים כתוביות עברית ללא תווי כיווניות או לאחר היפוך ויזואלי ישן, לעומת תוצאת המאסטרינג של RightSub:",
-      scen_punct: "1. סימני שאלה ופיסוק קופצים לימין",
-      scen_subabi: "2. היפוך Subabi + מספר דו-ספרתי הפוך (84 ← 48)",
-      scen_english: "3. מילה באנגלית בסוף משפט (FBI.)",
-      scen_cp1255: "4. ג׳יבריש Windows-1255 והומוגליפים (דეייט)",
-      tv_before_label: "❌ לפני RightSub (תצוגה שבורה בנגן)",
-      tv_after_label: "✔️ אחרי RightSub (תקן UAX #9 Rule N1)",
-      install_title: "🚀 התקנה בפקודה אחת: אשף אינטראקטיבי, שרת MCP ואוטומציה",
+        "בחרו תרחיש כדי לראות איך אותה שורת כתובית נראית בנגן הטלוויזיה לפני ואחרי עיבוד ב-RightSub:",
+      scen_punct: "01. סימני שאלה ופיסוק קופצים לימין",
+      scen_subabi: "02. היפוך Subabi + מספר הפוך (84 ← 48)",
+      scen_english: "03. מילה באנגלית בסוף משפט (FBI.)",
+      scen_cp1255: "04. ג׳יבריש Windows-1255 ותו זר (דეייט)",
+      tv_before_label: "לפני RightSub (תצוגה שבורה)",
+      tv_after_label: "אחרי RightSub (תקן UAX #9 Rule N1)",
+      inst_kicker: "CLI · WIZARD · MCP SERVER",
+      install_title: "התקנה לעבודה מקומית, עונות שלמות ואוטומציה",
       install_subtitle:
-        "צריכים לטפל בקובצי וידאו שלמים (<code>.mkv</code> / <code>.mp4</code>), עונות שלמות, או לחבר את סוכן ה-AI ושרת המדיה שלכם? בחרו את סביבת העבודה שלכם:",
-      mac_step1_title: "1. התקנה גלובלית (Homebrew או סקריפט מהיר)",
+        "מעבר לכלי הדפדפן, ניתן להתקין את חבילת ה-CLI המלאה הכוללת אשף אינטראקטיבי לטרמינל ול-CMD, חיבור לסוכני AI בפקודה אחת (rightsub mcp --install), ואוטומציה ל-qBittorrent / Sonarr / Bazarr.",
+      mac_step1_title: "התקנה בפקודה אחת (Homebrew או סקריפט)",
       mac_step1_note:
-        'או בהתקנה ישירה מ-GitHub: <code>git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>',
-      mac_step2_title: "2. הפעלת האשף האינטראקטיבי ואשף ההקמה (ללא דגלים!)",
-      win_step1_title: "1. מתקין אוטומטי לחלונות (מוסיף ל-PATH של המשתמש אוטומטית)",
+        'או ישירות מ-GitHub: <code>git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>',
+      mac_step2_title: "הפעלת האשף האינטראקטיבי או תיקון אוטומטי",
+      win_step1_title: "מתקין אוטומטי לחלונות (רישום אוטומטי ל-PATH)",
       win_step1_note:
-        "<code>install.bat</code> בודק Python ו-FFmpeg, מתקין תלויות ורושם את <code>rightsub</code> ב-PATH של המשתמש ללא צורך בהרשאות Administrator.",
-      win_step2_title: "2. הפעלה מכל חלון CMD או PowerShell",
-      mcp_step1_title: "1. רישום אוטומטי לכל סוכני ה-AI בפקודה אחת",
+        "<code>install.bat</code> מאמת Python ו-FFmpeg ומוסיף את <code>rightsub</code> ל-PATH של המשתמש ללא צורך בהרשאות Administrator.",
+      win_step2_title: "הרצה מכל חלון CMD או PowerShell",
+      mcp_step1_title: "רישום אוטומטי לכל סוכני ה-AI בפקודה אחת",
       mcp_step1_note:
         "מזהה ורושם אוטומטית את שרת ה-MCP המקומי (8 כלים) ב-<strong>Google Antigravity</strong>, <strong>Claude Desktop</strong>, <strong>Cursor</strong>, <strong>Windsurf</strong> ו-<strong>Claude Code</strong>.",
-      mcp_step2_title: "2. דברו עם הסוכן שלכם בשפה טבעית",
-      arr_step1_title: "1. מחולל Hooks ושירותי רקע אוטומטי",
+      mcp_step2_title: "הנחיית הסוכן בשפה טבעית",
+      arr_step1_title: "מחולל Hooks ושירותי רקע אוטומטי",
       arr_step1_note:
-        "מייצר סקריפטים מוכנים ל-qBittorrent ול-Transmission ב-<code>~/.config/rightsub/hooks/</code>, רושם Webhook חי ב-Sonarr/Radarr, ומתקין שירות רקע.",
-      arr_step2_title: "2. שרת Webhook לקונטיינרים ו-NAS (Port 8775)",
+        "מייצר סקריפטים מוכנים ל-qBittorrent ול-Transmission ב-<code>~/.config/rightsub/hooks/</code>, רושם Webhook ב-Sonarr/Radarr, ומתקין שירות רקע.",
+      arr_step2_title: "שרת Webhook ו-Web UI מקומי (Port 8775)",
       copy_btn: "העתק",
-      copied_btn: "הועתק ✓",
-      matrix_title: "⚖️ הפרדה הנדסית: תיקון טכני ב-0 טוקנים מול תרגום וליטוש AI",
+      copied_btn: "הועתק",
+      mat_kicker: "DETERMINISTIC VS. AI",
+      matrix_title: "מתי מעורב AI ומתי המנוע רץ ב-0 טוקנים?",
       matrix_subtitle:
-        "99% מהכתוביות הקיימות בעברית אינן דורשות מפתח AI כלל. מודל שפה מופעל אך ורק בתרגום מאפס או בהגהה סמנטית של תרגומים ישנים:",
-      mat_col_task: "תרחיש שימוש",
+        "ב-99% מהכתוביות הקיימות בעברית אין שום צורך ב-AI. מודל שפה נדרש אך ורק לתרגום מאפס מאנגלית או לשיקום סמנטי של תרגומים ישנים:",
+      mat_col_task: "פעולה / תרחיש שימוש",
       mat_col_cmd: "כלי / פקודה",
       mat_col_ai: "דורש מפתח AI?",
       mat_col_cost: "עלות טוקנים",
       mat_row1_task:
-        "תיקון BiDi ופיסוק לפלקס, ביטול 18 תבניות היפוך Subabi, המרת CP1255, ניקוי פרסומות והומוגליפים",
+        "תיקון BiDi ופיסוק לפלקס, ביטול 18 תבניות Subabi, המרת CP1255, ניקוי פרסומות והומוגליפים",
       mat_row2_task:
         "אימות והיפוך מספרים דו-לשוני (<code>84</code> ← <code>48</code>) ותיקון מונחי קאנון",
       mat_row3_task:
-        "בקרת איכות (QA), תאימות זמנים 1:1, גילוי Cue Drift וזיהוי פניות מגדר",
+        "בקרת איכות (QA), תאימות זמנים 1:1, גילוי Cue Drift וזיהוי שגיאות מגדר בפנייה",
       mat_row4_task:
         "ליטוש סמנטי של תרגום ישן/חובבני עם סקירה אינטראקטיבית שורה-אחר-שורה",
       mat_row5_task:
         "תרגום סרט או סדרה חדשים מאנגלית לעברית מאפס (כולל TMDb ו-Translation Bible)",
-      no_ai: "❌ לא (100% דטרמיניסטי)",
-      opt_ai: "✔️ אופציונלי (למקרי קצה נדירים)",
-      req_ai: "✔️ כן (או דרך סוכן ה-MCP)",
+      no_ai: "לא (100% דטרמיניסטי)",
+      opt_ai: "אופציונלי (למקרי קצה נדירים)",
+      req_ai: "כן (או דרך סוכן ה-MCP)",
       footer_copy:
-        "<strong>RightSub v1.5.0</strong> · קוד פתוח ברישיון MIT · 189 בדיקות אוטומטיות · עיבוד מקומי ב-100% ללא העלאת קבצים.",
+        "<strong>RightSub v1.5.0</strong> · קוד פתוח ברישיון MIT · 193 בדיקות אוטומטיות · עיבוד מקומי ב-100% ללא העלאת קבצים.",
       stat_cues: "כתוביות נסרקו",
       stat_fixed: "שורות תוקנו",
       stat_ads: "פרסומות הוסרו",
-      stat_nums: "מספרים הופכו חזרה",
-      download_btn: "⬇️ הורד קובץ מתוקן",
+      stat_nums: "מספרים הופכו",
+      download_btn: "הורד קובץ .he.srt",
       video_warn:
         "זהו קובץ וידאו. לחילוץ ותרגום של קובצי MKV/MP4 על הדיסק המקומי, הריצו בטרמינל: rightsub auto",
     },
     en: {
       dir: "ltr",
-      toggleLabel: "עברית",
+      toggleLabel: "עב",
       skip_link: "Skip to main content",
-      nav_fixer: "Instant Browser Fixer",
-      nav_showcase: "Plex TV Simulator",
-      nav_install: "Install & Wizards",
-      nav_matrix: "0-Token vs. AI Matrix",
-      hero_eyebrow: "Unicode UAX #9 Rule N1 · Seed-Safe Torrents · Native MCP Server",
-      hero_title: "Flawless Hebrew Subtitles on Plex, Infuse & Apple TV — in 1 Second.",
+      nav_studio: "Live Studio",
+      nav_capabilities: "What It Does",
+      nav_simulator: "Player Preview",
+      nav_install: "CLI & MCP",
+      nav_architecture: "0-Token vs. AI",
+      hero_kicker: "OPEN-SOURCE SUBTITLE ENGINEERING · UAX #9 RULE N1",
+      hero_title: "Hebrew Subtitle BiDi Mastering, Encoding Rescue & AI Translation.",
       hero_lead:
-        'Jumping question marks and periods? Legacy Windows-1255 gibberish? Reversed Subabi numbers? Drag & drop any <code>.srt</code> file into the box to master it instantly in your browser (100% local in memory, 0 server uploads) — or install the full CLI & MCP Server.',
-      hero_cta_install: "⚡ Install Full Suite (CLI + MCP)",
-      hero_cta_demo: "🧪 Try on a Broken Sample Subtitle",
-      trust_1:
-        "🔒 <strong>100% Browser Privacy:</strong> Files are processed strictly in local memory and never uploaded anywhere.",
-      trust_2:
-        "🛡️ <strong>Seed-Safe for Torrents:</strong> Outputs a clean <code>.he.srt</code> copy while keeping source torrents untouched.",
-      trust_3:
-        "🤖 <strong>Zero AI Needed for Technical Repairs:</strong> 99% of existing subtitles are fixed deterministically at 0 token cost.",
-      drop_title: "🛠️ Instant Browser Subtitle Master (SubRefine Engine)",
-      drop_badge: "100% Client-Side JS",
-      drop_prompt: "Drag & drop Hebrew <code>.srt</code> file(s) here (or click to browse)",
+        "RightSub solves the rendering bugs that media players (Plex, Infuse, Apple TV, LG WebOS) fail to handle on their own: trailing question marks and periods jumping to the right edge, legacy visually pre-flipped subtitles (Subabi), Windows-1255 mojibake, and reversed 2-digit numbers.",
+      pillar1_title: "100% Deterministic Local Mastering (0 Tokens)",
+      pillar1_desc:
+        "Technical repairs on existing subtitles run strictly via local algorithms — in your browser or terminal — with zero AI keys and zero cloud uploads.",
+      pillar2_title: "Seed-Safe Torrent Protection",
+      pillar2_desc:
+        "Detects Hebrew content inside any plain <code>.srt</code> file, keeps the original torrent file untouched on disk, and writes a separate <code>.he.srt</code> file.",
+      pillar3_title: "CLI Suite, Automation & Native MCP Server",
+      pillar3_desc:
+        "Full cross-platform package for macOS, Windows, and Docker with Sonarr/qBittorrent hooks and full English-to-Hebrew translation via AI agents or Ollama.",
+      hero_cta_cli: "Install CLI & MCP Server",
+      hero_cta_how: "How the Engine Works",
+      wb_tab_file: "Fix .srt File",
+      wb_tab_sandbox: "Live Line Sandbox",
+      wb_privacy: "100% Local in Browser",
+      drop_prompt: "Drag & drop Hebrew <code>.srt</code> file(s) here or click to browse",
       drop_subprompt:
-        "Tip: Drop multiple <code>.srt</code> files at once, or drop a pair of <code>Movie.srt</code> + <code>Movie.en.srt</code> to un-flip reversed 2-digit numbers (<code>84</code> → <code>48</code>)!",
-      opt_clean_ads: "Strip translator credit banners & ads (Torec, Wizdom, Telegram)",
-      opt_clean_speakers: "Strip leading speaker labels (Alan:, Judge:)",
-      diff_heading: "🔍 Repaired Lines Inspector (Before → After):",
-      diff_col_before: "Before (Broken in Plex / Subabi)",
-      diff_col_after: "After (RightSub + UAX #9 RLM)",
-      showcase_title: "📺 Interactive Plex / Infuse / Apple TV Screen Simulator",
+        "Supports single files, multi-file batches, or a <code>Movie.srt</code> + <code>Movie.en.srt</code> pair to un-flip reversed 2-digit numbers (<code>84</code> → <code>48</code>).",
+      opt_clean_ads: "Strip ad & credit banners",
+      opt_clean_speakers: "Strip speaker labels (Alan:)",
+      hero_cta_demo: "Load Broken Sample .srt",
+      diff_heading: "Repaired Cues Inspector (Before vs. After)",
+      diff_col_before: "Before (Broken Source)",
+      diff_col_after: "After (RightSub + UAX #9)",
+      sb_preset_label: "Presets:",
+      sb_chip_1: "Jumping Punctuation",
+      sb_chip_2: "Subabi Visual Flip",
+      sb_chip_3: "Trailing English (FBI.)",
+      sb_chip_4: "Foreign Glyph (דეייט) + Acronyms",
+      sb_input_label: "Type or paste any Hebrew subtitle line to test live:",
+      sb_out_broken: "Broken Player Rendering (Without RightSub)",
+      sb_out_fixed: "Mastered Player Rendering (With RightSub)",
+      sb_unicode_label: "Underlying Invisible Control Marks (Unicode View):",
+      cap_kicker: "SYSTEM CAPABILITIES",
+      cap_title: "What RightSub Actually Does",
+      cap_subtitle:
+        "RightSub separates its architecture into two engines: a zero-token deterministic mastering engine for existing subtitles (SubRefine), and an AI multi-agent translation engine (SubSwarm).",
+      badge_deterministic: "100% Deterministic · 0 Tokens",
+      badge_seedsafe: "Seed-Safe Torrents",
+      badge_ai: "AI Agents / Ollama",
+      cap1_title: "BiDi Punctuation Locking & Subabi Un-Flipping",
+      cap1_desc:
+        "Players like Plex and Apple TV render trailing punctuation (?, !, .) on the right side of Hebrew lines. Furthermore, thousands of older Hebrew subtitles were processed by visual-flipping tools (Subabi) that physically reversed periods and parentheses. RightSub detects file polarity, reverses 18 legacy flip patterns, and wraps lines in UAX #9 Rule N1 RLM marks.",
+      cap2_title: "Windows-1255 Rescue, Homoglyphs & Bilingual Numbers",
+      cap2_desc:
+        "Byte-level detection of legacy CP1255 / ISO-8859-8 files converted cleanly to UTF-8. Normalizes lookalike foreign characters from 7 scripts (such as Georgian 'ე' in דეייט → דייט), strips credit watermarks, and un-flips reversed 2-digit numbers (84 → 48) verified against companion English cues.",
+      cap3_title: "Content-Based Hebrew Detection & Seed-Safe .he.srt",
+      cap3_desc:
+        "Downloaded a release with a plain Movie.srt or Subs/ folder? RightSub inspects the file content, detects Hebrew automatically, leaves the source .srt 100% untouched on disk so qBittorrent/Transmission seeding never breaks, and outputs Movie.he.srt alongside the video.",
+      cap4_title: "Full AI Translation & Native MCP Server",
+      cap4_desc:
+        "When no Hebrew subtitle exists, RightSub extracts embedded .mkv/.mp4 tracks (or transcribes audio locally), builds a TMDb character gender bible (את/היא vs. אתה/הוא), and translates with strict 1:1 cue parity via its built-in MCP server (Claude, Cursor, Antigravity), Gemini, or local Ollama.",
+      sim_kicker: "VISUAL COMPARISON",
+      showcase_title: "Player Rendering Comparison: Before vs. After",
       showcase_subtitle:
-        "Compare how modern media players render unmastered or visually pre-flipped Hebrew subtitles versus RightSub's UAX #9 Rule N1 output:",
-      scen_punct: "1. Reversed Trailing Question Marks & Punctuation",
-      scen_subabi: "2. Subabi Visual Flip + Reversed Number (84 → 48)",
-      scen_english: "3. Sentence Ending with English Word (FBI.)",
-      scen_cp1255: "4. Windows-1255 Gibberish & Homoglyphs (דეייט)",
-      tv_before_label: "❌ Before RightSub (Broken Player Rendering)",
-      tv_after_label: "✔️ After RightSub (UAX #9 Rule N1 Mastered)",
-      install_title: "🚀 One-Command Install: Interactive Wizard, MCP Server & Automation",
+        "Select a defect scenario to see how the exact same subtitle cue renders on a TV player before and after RightSub:",
+      scen_punct: "01. Reversed Trailing Question Marks & Punctuation",
+      scen_subabi: "02. Subabi Visual Flip + Reversed Number (84 → 48)",
+      scen_english: "03. Sentence Ending with English Word (FBI.)",
+      scen_cp1255: "04. Windows-1255 Gibberish & Foreign Glyph (דეייט)",
+      tv_before_label: "Before RightSub (Broken Rendering)",
+      tv_after_label: "After RightSub (UAX #9 Rule N1)",
+      inst_kicker: "CLI · WIZARD · MCP SERVER",
+      install_title: "Install for Local Media, Full Seasons & Automation",
       install_subtitle:
-        "Need to process full video containers (<code>.mkv</code> / <code>.mp4</code>), entire TV seasons, or connect your AI agent and media stack? Select your platform:",
-      mac_step1_title: "1. Global Install (Homebrew Tap or Fast Script)",
+        "Beyond the browser studio, install the full CLI suite featuring an interactive terminal/CMD wizard, 1-command AI agent registration (rightsub mcp --install), and qBittorrent / Sonarr / Bazarr hooks.",
+      mac_step1_title: "One-Command Install (Homebrew Tap or Script)",
       mac_step1_note:
-        "Or install from GitHub: <code>git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>",
-      mac_step2_title: "2. Launch Interactive Mastering & Setup Wizards (Zero Flags!)",
-      win_step1_title: "1. Automated Windows Installer (Auto-Registers User PATH)",
+        "Or directly from GitHub: <code>git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>",
+      mac_step2_title: "Launch Interactive Wizard or Autonomous Runner",
+      win_step1_title: "Automated Windows Installer (Auto-Configures PATH)",
       win_step1_note:
-        "<code>install.bat</code> checks Python & FFmpeg, installs dependencies, and registers <code>rightsub</code> in your Windows User PATH automatically.",
-      win_step2_title: "2. Run from Any CMD or PowerShell Window",
-      mcp_step1_title: "1. One-Command Multi-Agent MCP Installer",
+        "<code>install.bat</code> verifies Python & FFmpeg and registers <code>rightsub</code> in your User PATH without requiring Admin privileges.",
+      win_step2_title: "Run from Any CMD or PowerShell Window",
+      mcp_step1_title: "One-Command Multi-Agent MCP Registration",
       mcp_step1_note:
-        "Automatically detects and registers RightSub's local MCP Server (8 tools) in <strong>Google Antigravity</strong>, <strong>Claude Desktop</strong>, <strong>Cursor</strong>, <strong>Windsurf</strong>, and <strong>Claude Code</strong>.",
-      mcp_step2_title: "2. Control RightSub via Natural Language",
-      arr_step1_title: "1. Automated Downloader Hooks & Background Service",
+        "Detects and registers RightSub's local MCP Server (8 tools) in <strong>Google Antigravity</strong>, <strong>Claude Desktop</strong>, <strong>Cursor</strong>, <strong>Windsurf</strong>, and <strong>Claude Code</strong>.",
+      mcp_step2_title: "Control via Natural Language",
+      arr_step1_title: "Automated Downloader Hooks & Background Service",
       arr_step1_note:
         "Generates ready-to-use qBittorrent & Transmission hooks in <code>~/.config/rightsub/hooks/</code>, registers Sonarr/Radarr webhooks, and installs OS background services.",
-      arr_step2_title: "2. Container & NAS Webhook Daemon (Port 8775)",
+      arr_step2_title: "Container Webhook Daemon & Local Web UI (Port 8775)",
       copy_btn: "Copy",
-      copied_btn: "Copied ✓",
-      matrix_title: "⚖️ Architectural Separation: 0-Token Technical Repair vs. AI Translation",
+      copied_btn: "Copied",
+      mat_kicker: "DETERMINISTIC VS. AI",
+      matrix_title: "When Is AI Used vs. 0-Token Deterministic Mode?",
       matrix_subtitle:
-        "99% of existing Hebrew subtitles require zero AI keys. LLMs are invoked strictly for translating from scratch or polishing rare legacy drafts:",
+        "99% of existing Hebrew subtitles require zero AI keys. LLMs are used strictly for translating from scratch or polishing rare legacy drafts:",
       mat_col_task: "Workflow / Operation",
       mat_col_cmd: "Tool / Command",
       mat_col_ai: "Requires AI Key?",
@@ -180,19 +254,26 @@
         "Semantic AI proofreading of old/amateur drafts with interactive line-by-line diff review",
       mat_row5_task:
         "Full English-to-Hebrew subtitle translation from scratch (with TMDb & Translation Bible)",
-      no_ai: "❌ No (100% Deterministic)",
-      opt_ai: "✔️ Optional (Rare Edge Cases)",
-      req_ai: "✔️ Yes (or via MCP Agent)",
+      no_ai: "No (100% Deterministic)",
+      opt_ai: "Optional (Rare Edge Cases)",
+      req_ai: "Yes (or via MCP Agent)",
       footer_copy:
-        "<strong>RightSub v1.5.0</strong> · MIT Open Source · 189 Automated Tests · 100% Local Processing.",
+        "<strong>RightSub v1.5.0</strong> · MIT Open Source · 193 Automated Tests · 100% Local Processing.",
       stat_cues: "Cues Scanned",
       stat_fixed: "Lines Repaired",
       stat_ads: "Ads Stripped",
       stat_nums: "Numbers Un-Flipped",
-      download_btn: "⬇️ Download Mastered .he.srt",
+      download_btn: "Download .he.srt",
       video_warn:
         "Video container detected. To extract and master MKV/MP4 files on disk, run locally: rightsub auto",
     },
+  };
+
+  const SANDBOX_PRESETS = {
+    punct: 'שלום אלן, אתה חושב שבית המשפט של ארה"ב יקבל את זה?',
+    subabi: '.שלום אלן, חיכינו לך במשרד הזה-',
+    english: "ראיתי את הסוכנים של ה-FBI.",
+    homoglyph: 'יצאת ל-ד\u10D4ייט עם עו"ד מבוסטון?',
   };
 
   const SCENARIOS = {
@@ -202,7 +283,7 @@
       after1: "\u200Fאלן, אתה באמת חושב שהשופט יקבל את זה?\u200F",
       after2: "\u200F- אין לנו שום סיכוי בלי ראיות!\u200F",
       expBeforeHe:
-        "ללא תו RLM סמוי אחרי סימן הפיסוק, אלגוריתם ה-BiDi של Plex מפרש את סימן השאלה כתו ניטרלי בראש שורת LTR ומקפיץ אותו לימין.",
+        "ללא תו RLM סמוי אחרי סימן הפיסוק, אלגוריתם ה-BiDi של הנגן מפרש את סימן השאלה כתו ניטרלי בראש שורת LTR ומקפיץ אותו לימין.",
       expAfterHe:
         "עטיפת השורה ב-RLM מוביל ו-RLM סוגר (אחרי סימן השאלה) נועלת את הפיסוק והמקף במקומם הטבעי בכל נגן.",
       expBeforeEn:
@@ -218,7 +299,7 @@
       expBeforeHe:
         "תוכנות ישנות (Subabi) הפכו פיזית את הנקודה, המקף, הסוגריים ואפילו את המספר '48' ל-'84' בתוך הקובץ.",
       expAfterHe:
-        "RightSub מזהה קוטביות הפוכה, משחזר את כל 18 תבניות ה-Subabi והסוגריים, ומצליב מול האנגלית כדי לתקן את 84 חזרה ל-48!",
+        "RightSub מזהה קוטביות הפוכה, משחזר את כל 18 תבניות ה-Subabi והסוגריים, ומצליב מול האנגלית כדי לתקן את 84 חזרה ל-48.",
       expBeforeEn:
         "Legacy visual flippers (Subabi) physically moved periods, dashes, parentheses, and reversed '48' into '84'.",
       expAfterEn:
@@ -226,7 +307,7 @@
     },
     english: {
       before1: ".ראיתי את הסוכנים של ה-FBI",
-      before2: '!זה תיק פדרלי של ה-CIA',
+      before2: "!זה תיק פדרלי של ה-CIA",
       after1: "\u200Fראיתי את הסוכנים של ה-FBI\u200F.\u200F",
       after2: "\u200Fזה תיק פדרלי של ה-CIA\u200F!\u200F",
       expBeforeHe:
@@ -240,7 +321,7 @@
     },
     cp1255: {
       before1: "àðé øåöä לצאת ל-ד\u10D4ייט הערב.",
-      before2: 'סונכרן על ידי צוות טורק - Torec.net',
+      before2: "סונכרן על ידי צוות טורק - Torec.net",
       after1: "\u200Fאני רוצה לצאת ל-דייט הערב.\u200F",
       after2: "\u200F[שורת פרסומת וקרדיט הוסרה אוטומטית]\u200F",
       expBeforeHe:
@@ -294,7 +375,14 @@
   ].join("\n");
 
   let currentLang = localStorage.getItem("rightsub_lang") || "he";
+  let currentTheme = localStorage.getItem("rightsub_theme") || "dark";
   let currentScenario = "punct";
+
+  function applyTheme(theme) {
+    currentTheme = theme === "light" ? "light" : "dark";
+    localStorage.setItem("rightsub_theme", currentTheme);
+    document.documentElement.setAttribute("data-theme", currentTheme);
+  }
 
   function applyLanguage(lang) {
     currentLang = lang in I18N ? lang : "he";
@@ -315,6 +403,40 @@
     });
 
     renderScenario(currentScenario);
+    updateLiveSandbox();
+  }
+
+  function simulateBrokenPlayerView(rawLine) {
+    const clean = String(rawLine || "").replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "").trim();
+    if (!clean) return "";
+    // If line is not already visually flipped, show how an LTR player misplaces trailing punctuation
+    const m = clean.match(/^(.+?)([?!.:,;]+)$/);
+    if (m && /[\u0590-\u05FF]/.test(m[1])) {
+      return `${m[2]}${m[1]}`;
+    }
+    return clean;
+  }
+
+  function updateLiveSandbox() {
+    if (!window.RightSubRefine) return;
+    const inputEl = document.getElementById("sandbox-input");
+    const beforeEl = document.getElementById("sb-render-before");
+    const afterEl = document.getElementById("sb-render-after");
+    const unicodeEl = document.getElementById("sb-unicode-raw");
+    if (!inputEl || !beforeEl || !afterEl || !unicodeEl) return;
+
+    const raw = inputEl.value || "";
+    const wrappedSrt = `1\n00:00:01,000 --> 00:00:04,000\n${raw}\n`;
+    const res = window.RightSubRefine.processSrtContent(wrappedSrt, {
+      cleanAds: false,
+      cleanSpeakers: false,
+    });
+    const outLines = res.resultText.split("\n");
+    const masteredLine = outLines.slice(2).join(" ").trim();
+
+    beforeEl.textContent = simulateBrokenPlayerView(raw);
+    afterEl.textContent = masteredLine;
+    unicodeEl.textContent = masteredLine.replace(/\u200F/g, "[RLM]");
   }
 
   function renderScenario(key) {
@@ -359,7 +481,7 @@
         errDiv.className = "download-item";
         errDiv.innerHTML = `<div class="download-meta"><span class="download-filename">${escapeHtml(
           item.name
-        )}</span><span class="download-submeta" style="color:#fca5a5">${escapeHtml(
+        )}</span><span class="download-submeta" style="color:var(--danger-text)">${escapeHtml(
           item.error
         )}</span></div>`;
         downloadsList.appendChild(errDiv);
@@ -395,7 +517,7 @@
         </div>
         <a href="${url}" download="${escapeHtml(
         item.outName
-      )}" class="btn btn-primary">${dict.download_btn}</a>
+      )}" class="btn btn-solid">${dict.download_btn}</a>
       `;
       downloadsList.appendChild(row);
     }
@@ -467,7 +589,6 @@
       });
     }
 
-    // Pair English companion SRT if user dropped both HE and EN files
     const enCandidate = decodedFiles.find((f) => !f.error && !f.isHebrew);
     const enContent = enCandidate ? enCandidate.text : null;
 
@@ -478,7 +599,6 @@
         continue;
       }
       if (!f.isHebrew && decodedFiles.some((other) => other.isHebrew)) {
-        // Used as English companion reference for bilingual number un-flipping
         continue;
       }
       if (!f.isHebrew) {
@@ -548,18 +668,24 @@
         const text = document.getElementById("daemon-status-text");
         if (badge && text) {
           const count = data.metrics?.processed_count ?? 0;
-          text.textContent = `Daemon v${data.version} Active (${count} mastered)`;
+          text.textContent = `Daemon v${data.version} (${count} mastered)`;
           badge.hidden = false;
         }
       }
-    } catch (_) {
-      // Static hosting (GitHub Pages) — no local daemon running
-    }
+    } catch (_) {}
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    applyTheme(currentTheme);
     applyLanguage(currentLang);
     checkLocalDaemonHealth();
+
+    const themeBtn = document.getElementById("theme-toggle");
+    if (themeBtn) {
+      themeBtn.addEventListener("click", function () {
+        applyTheme(currentTheme === "dark" ? "light" : "dark");
+      });
+    }
 
     const langBtn = document.getElementById("lang-toggle");
     if (langBtn) {
@@ -567,6 +693,44 @@
         applyLanguage(currentLang === "he" ? "en" : "he");
       });
     }
+
+    // Workbench mode switcher (File Drop vs Live Line Sandbox)
+    document.querySelectorAll(".wb-tab").forEach((tab) => {
+      tab.addEventListener("click", function () {
+        const mode = this.getAttribute("data-wb-mode");
+        document.querySelectorAll(".wb-tab").forEach((t) => {
+          t.classList.remove("active");
+          t.setAttribute("aria-selected", "false");
+        });
+        this.classList.add("active");
+        this.setAttribute("aria-selected", "true");
+
+        const filePanel = document.getElementById("wb-panel-file");
+        const sbPanel = document.getElementById("wb-panel-sandbox");
+        if (filePanel && sbPanel) {
+          filePanel.hidden = mode !== "file";
+          sbPanel.hidden = mode !== "sandbox";
+        }
+        if (mode === "sandbox") updateLiveSandbox();
+      });
+    });
+
+    // Live Sandbox presets & textarea listener
+    const sbInput = document.getElementById("sandbox-input");
+    if (sbInput) {
+      sbInput.addEventListener("input", updateLiveSandbox);
+    }
+    document.querySelectorAll(".chip-btn").forEach((chip) => {
+      chip.addEventListener("click", function () {
+        document.querySelectorAll(".chip-btn").forEach((c) => c.classList.remove("active"));
+        this.classList.add("active");
+        const key = this.getAttribute("data-sb-preset");
+        if (sbInput && SANDBOX_PRESETS[key]) {
+          sbInput.value = SANDBOX_PRESETS[key];
+          updateLiveSandbox();
+        }
+      });
+    });
 
     const demoBtn = document.getElementById("load-demo-btn");
     if (demoBtn) {
