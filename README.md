@@ -14,10 +14,13 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![Platform: Windows & macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-143%2F143%20Passing-success.svg)]()
+[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-193%2F193%20Passing-success.svg)]()
+[![Web App: 100% Local Browser Fixer](https://img.shields.io/badge/Web%20App-Client--Side%20SubRefine-teal.svg)](https://omerninyo.github.io/RightSub/)
 [![Benchmark: 101/101 Episodes](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
-> **Subtitles Done Right — from 1-Click Plex & BiDi Repair to Autonomous Multi-Agent AI Translation.**
+> **Subtitles Done Right — from Instant Browser & 1-Click Plex BiDi Repair to Autonomous Multi-Agent AI Translation.**
+>
+> 🌐 **New in `v1.5.0` — Official Web App & Instant Browser `.srt` Master:** Fix broken Hebrew `.srt` files directly in your browser with **0 installation and 100% client-side privacy** via **[omerninyo.github.io/RightSub](https://omerninyo.github.io/RightSub/)** (or locally at `http://localhost:8775/ui` when running `rightsub serve`).
 
 **RightSub** is a high-performance CLI suite and Python framework designed to repair, clean, synchronize, translate, and format subtitles for **ANY movie or television series** across **Windows** and **macOS**.
 
@@ -46,30 +49,34 @@ rightsub auto ~/Movies/Breaking_Bad_S01/
 ```
 
 ### What happens automatically?
-- **Hebrew Subtitle (`.srt`)**: RightSub instantly fixes reversed punctuation (`? ! .`), converts legacy encodings to UTF-8, strips ads, and masters the file for Plex & Infuse. 
-- **Video File (`.mkv` / `.mp4`)**: RightSub extracts embedded subtitles, transcribes audio if needed, and builds AI-ready translation waves.
-- **Torrents & Seeding Protected (Seed-Safe)**: When encountering non-standard subtitles (e.g. `Movie.srt`), RightSub creates a clean `Movie.he.srt` copy while leaving the original file 100% bit-for-bit intact so active torrent seeding is never broken.
+- **Content-Based Hebrew `.srt` Discovery & Seed-Safe Torrent Protection**: RightSub does **not** rely only on `.he.srt` filenames. It inspects the content of **every** `.srt` file (including plain `Movie.srt`, `Movie.heb.srt`, or `Subs/*.srt` in `UTF-8` or `CP1255`). When a Hebrew `.srt` lacks the `.he.srt` suffix, RightSub leaves the original `.srt` **100% untouched on disk** (preserving torrent hashes for seeding) and writes the fixed output to a separate **`Movie.he.srt`** file.
+- **Hebrew Subtitle Mastering (`.srt` $\rightarrow$ `.he.srt`)**: Instantly fixes reversed punctuation (`? ! .`), un-flips legacy `Subabi` visual reversals, converts legacy encodings to `UTF-8`, strips ads, and masters the file for Plex & Infuse (`\u200F` UAX #9 Rule N1).
+- **Video File (`.mkv` / `.mp4`)**: Extracts embedded subtitles, transcribes audio if needed, and builds AI-ready translation waves.
 - **Home Media Automation (Set-and-Forget)**: Plug RightSub into **qBittorrent**, **Sonarr**, **Radarr**, **Bazarr**, or **Transmission** to run seamlessly in the background without needing a heavy 24/7 daemon. See [Home Media Integrations Guide](docs/INTEGRATIONS_GUIDE.md).
 
 ---
 
-## 🎯 Choose Your Track
+## 🎯 Choose Your Track (Deterministic vs. AI Decision Matrix)
 
-RightSub is organized into two distinct paths:
+RightSub strictly separates **technical mastering (0% AI)** from **translation & rare semantic rehabilitation (AI-assisted)** based on the task and whether an AI API key is configured:
 
-### Track 1: Fix Existing Subtitles (100% Offline & Free)
-*No AI required. No API keys. Zero cloud bandwidth.*
+### Track 1: Fix Existing Subtitles (100% Deterministic, Offline & Free — 99% of Existing Subtitles)
+*No AI required. No API keys. Zero cloud bandwidth. Never alters intact human phrasing.*
 
-- **Plex & Infuse BiDi Fix**: Injects invisible Right-to-Left Marks (`\u200F` / RLM) so punctuation and dashes never flip to the wrong side on Apple TV, Android TV, LG WebOS, Infuse, and VLC.
-- **Encoding Rescue**: Automatically detects CP1255 / Windows-1255 / ISO-8859-8 and converts to modern UTF-8.
-- **SDH Cleaner**: Strips hearing-impaired noise descriptors (`[CHEERING]`, `♪ Pop music ♪`) while strictly preserving dialogue timing.
-- **Ad & Watermark Stripper**: Removes release group spam, site URLs, and promotional lines.
+- **Automatic Content Detection & Seed-Safe `.he.srt` Creation**: Detects any `.srt` with Hebrew text, keeps the original torrent `.srt` untouched, and saves the fixed `.he.srt` separately.
+- **3-Stage Canonical BiDi & Un-Flipping Engine**: Reverses 18 legacy visual-flipping (`Subabi`) patterns and wraps lines with leading and trailing `RLM` (`\u200F`) **after** trailing punctuation (`UAX #9 Rule N1`) for Apple TV, Android TV, LG WebOS, Infuse, and VLC.
+- **Bilingual Deterministic Cross-Check (0 AI)**: When a companion `.en.srt` is present, deterministically un-flips reversed 2-digit numbers (`84` $\rightarrow$ `48` verified against the English cue) and validates structural cue alignment (`validate_anchor_alignment`).
+- **Encoding & Homoglyph Rescue**: Automatically converts `CP1255` / `Windows-1255` / `ISO-8859-8` to `UTF-8` and repairs foreign homoglyphs (Arabic, Cyrillic, Georgian, Greek) with conditional final-letter safety.
+- **SDH & Ad Stripper**: Removes translator watermarks, promo URLs, and multi-line credits.
+
+> 💡 **When is an AI Key used on existing subtitles (`rightsub polish`)?**  
+> For **99% of normal human subtitles** (Wizdom, Ktuvit, Subscenter), **Track 1 (`0` AI tokens) is all you ever need**. An AI key in `rightsub polish` is used **only for rare edge cases** — specifically **very old, OCR-corrupted (`PGS`/`VobSub`), or low-quality machine translations** that suffer from pervasive grammatical gender errors or severe terminology drift. If no AI key is configured, `rightsub polish` automatically runs in **100% deterministic offline mode**.
 
 ```bash
-# Windows:
-rightsub fix-plex "C:\Movies\Season 01" --recursive --clean-ads
+# Recommended autonomous fix (detects plain .srt, protects torrents, creates .he.srt):
+rightsub auto "C:\Movies\Season 01"
 
-# macOS / Linux:
+# Direct BiDi fix:
 rightsub fix-plex ~/Movies/Season_01 --recursive --clean-ads
 ```
 
@@ -259,12 +266,27 @@ rightsub polish "Movie.he.srt" --diff-only
 rightsub polish "Movie.he.srt" --in-place
 ```
 
-### Recipe 6: Interactive Credentials Onboarding & System Diagnostics
+### Recipe 6: Interactive Mastering Wizard, End-to-End Setup & Multi-Agent MCP Server
 ```bash
-# 10-second interactive setup wizard for Gemini & TMDb API keys:
-rightsub config
+# Launch the Interactive Terminal / Windows CMD Mastering Wizard (Drag & Drop + File Browser):
+rightsub
+# (or explicitly: rightsub wizard)
 
-# End-to-end environment inspector (FFmpeg, Python, Gemini, TMDb, Quicksubs):
+# Run the all-in-one Setup, Downloader Hooks & MCP Agent Wizard:
+rightsub setup
+
+# Auto-register RightSub's local MCP server across all installed AI agents
+# (Antigravity, Claude Desktop, Cursor, Windsurf, Claude Code):
+rightsub mcp --install
+
+# Interactive line-by-line diff review when polishing a subtitle ([Y] Approve / [N] Reject / [E] Edit):
+rightsub polish "Movie.he.srt" --interactive
+
+# 10-second interactive setup wizard for Gemini & TMDb API keys + downloader hooks:
+rightsub config
+rightsub config --install-hooks
+
+# End-to-end environment inspector (FFmpeg, Python, Gemini, TMDb, Quicksubs, MCP Agents):
 rightsub doctor
 ```
 
@@ -330,8 +352,11 @@ For developers and power users, RightSub cleanly separates high-level workflow c
 | Command | Engine | Description | Windows Example | macOS / Linux Example |
 | :--- | :---: | :--- | :--- | :--- |
 | `auto` | **All** | Zero-flag autonomous runner for files, seasons, or directories | `rightsub auto "Movie.mkv"` | `rightsub auto "Movie.mkv"` |
+| `wizard` | **Interactive** | Interactive Terminal / CMD Mastering Wizard (Drag & Drop, File Browser) | `rightsub` or `rightsub wizard` | `rightsub` or `rightsub wizard` |
+| `setup` | **Core** | End-to-end environment setup, downloader hooks & MCP agent wizard | `rightsub setup` | `rightsub setup` |
+| `mcp` | **MCP / Agents** | Native stdio MCP server & 1-command multi-agent installer (`--install`) | `rightsub mcp --install` | `rightsub mcp --install` |
 | `serve` | **Daemon** | Native Webhook daemon for Sonarr, Radarr, and Bazarr automation | `rightsub serve --port 8775` | `rightsub serve --port 8775` |
-| `polish` | **SubRefine & AI** | Semantic AI proofreading, canon harmonization & subtitle QC | `rightsub polish "Star Wars.he.srt"` | `rightsub polish "Star Wars.he.srt"` |
+| `polish` | **SubRefine & AI** | Semantic AI proofreading, canon harmonization & interactive diff review (`-i`) | `rightsub polish "Star Wars.he.srt" -i` | `rightsub polish "Star Wars.he.srt" -i` |
 | `translate-ollama` | **SubSwarm** | 100% offline local subtitle translation via Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
 | `fix-plex` | **SubRefine** | Fix BiDi, RLM, punctuation, CP1255 encoding & ads | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
 | `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
@@ -342,8 +367,8 @@ For developers and power users, RightSub cleanly separates high-level workflow c
 | `bible` | **SubSwarm** | Generate Character & Terminology Bible from SRTs & TMDb | `rightsub bible Season1/*.srt -o b.json --tmdb` | `rightsub bible Season1/*.srt -o b.json --tmdb` |
 | `split` | **SubSwarm** | Split master English SRT into ~210 cue JSON chunks | `rightsub split ep.en.srt -o ./batches/` | `rightsub split ep.en.srt -o ./batches/` |
 | `prompt-gen` | **SubSwarm** | Generate AI translation prompt waves with Bible & Context | `rightsub prompt-gen ep.en.srt -t "Title"` | `rightsub prompt-gen ep.en.srt -t "Title"` |
-| `config` | **Core** | Interactive API key onboarding and credentials manager (TMDb / Gemini) | `rightsub config` | `rightsub config` |
-| `doctor` | **Core** | System diagnostics & health check for dependencies and services | `rightsub doctor` | `rightsub doctor` |
+| `config` | **Core** | Interactive API key onboarding, downloader hooks (`--install-hooks`) & services | `rightsub config --install-hooks` | `rightsub config --install-hooks` |
+| `doctor` | **Core** | System diagnostics & health check for dependencies, services & MCP agents | `rightsub doctor` | `rightsub doctor` |
 | `merge` | **Both** | Assemble translated JSONs into Hebrew SRT with RLM | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` |
 | `qa` | **Both** | Zero-discrepancy 1:1 validation & gender mismatch audit | `rightsub qa ep.en.srt ep.he.srt` | `rightsub qa ep.en.srt ep.he.srt` |
 
@@ -367,23 +392,28 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (143 unit tests):
+RightSub comes with a comprehensive automated test suite (193 automated tests: 168 unit tests + 25 dataset integration tests):
 ```bash
 pytest -v
 ```
 
 Tests cover:
-- BiDi trailing punctuation and RLM idempotency.
+- BiDi trailing punctuation, 18-pattern legacy visual un-flipping (`Subabi` recovery), and RLM idempotency.
+- Client-side JavaScript `SubRefine` engine (`site/subrefine.js`) 1:1 parity against Python `07_fix_plex_punctuation.py` across all 15 Red Team vectors, CP1255 browser byte decoding, and bilingual number un-flipping.
 - Hebrew acronym gershayim conversion (`עו״ד`, `ארה״ב`).
-- Multi-lingual homoglyph normalization (Georgian, Armenian, Greek, Arabic, Cyrillic, Asian).
+- Multi-lingual homoglyph normalization (Georgian `דეייט` $\rightarrow$ `דייט`, Armenian, Greek, Arabic, Cyrillic, Asian).
+- Bilingual 2-digit number cross-check (`cross_check_bilingual_numbers`, `84` $\rightarrow$ `48`) and content-based Seed-Safe `.srt` $\rightarrow$ `.he.srt` protection.
 - Translation Bible prompt injection & context overlap continuity.
-- Direct-address vocative gender mismatch detection.
+- Direct-address vocative & intra-line morphological gender mismatch detection.
 - CP1255 Windows-1255 charset detection and conversion.
 - SDH auditory noise and commercial promo cleaning.
-- Framerate arithmetic and time shifting.
+- Framerate arithmetic, time shifting, and `validate_anchor_alignment` cue drift detection.
 - On-device STT CLI wrappers, fallback handlers, and audio-guided retiming algorithms.
 - TMDb API metadata resolution, smart media filename parsing, and deterministic gender mapping.
-- Documentation consistency, cross-platform parity, and valid link resolution.
+- Native MCP Server JSON-RPC 2.0 protocol framing (`Content-Length` + JSONL), `stdout` isolation, and multi-agent auto-installer (`--install` / `--uninstall` / `--status`).
+- Interactive CLI Wizard (`rightsub`), Drag-and-Drop path normalization, interactive file browser, and line-by-line `polish --interactive` reviewer.
+- Container Webhook Daemon (`rightsub serve`), `PATH_MAP` longest-prefix precedence, path traversal guards, and thread-safe atomic writes.
+- Documentation consistency, SemVer single source of truth, cross-platform parity, and valid link resolution.
 - Live verification of all 101 episodes in the media dataset.
 
 ---

@@ -167,3 +167,20 @@ class TestQAGenderMismatchDetection:
         assert passed_strict is False
         assert report_strict["gender_mismatches"] == 1
         assert len(report_strict["errors"]) == 1
+
+    def test_trailing_vocative_and_internal_contradictions(self):
+        cues = [
+            (1, "00:00:01,000 --> 00:00:03,000", "אתה מוכן ללכת למשפט, שירלי?"),
+            (2, "00:00:04,000 --> 00:00:06,000", "תפסיקי לצעוק עליי, אלן!"),
+            (3, "00:00:07,000 --> 00:00:09,000", "אתה ובעלך מוזמנים לארוחת ערב."),
+            (4, "00:00:10,000 --> 00:00:12,000", "אלוהים אדיבים, מה קרה כאן?"),
+            (5, "00:00:13,000 --> 00:00:15,000", "אני מוכן ללכת למשפט, שירלי.")  # 1st person 'אני מוכן' is valid!
+        ]
+        mismatches = check_gender_mismatches(cues)
+        assert len(mismatches) == 4
+        assert any("female 'שירלי'" in m for m in mismatches)
+        assert any("male 'אלן'" in m for m in mismatches)
+        assert any("אתה ובעלך" in m for m in mismatches)
+        assert any("אלוהים אדיבים" in m for m in mismatches)
+        assert not any("cue 5" in m for m in mismatches)
+

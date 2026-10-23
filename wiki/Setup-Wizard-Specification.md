@@ -1,13 +1,15 @@
-# 🔮 Architectural Specification: Automated Setup & Health-Check Wizard
+# 🛠️ Architectural Specification: Automated Setup, Downloader Hooks & Health-Check Wizard (`rightsub setup` / `rightsub doctor`)
+
+> **Status:** ✅ **Shipped in Production (`v1.3.0` & `v1.5.0`)** — Implemented in [`scripts/20_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/20_config_and_doctor.py), [`install.sh`](file:///Volumes/Other/Antigravity/RightSub/install.sh), [`install.bat`](file:///Volumes/Other/Antigravity/RightSub/install.bat), and [`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). Verified by [`tests/test_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_config_and_doctor.py).
 
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="מפרט-אשף-התקנה-ואבחון"><b>עברית</b></a>
+  <a href="RFC_003_SYSTEM_INTEGRATION_WIZARD.he.md"><b>עברית</b></a>
 </p>
 
-This document details the architectural design principles, workflow, and edge-case handling for a future **Interactive Setup & Health-Check Wizard** for **RightSub**.  
-The wizard's primary objective is to make onboarding 100% autonomous (One-Click / One-Liner), **even on a completely bare, clean-slate computer** lacking common developer tools (such as macOS machines without Homebrew, or Windows PCs without Winget or pre-installed Python).
+This document details the architectural design principles, workflow, and production implementation of the **Interactive Setup, Downloader Hooks & Health-Check Wizard** in **RightSub** (`rightsub setup`, `rightsub config`, `rightsub doctor`).  
+The wizard makes onboarding 100% autonomous (One-Click / One-Liner), including API key configuration, downloader hook script generation (`qBittorrent`, `Transmission`, `Sonarr`, `Radarr`), and OS background service registration (`launchd`, `systemd`, `schtasks`).
 
 ---
 
@@ -102,10 +104,12 @@ if ($userPath -notlike "*$installDir*") {
 
 ---
 
-## 5. Diagnostic Health-Check Command (`rightsub doctor`)
+## 5. Shipped Commands (`v1.5.0`)
 
-The same underlying verification engine will power an autonomous diagnostic tool:
 ```bash
-rightsub doctor
+rightsub setup                    # Full interactive onboarding: health check + API keys + downloader hooks + background service
+rightsub doctor                   # Non-destructive system diagnostic dashboard (Python, FFmpeg, quicksubs, Ollama, API keys, MCP agents)
+rightsub config                   # Interactive API key onboarding (TMDB_API_KEY, GEMINI_API_KEY) with chmod 600 protection
+rightsub config --install-hooks   # Generates qBittorrent (.sh/.bat) & Transmission hooks in ~/.config/rightsub/hooks/ + optional live Sonarr/Radarr webhook registration
+rightsub config --install-service # Generates & registers OS background service (macOS launchd plist / Linux systemd --user / Windows schtasks)
 ```
-This command inspects all system dependencies, prints a clear status dashboard (Python, FFmpeg, Ollama, TMDb, PATH), and offers 1-click self-repair for any missing components.

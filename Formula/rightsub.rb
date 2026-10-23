@@ -40,9 +40,12 @@ class Rightsub < Formula
       RightSub is installed! You can now run 'rightsub' from anywhere in your terminal.
       
       Quick Examples:
+        rightsub                       # Launch Interactive Mastering Wizard
+        rightsub setup                 # First-Time Setup, Hooks & Service Wizard
+        rightsub mcp --install         # Connect AI Agents (Antigravity, Claude, Cursor)
         rightsub auto "Movie.mkv"
         rightsub fix-plex "Episode.he.srt"
-        rightsub polish "Star Wars.he.srt"
+        rightsub polish "Star Wars.he.srt" --interactive
         rightsub --help
     EOS
   end

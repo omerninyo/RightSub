@@ -97,3 +97,29 @@ class TestSplitMergePipeline:
         assert "0:4" in captured_cmd
         assert "-nostdin" in captured_cmd
 
+    def test_validate_anchor_alignment_detects_cue_drift(self):
+        en_texts = {}
+        he_synced = {}
+        he_drifted = {}
+        for i in range(1, 21):
+            if i % 2 == 1:
+                en_texts[i] = f"Did you see case {i * 10}?"
+                he_synced[i] = f"האם ראית את תיק {i * 10}?"
+            else:
+                en_texts[i] = "♪ ♪"
+                he_synced[i] = "♪ ♪"
+
+        # Shift he_drifted by +1
+        for i in range(1, 20):
+            he_drifted[i] = he_synced[i + 1]
+        he_drifted[20] = "שלום."
+
+        ok_sync, rep_sync = merge_module.validate_anchor_alignment(en_texts, he_synced)
+        assert ok_sync is True
+        assert rep_sync["shifted_windows"] == 0
+
+        ok_drift, rep_drift = merge_module.validate_anchor_alignment(en_texts, he_drifted)
+        assert ok_drift is False
+        assert rep_drift["shifted_windows"] >= 1
+
+

@@ -11,8 +11,8 @@
 - **[AI Assistants & Integration](AI-Integration-Guide)**
 - **[⚖️ RightSub vs. Bazarr Comparison](Bazarr-Comparison)**
 - **[🔄 Home Media & Download Integrations](Integrations-Guide)**
-- **[🔮 Interactive CLI Specification](Interactive-CLI-Specification)**
-- **[🔮 Setup & Health Wizard Specification](Setup-Wizard-Specification)**
+- **[🧙 Interactive CLI Specification](Interactive-CLI-Specification)**
+- **[🛠️ Setup & Health Wizard Specification](Setup-Wizard-Specification)**
 - **[🔌 MCP Server Specification](MCP-Server-Specification)**
 - **[💎 Semantic AI Polish & QC Specification](Semantic-AI-Polish-and-QC)**
 - **[🐳 Docker Webhook Server Specification](Docker-Webhook-Server-Specification)**
@@ -34,8 +34,8 @@
 - **[חיבור לכלי בינה מלאכותית (AI)](מדריך-חיבור-לכלי-בינה-מלאכותית)**
 - **[⚖️ השוואה טכנית מול Bazarr](השוואה-מול-Bazarr)**
 - **[🔄 מדריך אינטגרציות ואוטומציה לשרתי מדיה](מדריך-אינטגרציות-ואוטומציה)**
-- **[🔮 מפרט אשף פקודה אינטראקטיבי](מפרט-אשף-פקודה-אינטראקטיבי)**
-- **[🔮 מפרט אשף התקנה ואבחון](מפרט-אשף-התקנה-ואבחון)**
+- **[🧙 מפרט אשף פקודה אינטראקטיבי](מפרט-אשף-פקודה-אינטראקטיבי)**
+- **[🛠️ מפרט אשף התקנה ואבחון](מפרט-אשף-התקנה-ואבחון)**
 - **[🔌 מפרט שרת MCP](מפרט-שרת-MCP)**
 - **[💎 מפרט מנוע ליטוש סמנטי ו-QC](מפרט-מנוע-ליטוש-סמנטי-ובקרת-איכות)**
 - **[🐳 מפרט שרת Webhook וקונטיינר](מפרט-שרת-Webhook-וקונטיינר-Docker)**

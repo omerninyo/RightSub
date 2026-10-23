@@ -1,15 +1,17 @@
 <div dir="rtl">
 
-# 🔮 מפרט ארכיטקטוני לפיתוח עתידי: שרת Webhook וקונטיינר Docker לאינטגרציית Sonarr, Radarr ו-Bazarr
+# 🐳 מפרט ארכיטקטוני: שרת Webhook וקונטיינר Docker לאינטגרציית Sonarr, Radarr ו-Bazarr (`rightsub serve`)
+
+> **סטטוס:** ✅ **שוחרר בייצור (`v1.4.0` ו-`v1.5.0`)** — מומש ב-[`scripts/21_webhook_server.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/21_webhook_server.py), ב-[`Dockerfile`](file:///Volumes/Other/Antigravity/RightSub/Dockerfile), ב-[`docker-compose.yml`](file:///Volumes/Other/Antigravity/RightSub/docker-compose.yml) וב-[`unraid/rightsub.xml`](file:///Volumes/Other/Antigravity/RightSub/unraid/rightsub.xml). מאומת על ידי [`tests/test_webhook_server.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_webhook_server.py).
 
 <p align="right">
   <b>שפה / Language:</b>
   <b>עברית</b> |
-  <a href="Docker-Webhook-Server-Specification"><b>English</b></a>
+  <a href="RFC_004_DOCKER_WEBHOOK_SERVER.md"><b>English</b></a>
 </p>
 
-מסמך זה מגדיר את עקרונות התכנון, הארכיטקטורה, חוזי ה-API ומודל הפריסה עבור **שרת ה-Webhook המובנה וקונטיינר ה-Docker הרשמי של RightSub**.  
-מטרת הרכיב היא לאפשר אינטגרציה חלקה (Zero-Kludge Plug-and-Play) מול שרתי מדיה ביתיים (Unraid, TrueNAS SCALE, Synology DSM, Docker Compose) ומול מנהלי הורדות (`*arr` Stack ו-Bazarr) ללא צורך בהתקנת סביבות פייתון על המארח וללא כתיבת סקריפטים ידניים.
+מסמך זה מגדיר את עקרונות התכנון, הארכיטקטורה, חוזי ה-API, הקשחת האבטחה ומודל הפריסה עבור **שרת ה-Webhook המובנה וקונטיינר ה-Docker הרשמי של RightSub** (`rightsub serve`).  
+השרת מאפשר אינטגרציה חלקה (Zero-Kludge Plug-and-Play) מול שרתי מדיה ביתיים (Unraid, TrueNAS SCALE, Synology DSM, Docker Compose) ומול מנהלי הורדות (`*arr` Stack ו-Bazarr) ללא צורך בהתקנת סביבות פייתון על המארח וללא כתיבת סקריפטים ידניים.
 
 ---
 

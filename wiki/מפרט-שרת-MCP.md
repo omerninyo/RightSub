@@ -1,14 +1,10 @@
 <div dir="rtl">
 
-# מפרט ארכיטקטוני לפיתוח עתידי: שרת RightSub MCP (Model Context Protocol)
+# 🔌 מפרט ארכיטקטוני: שרת RightSub MCP (`rightsub mcp`)
 
-<p align="right">
-  <b>שפה / Language:</b>
-  <b>עברית</b> |
-  <a href="MCP-Server-Specification"><b>English</b></a>
-</p>
+> **סטטוס:** ✅ **שוחרר בייצור (`v1.5.0`)** — מומש ב-[`scripts/23_mcp_server.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/23_mcp_server.py) וב-[`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). מאומת על ידי [`tests/test_mcp_server.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_mcp_server.py).
 
-מסמך זה מתעד את עקרונות התכנון, מבנה הכלים והארכיטקטורה להפיכת **RightSub** לשרת **MCP (Model Context Protocol)**. מטרת הפרויקט היא לחבר את כלי הליבה של RightSub ישירות ליישומי וסוכני AI מובילים (כגון Claude Desktop, Antigravity, Cursor ו-ChatGPT), ובכך לספק ממשק שיחה טבעי ואינטראקטיבי לחלוטין לצד תרגום כתוביות באיכות הגבוהה ביותר בענן.
+מסמך זה מתעד את עקרונות התכנון, מבנה הכלים, מנגנוני ההגנה והמתקין האוטומטי של שרת ה-**MCP (Model Context Protocol)** המובנה ב-**RightSub** (`v1.5.0`). השרת מחבר את כלי הליבה של RightSub ישירות ליישומי וסוכני AI מובילים (**Google Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf** ו-**Claude Code**).
 
 ---
 
@@ -102,39 +98,20 @@
 
 ---
 
-## 5. הגדרת התקנה בקליינט (Configuration Example)
+## 5. מתקין אוטומטי לסוכני AI והקשחת Red Team (`v1.5.0`)
 
-המשתמש יוסיף את ההגדרה הבאה לקובץ הקונפיגורציה של סוכן ה-AI שלו (למשל `claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "rightsub": {
-      "command": "python3",
-      "args": ["/path/to/RightSub/rightsub.py", "mcp"],
-      "env": {
-        "TMDB_API_KEY": "YOUR_OPTIONAL_TMDB_KEY"
-      }
-    }
-  }
-}
+במקום לערוך ידנית קובצי JSON, ניתן לרשום את השרת אוטומטית בפקודה אחת:
+```bash
+rightsub mcp --install      # מזהה ורושם אוטומטית ב-Antigravity, Claude Desktop, Cursor, Windsurf ו-Claude Code
+rightsub mcp --status       # מציג את סטטוס הרישום בכל סוכני ה-AI במחשב
+rightsub mcp --print-config # מדפיס את בלוק ה-JSON המדויק עם נתיבים מוחלטים
+rightsub mcp --uninstall    # מסיר את הרישום בצורה נקייה
 ```
 
----
-
-## 6. טכנולוגיות ומימוש מוצע (Implementation Stack)
-
-- שימוש בספרייה הרשמית של Anthropic ל-Python: `mcp` או `fastmcp`.
-- השרת ממומש בקובץ ליבה ייעודי `src/mcp_server.py`.
-- כל הכלים קוראים ישירות לפונקציות הליבה שכבר נבדקו ואומתו במערכת, ללא שכפול קוד.
-
----
-
-## 7. מעקב גרסאות ומפת דרכים
-
-- **יעד גרסה:** 1.5.0
-- **מיילסטון ב-GitHub:** [`v1.5.0 — Agentic Subtitle Protocol & MCP Server`](https://github.com/omerninyo/RightSub/milestone/2)
-- **כרטיס מעקב (Issue):** [#3](https://github.com/omerninyo/RightSub/issues/3)
-- **מפת דרכים:** [מפת דרכים ומעקב אבני-דרך](מפת-דרכים)
+### פרטי המימוש בייצור (`scripts/23_mcp_server.py`):
+- **אפס תלויות צד-שלישי**: מומש ישירות מעל ספריות הליבה של Python (`json`, `sys`, `io`, `contextlib`) ללא תלות בחבילות חיצוניות כבדות.
+- **בידוד מוחלט של ערוץ `stdout` (`_isolated_stdio`)**: כל הדפסת `print()` פנימית של סקריפטי הליבה מנותבת בזמן ריצה ל-`stderr` ולזיכרון פנימי כדי שלעולם לא תשבש את פרוטוקול ה-JSON-RPC 2.0 מול הסוכן.
+- **תמיכה כפולה בפורמט הודעות (Dual-Mode Framing)**: תומך אוטומטית הן ב-JSONL (שורה לכל הודעה לפי תקן MCP stdio) והן בכותרות `Content-Length` בסגנון LSP.
+- **הזרקת `PATH` מלאה לתהליכי GUI**: מזריק את `/opt/homebrew/bin`, `/usr/local/bin` ו-`~/.local/bin` לתוך בלוק ה-`env` בקובץ הקונפיגורציה של הסוכן (עם גיבוי `.bak` אוטומטי), כך שאפליקציות שולחניות תמיד ימצאו את `ffmpeg` ואת `python3`.
 
 </div>

@@ -42,12 +42,12 @@ DEFAULT_MALE_NAMES = ["אלן", "דני", "פול", "בראד", "ג'רי", "דנ
 
 MASCULINE_VERBS_AND_PRONOUNS = [
     "אתה יכול", "אתה רוצה", "אתה יודע", "אתה מבין", "אתה חושב", "אתה מוכן", "אתה צודק", "אתה הולך",
-    "אתה", "תגיד", "תשמע", "תפסיק", "בוא", "שב", "לך", "תרגיע", "תקשיב"
+    "אתה", "תגיד", "תשמע", "תפסיק", "בוא", "שב", "לך", "תרגיע", "תקשיב", "תן לי"
 ]
 
 FEMININE_VERBS_AND_PRONOUNS = [
     "את יכולה", "את רוצה", "את יודעת", "את מבינה", "את חושבת", "את מוכנה", "את צודקת", "את הולכת",
-    "תגידי", "תשמעי", "תפסיקי", "בואי", "שבי", "לכי", "תרגיעי", "תקשיבי"
+    "תגידי", "תשמעי", "תפסיקי", "בואי", "שבי", "לכי", "תרגיעי", "תקשיבי", "תני לי"
 ]
 
 def get_gender_rosters(bible_path=None):
@@ -79,30 +79,72 @@ def get_gender_rosters(bible_path=None):
 
 def check_gender_mismatches(he_subs, bible_path=None):
     """
-    Scans Hebrew cues for direct address vocative gender contradictions:
-    E.g. addressing a female name with masculine 2nd person: 'שירלי, אתה מוכן?'
+    Scans Hebrew cues for direct address vocative gender contradictions (at start, middle, or end of clause)
+    as well as internal morphological contradictions (e.g. 'אתה ובעלך', 'אלוהים אדיבים'):
+    - Leading vocative: 'שירלי, אתה מוכן?' / 'אלן, תפסיקי.'
+    - Trailing vocative: 'אתה מוכן, שירלי?' / 'תפסיקי לצעוק, אלן!'
+    - Internal morphological errors: 'אתה ובעלך', 'אלוהים אדיבים'
     """
     female_entities, male_entities = get_gender_rosters(bible_path)
     mismatches = []
 
-    f_pattern_str = r'(?:^|[.?!;\n])\s*(' + '|'.join(re.escape(x) for x in female_entities) + r')\s*[,:\-]\s*(?:(?:ו?מה|ו?למה|ו?איך|ו?אם|ו?אולי|בבקשה|עכשיו)\s+)?(' + '|'.join(re.escape(x) for x in MASCULINE_VERBS_AND_PRONOUNS) + r')\b'
-    m_pattern_str = r'(?:^|[.?!;\n])\s*(' + '|'.join(re.escape(x) for x in male_entities) + r')\s*[,:\-]\s*(?:(?:ו?מה|ו?למה|ו?איך|ו?אם|ו?אולי|בבקשה|עכשיו)\s+)?(' + '|'.join(re.escape(x) for x in FEMININE_VERBS_AND_PRONOUNS) + r')\b'
+    f_names_union = '|'.join(re.escape(x) for x in female_entities)
+    m_names_union = '|'.join(re.escape(x) for x in male_entities)
+    masc_verbs_union = '|'.join(re.escape(x) for x in MASCULINE_VERBS_AND_PRONOUNS)
+    # Exclude ambiguous 'לך' (which is also feminine 'לָךְ' = 'to you' in unvocalized Hebrew) from trailing-vocative scan
+    masc_verbs_trail_union = '|'.join(re.escape(x) for x in MASCULINE_VERBS_AND_PRONOUNS if x != "לך")
+    fem_verbs_union = '|'.join(re.escape(x) for x in FEMININE_VERBS_AND_PRONOUNS)
 
-    f_regex = re.compile(f_pattern_str)
-    m_regex = re.compile(m_pattern_str)
+    # 1. Leading vocative: "שירלי, אתה מוכן"
+    f_lead_regex = re.compile(
+        r'(?:^|[.?!;\n])\s*(' + f_names_union + r')\s*[,:\-]\s*(?:(?:ו?מה|ו?למה|ו?איך|ו?אם|ו?אולי|בבקשה|עכשיו)\s+)?(' + masc_verbs_union + r')\b'
+    )
+    m_lead_regex = re.compile(
+        r'(?:^|[.?!;\n])\s*(' + m_names_union + r')\s*[,:\-]\s*(?:(?:ו?מה|ו?למה|ו?איך|ו?אם|ו?אולי|בבקשה|עכשיו)\s+)?(' + fem_verbs_union + r')\b'
+    )
+
+    # 2. Trailing vocative within the same clause (no sentence break between 2nd-person verb/pronoun and vocative):
+    # Exclude 1st-person clauses like "אני ... , אלן" by requiring an explicit 2nd-person token in the same clause.
+    f_trail_regex = re.compile(
+        r'(?:^|[.?!;\n])\s*(?!אני\b)[^.?!;\n]*?\b(' + masc_verbs_trail_union + r')\b[^.?!;\n]*?,\s*(' + f_names_union + r')(?=\s*[.?!;\n]|$)'
+    )
+    m_trail_regex = re.compile(
+        r'(?:^|[.?!;\n])\s*(?!אני\b)[^.?!;\n]*?\b(' + fem_verbs_union + r')\b[^.?!;\n]*?,\s*(' + m_names_union + r')(?=\s*[.?!;\n]|$)'
+    )
+
+    # 3. Internal morphological contradictions
+    internal_contradictions = [
+        (re.compile(r'\bאתה\s+ובעלך\b'), "Internal gender contradiction: 'אתה ובעלך' (should be 'את ובעלך')"),
+        (re.compile(r'\bאלוהים\s+אדיבים\b'), "Malformed idiom: 'אלוהים אדיבים' (should be 'אלוהים אדירים')"),
+        (re.compile(r'\b(?:אמם|המם|ממם|טרמף)\b'), "Corrupted final letter form (אמם/המם/ממם/טרמף)"),
+    ]
 
     for idx, timing, text in he_subs:
-        clean_text = re.sub(r'[\u200e\u200f]', '', text)
+        clean_text = re.sub(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', '', text)
 
-        f_match = f_regex.search(clean_text)
+        f_match = f_lead_regex.search(clean_text)
         if f_match:
             entity, verb = f_match.group(1), f_match.group(2)
             mismatches.append(f"Gender mismatch at cue {idx}: Addressed female '{entity}' with masculine '{verb}' in '{clean_text.strip()}'")
+        else:
+            ft_match = f_trail_regex.search(clean_text)
+            if ft_match:
+                verb, entity = ft_match.group(1), ft_match.group(2)
+                mismatches.append(f"Gender mismatch at cue {idx}: Addressed female '{entity}' with masculine '{verb}' in '{clean_text.strip()}'")
 
-        m_match = m_regex.search(clean_text)
+        m_match = m_lead_regex.search(clean_text)
         if m_match:
             entity, verb = m_match.group(1), m_match.group(2)
             mismatches.append(f"Gender mismatch at cue {idx}: Addressed male '{entity}' with feminine '{verb}' in '{clean_text.strip()}'")
+        else:
+            mt_match = m_trail_regex.search(clean_text)
+            if mt_match:
+                verb, entity = mt_match.group(1), mt_match.group(2)
+                mismatches.append(f"Gender mismatch at cue {idx}: Addressed male '{entity}' with feminine '{verb}' in '{clean_text.strip()}'")
+
+        for pat, desc in internal_contradictions:
+            if pat.search(clean_text):
+                mismatches.append(f"Linguistic error at cue {idx}: {desc} in '{clean_text.strip()}'")
 
     return mismatches
 

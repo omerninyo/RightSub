@@ -1,4 +1,6 @@
-# 🔮 Architectural Specification: Interactive CLI Wizard
+# 🧙 Architectural Specification: Interactive CLI Wizard (`rightsub` / `rightsub wizard`)
+
+> **Status:** ✅ **Shipped in Production (`v1.5.0`)** — Implemented in [`scripts/22_interactive_wizard.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/22_interactive_wizard.py), [`scripts/19_polish_and_qc.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/19_polish_and_qc.py) (`--interactive`), and [`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). Verified by [`tests/test_interactive_wizard.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_interactive_wizard.py).
 
 <p align="left">
   <b>Language / שפה:</b>
@@ -6,7 +8,7 @@
   <a href="RFC_001_INTERACTIVE_TUI.he.md"><b>עברית</b></a>
 </p>
 
-This document details the architectural design principles, workflow, and system requirements for a future **Interactive CLI Wizard (TUI / Terminal Dialog)** for **RightSub**. The goal of the wizard is to empower end users to execute the full suite of RightSub mastering and translation capabilities without memorizing commands, arguments, or CLI flags.
+This document details the architectural design principles, workflow, and production implementation of the **Interactive CLI Wizard (TUI / Terminal Dialog)** in **RightSub** (`v1.5.0`). The wizard empowers end users on macOS, Windows (`CMD` / `PowerShell`), and Linux to execute the full suite of RightSub mastering, polishing, and translation capabilities without memorizing commands, arguments, or CLI flags.
 
 ---
 
@@ -93,10 +95,13 @@ The wizard does not require re-entering API credentials on each run, nor does it
 
 ---
 
-## 6. Implementation Libraries
+## 6. Production Implementation Details (`v1.5.0`)
 
-1. **Standard Library Mode (Zero External Dependencies):**
-   - Built exclusively with `sys`, `os`, `pathlib`, `shlex`, `getpass`.
-   - Guaranteed out-of-the-box availability without `pip install` overhead.
-2. **Enhanced Terminal Experience (Optional):**
-   - Graceful elevation to `questionary` or `InquirerPy` if installed in the environment for arrow-key navigation and interactive checkboxes.
+1. **Zero External Dependencies (`scripts/22_interactive_wizard.py`):**
+   - Built exclusively with Python standard libraries (`sys`, `os`, `pathlib`, `shlex`, `getpass`, `platform`).
+   - Automatically launched when `rightsub` is invoked with no arguments in an interactive TTY (`sys.stdin.isatty() and sys.stdout.isatty()`), while printing standard `--help` in non-TTY CI/cron pipes so automated scripts never hang.
+2. **Cross-Platform Drag & Drop + Interactive File Browser (`[B] Browse`):**
+   - `normalize_dragged_path()` strips macOS Finder backslash escapes (`\ `), Windows Explorer quotes, and PowerShell `& '...'` invocation prefixes.
+   - `interactive_file_browser()` provides a numbered directory & file navigator directly inside the terminal.
+3. **Interactive Line-by-Line Polish Diff Reviewer (`rightsub polish --interactive` / `-i`):**
+   - Implemented in `scripts/19_polish_and_qc.py` (`interactive_review_modifications`) with `[Y/Enter] Approve`, `[N] Reject`, `[E] Edit manually`, `[A] Approve All`, `[R] Reject Remaining`, `[Q] Quit`, and `Ctrl+C` partial-save protection.

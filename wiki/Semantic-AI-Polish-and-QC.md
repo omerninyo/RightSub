@@ -23,14 +23,21 @@ Re-translating the entire film with an LLM burns unnecessary tokens, risks hallu
 
 ---
 
-## 2. RightSub Subtitle Operation Comparison
+## 2. RightSub Subtitle Operation Comparison & AI Decision Matrix
 
 | Command | Primary Role | Modifies Text? | Uses AI? | Token Cost |
 | :--- | :--- | :---: | :---: | :---: |
-| `rightsub fix-plex` | Algorithmic BiDi (RLM), CP1255 recovery, and ad cleaning. | ❌ No | ❌ No | 0 |
-| `rightsub qa` | Deterministic verification of line counts, timing, and homoglyphs. | ❌ Audit report only | ❌ No | 0 |
-| `rightsub auto` | Autonomous runner (extracts, fixes Plex, or translates from scratch). | ✔️ Full (if translating) | ✔️ Yes (if needed) | 100% |
-| **`rightsub polish`** | **Proofreading, semantic gender correction & canon harmonization.** | **✔️ Selective fixes only** | **✔️ Yes (QC Reviewer)** | **~15%–20%** |
+| `rightsub fix-plex` | Algorithmic BiDi (RLM), 18-pattern un-flipping, CP1255 recovery, homoglyph & ad cleaning. | ❌ No (Formatting only) | ❌ No | **0** |
+| `rightsub qa` | Deterministic verification of line counts, timing, `Cue Drift`, and vocative/morphological gender. | ❌ Audit report only | ❌ No | **0** |
+| `rightsub auto` (No AI Key) | Extracts, detects any Hebrew `.srt` by content, repairs BiDi/encoding, and writes Seed-Safe `.he.srt`. | ❌ No (Formatting only) | ❌ No | **0** |
+| `rightsub auto` (With AI Key) | Same as above for existing Hebrew `.srt` (0 tokens); invokes AI **only** when no Hebrew subtitle exists and full translation is needed. | ✔️ Full (only if translating) | ✔️ Only if translating | **0** (existing HE) / **100%** (new translation) |
+| **`rightsub polish`** | **Proofreading, semantic gender correction & canon harmonization (plus 0-token deterministic pass).** | **✔️ Selective fixes only** | **✔️ Optional (`--gemini` / `--ollama`)** | **0** (deterministic pass) / **~15%–20%** (with AI) |
+
+### 2.1 When Is AI Actually Needed for Existing Subtitles? (Rare Edge Cases Only)
+A core architectural principle of RightSub is **strict separation between technical subtitle mastering (0 AI tokens) and semantic AI proofreading**:
+- **99% of Existing Human Subtitles Need Zero AI (`0` Tokens):** Technical defects — inverted punctuation (`.שלום`), missing UAX #9 `RLM` wrappers, `Windows-1255` mojibake, Cyrillic/Georgian homoglyphs (`דეייט` $\rightarrow$ `דייט`), reversed 2-digit `Subabi` numbers (`84` $\rightarrow$ `48`), and translator credit banners — are **100% deterministic** and handled offline by `fix-plex` / `auto` without an API key.
+- **When to Use `rightsub polish` with AI:** Invoking an LLM (`GEMINI_API_KEY` or `--ollama`) on an existing Hebrew subtitle is reserved for **rare edge cases** — such as very old amateur translations, unedited machine/OCR drafts, or specific franchise releases with severe terminology drift (e.g. translating *"Lightsaber"* as *"חרב לייזר"*) or pervasive unmarked speaker-to-addressee gender errors where no explicit vocative name appears in the cue.
+- **0-Token Deterministic Pass Always Runs First:** Even inside `rightsub polish`, Stage 0 executes the **Deterministic Canon, Homoglyph & Bilingual Number Un-Flipping Pass** (`run_deterministic_canon_pass` + `cross_check_bilingual_numbers`) at **0 token cost** before any LLM is ever called.
 
 ---
 
@@ -54,7 +61,19 @@ rightsub polish "Movie.he.srt" --en "Movie.en.srt" --ollama --model qwen2.5:7b
 
 # Dry run / Audit mode: generate a change report without modifying the subtitle file:
 rightsub polish "Movie.he.srt" --en "Movie.en.srt" --diff-only
+
+# Interactive Line-by-Line Diff Reviewer (New in v1.5.0: [Y/Enter] Approve, [N] Reject, [E] Edit, [A] Approve All, [R] Reject Remaining, [Q] Quit):
+rightsub polish "Movie.he.srt" --en "Movie.en.srt" --interactive
 ```
+
+### 3.1 Interactive Line-by-Line Diff Reviewer (`--interactive` / `-i`)
+Shipped in `v1.5.0` ([`scripts/19_polish_and_qc.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/19_polish_and_qc.py)), `rightsub polish --interactive` (or `-i`) presents every proposed canon, number, or AI modification in a linear terminal review loop before writing to disk:
+- **`[Y / Enter]`**: Approve the proposed change for this cue.
+- **`[N]`**: Reject the change and preserve the original Hebrew line.
+- **`[E]`**: Type a custom manual Hebrew replacement for this cue.
+- **`[A]`**: Approve all remaining proposed modifications immediately.
+- **`[R]` / `[Q]`**: Reject all remaining modifications and save only the cues approved so far.
+- **`Ctrl+C` Partial-Save Safety**: Pressing `Ctrl+C` during an interactive review never corrupts the file; it catches `KeyboardInterrupt` and offers to save the partial approvals reviewed up to that cue.
 
 ---
 
@@ -130,10 +149,11 @@ RightSub operates an offline and online 3-tier classifier (`domain_knowledge.py`
 2. **Tier 2 (Franchise Patterns)**: Regex and title matches across major film franchises (*Star Wars*, *Marvel*, *Star Trek*, *Lord of the Rings*, *Harry Potter*).
 3. **Tier 3 (Offline Fingerprinting)**: Lexical keyword scans detecting sci-fi, military, medical, or legal dialogue inside the subtitle itself when offline.
 
-#### Bilingual Anchor Validation:
+#### Bilingual Anchor Validation & Deterministic Number Un-Flipping (`cross_check_bilingual_numbers`):
 To guarantee that cross-genre terms never corrupt unintended lines (e.g. translating "motor" as "motivator" outside of droid contexts), deterministic franchise rules require **bidirectional validation**:
 - The Hebrew trigger must match the pattern.
 - The master English cue must independently confirm the presence of the anchor phrase.
+- **Deterministic Bilingual Number Un-Flipping (`0` Tokens):** Old visual-flipping tools (`Subabi`) often reversed 2-digit numbers inside Hebrew lines (`48` $\rightarrow$ `84`). When a companion `.en.srt` is available, `cross_check_bilingual_numbers` compares every 2-digit number in the Hebrew cue against the matching English cue: if the reversed number (`48`) appears in the English cue (either as digits `48` or English words `forty-eight`) and the current number (`84`) does not, it deterministically un-flips `84` $\rightarrow$ `48` with zero AI calls.
 
 ### Stage 7: Forward Anticipation Drift Guard & Split-Cue Partitioning
 When dialogue spans multiple split cues (e.g. a sentence begun in cue #144 and finished in cue #145), standard LLMs often collapse the sentence into the first cue and translate upcoming dialogue lines into subsequent cues, causing a cascading off-by-one desynchronization.
@@ -146,8 +166,9 @@ RightSub explicitly calls `os.utime()` after all file write and backup operation
 
 ---
 
-## 5. Non-Destructive Safety Guarantees
+## 5. Non-Destructive & Seed-Safe Torrent Guarantees
 
-- Original subtitles (`Movie.he.srt`) are safely backed up to `Movie.he.original.srt` before any replacement occurs.
-- Polished output files are passed through the SubRefine engine, guaranteeing UTF-8 encoding and idempotent RLM (`\u200F`) injection for Plex, Infuse, and Apple TV playback.
+- **Content-Based Hebrew `.srt` Discovery & Seed-Safe Output (`.srt` $\rightarrow$ `.he.srt`):** Both `rightsub auto` and `rightsub polish` inspect all `.srt` files by content/encoding (`UTF-8`, `UTF-16`, `Windows-1255`), not just files ending in `.he.srt`. When a plain Hebrew `.srt` (e.g. `Movie.srt`, `Movie.heb.srt`, or `Subs/Hebrew.srt`) is processed with `--in-place`, **the original `.srt` is left 100% untouched on disk** so active torrent seeding (`qBittorrent` / `Transmission`) never breaks, and the mastered output is saved separately as `Movie.he.srt`.
+- When polishing an existing `.he.srt` file in-place, it is safely backed up to `Movie.he.original.srt` before replacement.
+- Polished output files are passed through the SubRefine engine, guaranteeing UTF-8 encoding and idempotent UAX #9 Rule N1 RLM (`\u200F`) wrapping for Plex, Infuse, and Apple TV playback.
 - Subtitle timecodes and cue indexes are strictly immutable.

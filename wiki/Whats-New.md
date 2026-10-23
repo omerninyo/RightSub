@@ -10,6 +10,48 @@ This document tracks **major milestone releases** and product capabilities in Ri
 
 ---
 
+## 🌟 Version 1.5.0 — Native MCP Server (`rightsub mcp`), Multi-Agent Auto-Installer & Interactive Mastering Suite (`wizard` / `setup`)
+
+> **Release Date:** October 2026  
+> **Milestone Focus:** Delivering the complete `v1.4.0` and `v1.5.0` roadmap in a unified zero-dependency package: Native Model Context Protocol (`MCP`) Server over `stdio`, 1-command auto-registration across all major AI agents (`Antigravity`, `Claude Desktop`, `Cursor`, `Windsurf`, `Claude Code`), Interactive Terminal/CMD Mastering Wizard (`rightsub` / `rightsub wizard`), Line-by-Line Polish Diff Reviewer (`rightsub polish --interactive`), and Automated Downloader Hook & Service Generator (`rightsub setup` / `rightsub config --install-hooks`).
+
+### 🎯 Key Highlights
+- **Native Model Context Protocol Server (`rightsub mcp` — `scripts/23_mcp_server.py`):** Zero-dependency JSON-RPC 2.0 server over `stdio` supporting both standard MCP newline-delimited JSON and LSP-style `Content-Length` headers, with strict `stdout` capture isolation so tool logs never corrupt the wire stream. Exposes 8 tools (`inspect_media`, `fix_plex_subtitles`, `extract_subtitles`, `prepare_translation`, `merge_and_master`, `polish_subtitles`, `audit_subtitles_qa`, `transcribe_audio`).
+- **1-Command Multi-Agent Auto-Installer (`rightsub mcp --install`):** Automatically detects and registers `rightsub` into **Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf**, and **Claude Code** with exact absolute paths (`sys.executable` + `rightsub.py`), full `PATH` environment injection for GUI apps, `.bak` backups, and preservation of all existing MCP servers.
+- **Interactive Terminal & Windows CMD Mastering Wizard (`rightsub` / `rightsub wizard` — `scripts/22_interactive_wizard.py`):** Running `rightsub` with no arguments in an interactive terminal launches a bilingual menu with cross-platform Drag & Drop path normalization (macOS Finder backslash escapes, Windows Explorer quotes, PowerShell `& '...'`) and a built-in terminal file browser.
+- **Interactive Line-by-Line Diff Reviewer (`rightsub polish --interactive` / `-i`):** Inspect proposed subtitle edits one-by-one (`[Y] Approve`, `[N] Reject`, `[E] Edit manually`, `[A] Approve All`, `[R] Reject Remaining`) with `Ctrl+C` partial-save recovery.
+- **End-to-End Setup, Downloader Hooks & Background Service Wizard (`rightsub setup` / `rightsub config --install-hooks` / `--install-service`):** Generates ready-to-run `qBittorrent` (`.sh`/`.bat`) and `Transmission` hook scripts, optional live `Sonarr`/`Radarr` REST API webhook registration, and background service definitions (`launchd` on macOS, `systemd --user` on Linux, `schtasks` on Windows).
+- **Bilingual Web App, Client-Side `.srt` Master & Built-in Local Web UI (`site/` & `rightsub serve`):** 100% client-side JavaScript port of the `SubRefine` engine (`site/subrefine.js`) with byte-level `CP1255` detection, 18-pattern `Subabi` un-flipping, bilingual `HE + EN` number cross-checking, UAX #9 Rule N1 `RLM` wrapping, Seed-Safe `.he.srt` naming, an interactive Plex / Apple TV screen simulator, and automatic serving on `http://localhost:8775/ui` via `rightsub serve`.
+
+---
+
+## 🌟 Version 1.3.3 — Deterministic vs. AI Decision Matrix, Seed-Safe Plain `.srt` Discovery & Bilingual Number Un-Flipping
+
+> **Release Date:** October 2026  
+> **Milestone Focus:** Clear architectural separation between 0-token deterministic subtitle mastering and rare-case AI semantic polishing, content-based Hebrew `.srt` discovery with Seed-Safe `.he.srt` torrent protection across `auto` and `polish`, deterministic bilingual number un-flipping (`84` $\rightarrow$ `48`), Georgian homoglyph repair (`דეייט` $\rightarrow$ `דייט`), and 100% cue-drift un-shifting across all 101 episodes of *Boston Legal*.
+
+### 🎯 Key Highlights
+- **Deterministic (0-Token) vs. AI-Assisted Decision Matrix:** Documented and enforced the strict boundary between technical subtitle mastering (**0 AI tokens** for 99% of existing human Hebrew subtitles via `fix-plex` and `auto`) and LLM-based semantic proofreading (`rightsub polish`, reserved only for rare edge cases such as legacy amateur drafts, OCR-corrupted releases, or unmarked cross-cue gender errors).
+- **Content-Based Hebrew `.srt` Discovery & Seed-Safe Torrent Protection (`.srt` $\rightarrow$ `.he.srt`):** Both `rightsub auto` and `rightsub polish --in-place` detect any `.srt` file containing Hebrew text (`Movie.srt`, `Movie.heb.srt`, `Subs/*.srt`), preserve the original file 100% untouched on disk for torrent seeding (`qBittorrent` / `Transmission`), and output the mastered subtitle separately as `<stem>.he.srt` without polluting `Subs/` subdirectories.
+- **Deterministic Bilingual Number Un-Flipping (`cross_check_bilingual_numbers`):** Automatically un-flips 2-digit numbers reversed by legacy `Subabi` visual-flipping scripts (`84` $\rightarrow$ `48`) at **0 token cost** whenever the un-flipped number is verified in the matching `.en.srt` cue (as digits `48` or English number words `forty-eight`).
+- **Georgian Homoglyph Repair:** Added deterministic replacement for Georgian `ე` (`U+10D4`) inside Hebrew words (`דეייט` $\rightarrow$ `דייט`).
+- **101-Episode *Boston Legal* Dataset Mastering & Un-Shifting:** Un-shifted localized 1-cue drift windows in `.bak.v25` for `S02E09`, `S03E12`, and `S04E05`, achieving `0` shifted windows and `0` vocative/morphological gender errors across all 101 episodes (`88,622` cues).
+
+---
+
+## 🌟 Version 1.3.2 — 3-Stage Canonical BiDi & Un-Flipping Engine, UAX #9 Rule N1 Wrapping & Cue Drift Guard
+
+> **Release Date:** October 2026  
+> **Milestone Focus:** Corpus-benchmarked (`20,299` `.srt` files / `15,630,175` Hebrew lines) 3-Stage Canonical BiDi & Un-Flipping Engine, UAX #9 Rule N1 trailing `RLM` placement, homoglyph-conditional final-letter safety, and 25-cue window `Cue Drift` detection.
+
+### 🎯 Key Highlights
+- **3-Stage Canonical BiDi & Un-Flipping Engine (`07_fix_plex_punctuation.py`):** Benchmarked across **20,299 subtitle files (`14,752` Hebrew files / `15,630,175` Hebrew lines)**. Combines file-level flip polarity detection (`detect_file_flip_polarity`), deterministic un-flipping of 18 legacy visual-flipping patterns (`canonicalize_visual_flipped_line`), and **UAX #9 Rule N1** wrapping (`\u200F + Logical Core + \u200F` with trailing `RLM` placed **after** trailing punctuation).
+- **Homoglyph-Conditional Final-Letter Safety:** Runs `normalize_final_letters` strictly when a Cyrillic or Arabic homoglyph was actually replaced in the line, preventing corruption of Hebrew hesitation interjections (`אממ`, `הממ`, `מממ`) and loanwords (`טרמפ`, `ג'יפ`), while normalizing vocalized `אִמם` ("their mother") to `אימם`.
+- **Cue Drift Anchor Validation (`validate_anchor_alignment`):** Detects silent `+1`/`-1` cue shifts caused by LLM line merges/splits using 25-cue sliding windows over question marks (`?`), musical notes (`♪`), and numbers.
+- **Expanded Bidirectional Vocative & Morphological QA (`08_quality_assurance.py`):** Detects both leading vocatives (`"שירלי, אתה מוכן?"`) and trailing vocatives (`"תן לי לומר לך משהו, שירלי."`, `"אל תגידי לי להירגע, דני!"`), plus internal morphological contradictions (`"אתה ובעלך"`).
+
+---
+
 ## 🌟 Version 1.3.0 — Semantic AI Proofreading, Homebrew Universal Tap & Interactive Onboarding
 
 > **Release Date:** September 2026  
@@ -39,7 +81,7 @@ This document tracks **major milestone releases** and product capabilities in Ri
 - **Architectural Shift — Why No 24/7 Daemon:** Proved why event-driven completion hooks beat heavy background polling daemons: **0% idle CPU, 0 MB RAM**, and absolute elimination of race conditions on multi-gigabyte active torrent downloads.
 - **Clean-Slate / Bare System Support:** Guided setups for users starting without basic package managers (no Homebrew on macOS or no Winget on Windows).
 - **Safe-Zone Social Preview & Hero Banner:** 1280x640 OpenGraph-compliant cards featuring authentic Hebrew and Arabic subtitles designed with 65% central safe margins.
-- **Architectural Specifications:** Published comprehensive future RFC specifications for the [Interactive CLI Wizard](Interactive-CLI-Specification) and the [Autonomous Setup & Health-Check Wizard](Setup-Wizard-Specification).
+- **Architectural Specifications:** Published comprehensive future RFC specifications for the [Interactive CLI Wizard](proposals/RFC_001_INTERACTIVE_TUI.md) and the [Autonomous Setup & Health-Check Wizard](proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md).
 
 ---
 

@@ -472,6 +472,16 @@ def handle_directory(dir_path, args):
     for srt in dir_path.rglob("*.srt"):
         if srt.name.endswith(".bak") or "prompts_" in str(srt):
             continue
+        # If this .srt is inside a Subs/Subtitles subfolder and its parent directory contains a single video,
+        # Step 2 (video discovery) will copy and master it directly next to the video as <video_stem>.he.srt,
+        # keeping the Subs/ torrent folder 100% clean.
+        if not replace_orig and srt.parent.name.lower() in ("subs", "subtitles"):
+            parent_vids = [
+                f for f in srt.parent.parent.iterdir()
+                if f.is_file() and f.suffix.lower() in VIDEO_EXTENSIONS
+            ]
+            if len(parent_vids) == 1 and not srt.name.lower().endswith(".he.srt"):
+                continue
         name_lower = srt.name.lower()
         if (
             name_lower.endswith(".he.srt") or

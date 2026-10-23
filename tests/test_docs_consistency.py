@@ -76,10 +76,15 @@ def test_cross_platform_parity_in_docs():
 
 
 def test_readme_hebrew_direction_wrapper():
-    """Verify README.he.md starts with RTL wrapper and ends with closing tag."""
-    content = README_HE.read_text(encoding="utf-8").strip()
-    assert content.startswith('<div dir="rtl">'), "README.he.md must start with <div dir=\"rtl\">"
-    assert content.endswith('</div>'), "README.he.md must end with </div>"
+    """Verify README.he.md and all *.he.md documentation files start with RTL wrapper and end with closing tag."""
+    he_files = [README_HE, REPO_ROOT / "ROADMAP.he.md"]
+    he_files.extend(DOCS_DIR.glob("*.he.md"))
+    he_files.extend((DOCS_DIR / "proposals").glob("*.he.md"))
+    for he_path in he_files:
+        content = he_path.read_text(encoding="utf-8").strip()
+        assert content.startswith('<div dir="rtl">'), f"{he_path.name} must start with <div dir=\"rtl\">"
+        assert content.endswith('</div>'), f"{he_path.name} must end with </div>"
+
 
 
 def test_roadmap_links_and_direction():

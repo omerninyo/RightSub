@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="מפת-דרכים"><b>עברית</b></a>
+  <a href="ROADMAP.he.md"><b>עברית</b></a>
 </p>
 
 Welcome to the official **RightSub Product Roadmap**. This document outlines delivered milestones, active priorities, and future architectural initiatives for the RightSub universal subtitle mastering and translation suite.
@@ -24,14 +24,39 @@ flowchart LR
     classDef planned fill:#f57f17,stroke:#e65100,color:#ffffff;
     classDef horizon fill:#1565c0,stroke:#0d47a1,color:#ffffff;
 
-    class v10,v11,v12,v13 done;
-    class v14 planned;
-    class v15 horizon;
+    class v10,v11,v12,v13,v14,v15 done;
 ```
 
 ---
 
 ## 🟢 Shipped Milestones (Production Stable)
+
+### 🌟 [v1.5.0](https://github.com/omerninyo/RightSub/releases/tag/v1.5.0) — Native MCP Server, Multi-Agent Auto-Installer & Unified Interactive Suite
+> **Released:** October 2026  
+> **Primary RFC:** [RFC 002: RightSub Native Model Context Protocol (MCP) Server](docs/proposals/RFC_002_MCP_SERVER.md)  
+> **Key Capabilities:**
+- [x] **Official MCP Server (`rightsub mcp`)** ([#3](https://github.com/omerninyo/RightSub/issues/3)):
+  - Zero-dependency JSON-RPC 2.0 server over `stdio` (supporting both newline-delimited JSON and `Content-Length` framing) with strict `stdout` log isolation.
+  - Exposes 8 tools: `inspect_media`, `fix_plex_subtitles`, `extract_subtitles`, `prepare_translation`, `merge_and_master`, `polish_subtitles`, `audit_subtitles_qa`, and `transcribe_audio`.
+- [x] **1-Command Multi-Agent Auto-Installer (`rightsub mcp --install`)**:
+  - Automatically detects and registers `rightsub` into **Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf**, and **Claude Code** with absolute Python/script paths, full `PATH` environment injection, `.bak` backups, and zero corruption of existing servers.
+- [x] **Natural Language Media Control & Batch Orchestration**:
+  - Enables any connected AI agent to inspect folders, repair Plex BiDi with Seed-Safe torrent protection, extract tracks, translate batches, and run Red Team QA directly from chat.
+
+### 🌟 [v1.4.0](https://github.com/omerninyo/RightSub/releases/tag/v1.4.0) — Interactive Terminal Experience (TUI), Hooks Wizard & Containers
+> **Released:** October 2026  
+> **Primary RFCs:**
+> - [RFC 001: Interactive Terminal UI (TUI) Specification](docs/proposals/RFC_001_INTERACTIVE_TUI.md)
+> - [RFC 003: Autonomous Setup & Health-Check Wizard](docs/proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md)
+> - [RFC 004: Docker Webhook Daemon & Container Architecture](docs/proposals/RFC_004_DOCKER_WEBHOOK_SERVER.md)
+> **Key Capabilities:**
+- [x] **Interactive Terminal Mastering Wizard (`rightsub` / `rightsub wizard`) & Diff Reviewer (`rightsub polish --interactive`)** ([#1](https://github.com/omerninyo/RightSub/issues/1)):
+  - Running `rightsub` with no arguments in an interactive terminal launches the bilingual Mastering Suite with cross-platform Drag & Drop path normalization (macOS Finder backslash escapes, Windows Explorer quotes, PowerShell `& '...'`) and a built-in terminal file explorer.
+  - Line-by-line diff reviewer (`rightsub polish --interactive`) with `[Y] Approve`, `[N] Reject`, `[E] Edit`, `[A] Approve All`, `[R] Reject Remaining`, and `Ctrl+C` partial-save recovery.
+- [x] **Automated Downloader Hook Installer & Service Wrapper (`rightsub setup` / `rightsub config --install-hooks`)** ([#2](https://github.com/omerninyo/RightSub/issues/2)):
+  - Generates ready-to-run `qBittorrent` (`.sh` / `.bat`) and `Transmission` hook scripts, optional live `Sonarr`/`Radarr` REST API webhook registration, and background service definitions (`launchd` on macOS, `systemd --user` on Linux, `schtasks` on Windows).
+- [x] **Official Container Image & Native Webhook Daemon (Docker / Podman)** ([#4](https://github.com/omerninyo/RightSub/issues/4)):
+  - Native Webhook Server (`rightsub serve`), autonomous cross-container `PATH_MAP` translation, and production `Dockerfile` / `docker-compose.yml`.
 
 ### 🌟 [v1.3.0](https://github.com/omerninyo/RightSub/releases/tag/v1.3.0) — Semantic AI Proofreading, Homebrew Universal Tap & Interactive Onboarding
 > **Released:** September 2026  
@@ -62,49 +87,6 @@ flowchart LR
 - [x] **One-Command Autonomous Pipeline**: Automated embedded track discovery, TMDb entity resolution, and prompt building.
 - [x] **SubRefine Engine**: Plex/Infuse RLM BiDi punctuation repair, ad stripper, and SDH noise cleaner.
 - [x] **SubSwarm Engine**: Multi-batch AI translation orchestrator with Translation Bible locking.
-
----
-
-## 🟡 Next Up — Version 1.4.0: Interactive Terminal Experience (TUI), Integrations & Containers
-
-> **Target Release:** Q4 2026  
-> **GitHub Milestone:** [`v1.4.0 — Interactive Terminal Experience (TUI) & Containers`](https://github.com/omerninyo/RightSub/milestones)  
-> **Primary RFCs:**
-> - [RFC 001: Interactive Terminal UI (TUI) Specification](Interactive-CLI-Specification)
-> - [RFC 003: Autonomous Setup & Health-Check Wizard](Setup-Wizard-Specification)
-> - [RFC 004: Docker Webhook Daemon & Container Architecture](Docker-Webhook-Server-Specification)
-
-### Key Planned Features:
-- [ ] **Interactive TUI Diff Reviewer (`rightsub polish --interactive`)** ([#1](https://github.com/omerninyo/RightSub/issues/1)):
-  - Full-screen terminal user interface (powered by `rich` / `curses`) to inspect modifications one-by-one.
-  - Keyboard shortcuts (`[Y] Approve`, `[N] Reject`, `[E] Edit`, `[A] Approve All`).
-  - Interactive file explorer to select specific episodes or movies across deep directory structures.
-- [ ] **Automated Downloader Hook Installer & Service Wrapper** ([#2](https://github.com/omerninyo/RightSub/issues/2)):
-  - `rightsub config --install-hooks`: Auto-detects installed qBittorrent, Sonarr, or Radarr instances and writes complete completion scripts automatically.
-  - Optional lightweight systemd (Linux) and launchd (macOS) service generator for headless media servers requiring automated directory watching.
-- [x] **Official Container Image & Native Webhook Daemon (Docker / Podman)** ([#4](https://github.com/omerninyo/RightSub/issues/4)):
-  - **Native Webhook Server (`rightsub serve`)**: High-performance HTTP daemon consuming <15 MB RAM idle with dedicated endpoints for Sonarr (`/webhook/sonarr`), Radarr (`/webhook/radarr`), Bazarr (`/webhook/bazarr`), and generic callers (`/webhook/generic`, `/health`).
-  - **Autonomous Cross-Container Path Translation (`PATH_MAP`)**: Seamlessly translates volume mount disparities between downloaders and media directories.
-  - **Official Container Image & Compose Stack**: Production-grade `Dockerfile` (Python 3.11-slim + ffmpeg) and reference `docker-compose.yml` for 1-click turnkey deployment on Unraid, TrueNAS SCALE, and Synology DSM.
-  - **Automated Verification**: Full test suite (`tests/test_webhook_server.py`) covering all endpoints, live daemon cycles, and path translations.
-
----
-
-## 🔵 On the Horizon — Version 1.5.0: Agentic Subtitle Protocol & MCP Server
-
-> **Target Release:** Q1 2027  
-> **GitHub Milestone:** [`v1.5.0 — Agentic Subtitle Protocol & MCP Server`](https://github.com/omerninyo/RightSub/milestone/2)  
-> **Primary RFC:**
-> - [RFC 002: RightSub Native Model Context Protocol (MCP) Server](MCP-Server-Specification)
-
-### Key Planned Features:
-- [ ] **Official MCP Server (`rightsub mcp`)** ([#3](https://github.com/omerninyo/RightSub/issues/3)):
-  - Standard JSON-RPC stdio transport for **Claude Desktop**, **Antigravity**, **Cursor**, **Windsurf**, and **ChatGPT Desktop**.
-  - Exposes `inspect_media`, `extract_subtitles`, `fix_plex_bidi`, and `polish_cues` tools.
-- [ ] **Natural Language Media Control**:
-  - Allows AI assistants to converse with users about subtitles, verify quality, and apply fixes directly from chat.
-- [ ] **Streaming Subtitle Translation**:
-  - Real-time line-by-line streaming translation for live recordings or instant previewing.
 
 ---
 

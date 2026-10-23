@@ -213,12 +213,38 @@ UNIVERSAL_PHRASES = [
     (r'מתקד[ימ\u056B\u0574]+ם', 'מתקדימים'),
     (r'קרויצפלד[- ]י[א\u10D0][ק\u10D9]וב', 'קרויצפלד-יאקוב'),
     (r'ה[ת\u10D7]זת', 'התזת'),
+    (r'(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?ד[\u10D4]ייט(?![א-ת])', r'\g<1>דייט'),
     (r'[\u585A]', ''),
     (r'\\"', '"'),
     (r'\b(ו|ה|ב|ל|כ|מ|ש)?קאבתן\b', r'\g<1>קברניט'),
     (r'\bלשום\s+את\b', 'לשים את'),
     (r'\bמוחב\s+אותנו\b', 'מושכת אותנו'),
 ]
+
+def cross_check_bilingual_numbers(he_text, en_text):
+    """
+    Deterministic 0-token bilingual number un-flipper:
+    When a companion English cue is available, checks if any multi-digit number in `he_text`
+    (e.g. '84' from a legacy Subabi visual reversal) is the exact digit-reversal of a number
+    present in `en_text` ('48') while the reversed form itself is not in `en_text`.
+    """
+    if not he_text or not en_text:
+        return he_text
+    en_numbers = set(re.findall(r'\b\d{2,}\b', en_text))
+    if not en_numbers:
+        return he_text
+
+    def _replace_num(match):
+        num_str = match.group(0)
+        # Skip palindromes (e.g. 11, 22, 101) or numbers already matching English as-is
+        if num_str == num_str[::-1] or num_str in en_numbers:
+            return num_str
+        rev_str = num_str[::-1]
+        if rev_str in en_numbers:
+            return rev_str
+        return num_str
+
+    return re.sub(r'(?<!\d)\d{2,}(?!\d)', _replace_num, he_text)
 
 DISALLOWED_FOREIGN_SCRIPTS = (
     r'[\u0600-\u06FF'  # Arabic
@@ -239,12 +265,12 @@ def normalize_final_letters(text):
     # Punctuation or whitespace indicating end of word, excluding hyphen attached to numbers/words (prefixes like מ-100, כ-50)
     # and excluding quotes/gershayim inside acronyms or loanwords (e.g. בימ"ש, מנכ"ל, צ'יפס).
     # Require a preceding Hebrew letter (?<=[א-ת]) so single-letter labels (e.g. "סעיף כ.") are not altered,
-    # and exclude 'פ' -> 'ף' to preserve loanwords ending in /p/ (ג'יפ, קטשופ, טלסקופ, קליפ, וואטסאפ, טראמפ).
+    # exclude repeated hesitation letters (אממ, הממ, מממ, ממ, ננ), and exclude 'פ' -> 'ף' to preserve loanwords ending in /p/.
     punct = r'(?:[\u200F\s\.\?!,:;\–\—\)\]»…]|["\'״׳”’](?![א-ת])|$)'
-    text = re.sub(r'(?<=[א-ת])כ(?=' + punct + r')', 'ך', text)
-    text = re.sub(r'(?<=[א-ת])מ(?=' + punct + r')', 'ם', text)
-    text = re.sub(r'(?<=[א-ת])נ(?=' + punct + r')', 'ן', text)
-    text = re.sub(r'(?<=[א-ת])צ(?=' + punct + r')', 'ץ', text)
+    text = re.sub(r'(?<=[א-ת])(?<![כך])כ(?=' + punct + r')', 'ך', text)
+    text = re.sub(r'(?<=[א-ת])(?<![מם])מ(?=' + punct + r')', 'ם', text)
+    text = re.sub(r'(?<=[א-ת])(?<![נן])נ(?=' + punct + r')', 'ן', text)
+    text = re.sub(r'(?<=[א-ת])(?<![צץ])צ(?=' + punct + r')', 'ץ', text)
 
     # Explicitly repair prefixes mistakenly normalized before hyphens (e.g. ם-100 -> מ-100, ך-50 -> כ-50)
     text = re.sub(r'\bם-(?=\d|[א-תa-zA-Z])', 'מ-', text)
@@ -254,11 +280,18 @@ def normalize_final_letters(text):
     text = re.sub(r'\bץ-(?=\d|[א-תa-zA-Z])', 'צ-', text)
     return text
 
+CORRUPTED_FINAL_LETTER_REPAIRS = [
+    (r'(?<![א-ת])אמם(?![א-ת])', 'אממ'),
+    (r'(?<![א-ת])המם(?![א-ת])', 'הממ'),
+    (r'(?<![א-ת])ממם(?![א-ת])', 'מממ'),
+    (r'(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?טרמף(?![א-ת])', r'\g<1>טרמפ'),
+]
+
 def clean_and_sanitize_text(text):
     """
     Cleans transcript truncation tags, stray JSON syntax, unescapes literal \\n,
     and normalizes foreign homoglyphs (Arabic, Cyrillic, Georgian, Armenian, Greek, Asian) into pure Hebrew
-    while preserving valid leading SSA override tags such as {\\an8}.
+    while preserving valid leading SSA override tags such as {\\an8} and legitimate SDH brackets [...].
     """
     if not text:
         return ""
@@ -274,10 +307,15 @@ def clean_and_sanitize_text(text):
     text = re.sub(r'<truncated\s+\d+\s+bytes>', '', text)
 
     # 2. Clean leaked JSON key/value syntax if dialogue got contaminated
-    text = re.sub(r'["\']?hebrew["\']?\s*:\s*["\']?', '', text)
-    text = re.sub(r'["\']?index["\']?\s*:\s*\d+,?', '', text)
-    text = re.sub(r'^\s*[\{\}\[\]]+\s*', '', text)
-    text = re.sub(r'\s*[\{\}\[\]]+\s*$', '', text)
+    has_json_leak = bool(re.search(r'["\']?(?:hebrew|index|text)["\']?\s*:', text))
+    if has_json_leak:
+        text = re.sub(r'["\']?(?:hebrew|text)["\']?\s*:\s*["\']?', '', text)
+        text = re.sub(r'["\']?index["\']?\s*:\s*\d+,?', '', text)
+        text = re.sub(r'^\s*[\{\}\[\]]+\s*', '', text)
+        text = re.sub(r'\s*[\{\}\[\]]+\s*$', '', text)
+    else:
+        text = re.sub(r'^\s*[\{\}]+\s*', '', text)
+        text = re.sub(r'\s*[\{\}]+\s*$', '', text)
 
     # 3. Unescape literal backslash-n sequences unconditionally
     text = text.replace(r'\n', '\n')
@@ -291,21 +329,34 @@ def clean_and_sanitize_text(text):
     for pattern, repl in ARABIC_PHRASES:
         text = re.sub(pattern, repl, text)
 
-    # 5. Convert homoglyphs into pure Hebrew
+    # 5. Convert homoglyphs into pure Hebrew, tracking whether any foreign character was replaced
+    had_homoglyph = False
     for cyr, he in CYRILLIC_TO_HEBREW.items():
         if cyr in text:
             text = text.replace(cyr, he)
+            had_homoglyph = True
 
     for ar, he in ARABIC_TO_HEBREW.items():
         if ar in text:
             text = text.replace(ar, he)
+            had_homoglyph = True
 
     for fg, he in UNIVERSAL_HOMOGLYPH_MAP.items():
         if fg in text:
             text = text.replace(fg, he)
+            had_homoglyph = True
 
-    # 6. Normalize final letters (e.g. at end of words)
-    text = normalize_final_letters(text)
+    # 6. Only normalize final letters if a foreign homoglyph was actually replaced in this string
+    if had_homoglyph:
+        text = normalize_final_letters(text)
+
+    # Preserve vocalized 'אִמם' ("their mother") as standard unvocalized 'אימם' before stripping Nikud
+    text = re.sub(r'א\u05B4מ\u05B8?ם', 'אימם', text)
+    text = re.sub(r'(?<=אביהם וגם )אמם\b', 'אימם', text)
+
+    # Repair known historical final-letter corruptions (אמם -> אממ, המם -> הממ, ממם -> מממ, טרמף -> טרמפ)
+    for pattern, repl in CORRUPTED_FINAL_LETTER_REPAIRS:
+        text = re.sub(pattern, repl, text)
 
     # 7. Strip any remaining disallowed foreign script characters & Nikud
     text = re.sub(DISALLOWED_FOREIGN_SCRIPTS, '', text)
@@ -334,25 +385,230 @@ def detect_hebrew(content, min_chars=6, min_ratio=0.15):
     details = f"Hebrew chars: {hebrew_chars}, Latin chars: {latin_chars} (Hebrew ratio: {ratio:.1%})"
     return is_hebrew, ratio, details
 
+DANGLING_CREDIT_REGEX = re.compile(
+    r'(?:על\s+ידי|ע["״\']?י|(?:מלאכת\s+)?ה?(?:תרגום|סנכרון)\s*:|הועלה\s+על\s+ידי|synced\s+by|translated\s+by)\s*$',
+    re.IGNORECASE
+)
+
 def is_ad_line(line):
     clean = re.sub(r'<[^>]+>', '', line).strip()
     return bool(AD_REGEX.search(clean))
+
+def _filter_ad_lines_from_block(lines):
+    """
+    Filters advertising/credit lines from a subtitle cue block, including orphan second lines
+    of multi-line translator credits (e.g. '<i>הובא וסונכרן על ידי\\nאריאל אפרתי</i>').
+    Returns (kept_lines, removed_count).
+    """
+    kept = []
+    removed = 0
+    skip_next = False
+    for idx, l in enumerate(lines):
+        if skip_next:
+            removed += 1
+            skip_next = False
+            continue
+        if is_ad_line(l):
+            removed += 1
+            clean_curr = re.sub(r'<[^>]+>', '', l).strip()
+            has_unclosed_italic = ('<i' in l.lower() and '</i>' not in l.lower())
+            if idx + 1 < len(lines):
+                next_l = lines[idx + 1]
+                clean_next = re.sub(r'<[^>]+>', '', next_l).strip()
+                closes_italic = ('</i>' in next_l.lower() and '<i' not in next_l.lower())
+                if DANGLING_CREDIT_REGEX.search(clean_curr) or (
+                    has_unclosed_italic and closes_italic and len(clean_next) <= 35 and not re.search(r'[\.?!]', clean_next)
+                ):
+                    skip_next = True
+        else:
+            kept.append(l)
+    return kept, removed
 
 def clean_line(line, clean_ads=True):
     """Filters out advertising/credit lines within a multi-line cue text."""
     if not line:
         return ""
-    kept = []
-    for l in line.splitlines():
-        if clean_ads and is_ad_line(l):
-            continue
-        kept.append(l)
+    raw_lines = line.splitlines()
+    if not clean_ads:
+        return "\n".join(raw_lines)
+    kept, _ = _filter_ad_lines_from_block(raw_lines)
     return "\n".join(kept)
 
-def apply_rlm_to_line(line):
+BIDI_CONTROL_CHARS_REGEX = re.compile(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]')
+
+def detect_file_flip_polarity(content):
     """
-    Applies RLM formatting safely around tags (<i>, <b>, <u>, <font...>, {\\anX})
-    according to Unicode UAX #9 without ever injecting RLM inside tag brackets.
+    Scans an SRT file's Hebrew lines to determine whether the file was pre-flipped by a
+    legacy visual BiDi tool (e.g. Subabi / HebFix) or is in normal logical order.
+    Returns True if pre-flipped, False if logical.
+    """
+    if not content:
+        return False
+    preflipped_votes = 0
+    logical_votes = 0
+    for raw_line in content.splitlines():
+        s = BIDI_CONTROL_CHARS_REGEX.sub('', re.sub(r'<[^>]+>|\{\\[^}]+\}', '', raw_line)).strip()
+        if not s or '-->' in s or s.isdigit():
+            continue
+        if not re.search(r'[\u0590-\u05FF]', s):
+            continue
+        # Unambiguous pre-flipped indicators
+        if (
+            re.match(r'^[\.,!:;]+\s*[\u0590-\u05FF]', s)
+            or re.match(r'^\?+[\u0590-\u05FF]', s)
+            or re.match(r'^[\"\'\״\׳]?[\.?!,:;…]+\s*.+[-–—]$', s)
+            or re.match(r'^[-–—]\s*[\.,?!:;]+', s)
+            or re.match(r'^[\.,?!:;]+\s*[-–—]', s)
+            or re.match(r'^[\"\'\״\׳][\.,?!:;]+[\u0590-\u05FF]', s)
+        ):
+            preflipped_votes += 1
+        elif re.search(r'[\u0590-\u05FF][\"\'\״\׳\)\]]*[\.?!,:;]+$', s) and not re.match(r'^[\.?!,:;…]', s):
+            logical_votes += 1
+
+    return preflipped_votes >= 2 and preflipped_votes >= logical_votes * 0.25
+
+def canonicalize_visual_flipped_line(core, is_preflipped_file=False):
+    """
+    Reverses all 18 legacy visual-flipping mutations discovered across the 15.6M-line corpus
+    back into pure logical Hebrew order before BiDi wrapping.
+    """
+    if not core or not re.search(r'[\u0590-\u05FF]', core):
+        return core
+
+    s = BIDI_CONTROL_CHARS_REGEX.sub('', core).strip()
+    if not s:
+        return core
+
+    # 1. P_DASH_THEN_PUNCT: '- ,חיי אינם ראויים' or '- :יועצים -' -> '- חיי אינם ראויים,' / '- יועצים:'
+    m = re.match(r'^([-–—])\s*([\.?!,:;…]+)\s*(.+?)(?:\s*[-–—])?$', s)
+    if m:
+        dash, punct, body = m.group(1), m.group(2), m.group(3).strip()
+        if not re.search(r'[\.?!,:;…]$', body):
+            s = f"{dash} {body}{punct}"
+
+    # 2. P_PUNCT_THEN_DASH: '.-או-טי 8. הרמה הגבוהה ביותר' -> '- או-טי 8. הרמה הגבוהה ביותר.'
+    m = re.match(r'^([\.?!,:;…]+)\s*([-–—])\s*(.+)$', s)
+    if m and not re.search(r'[-–—]$', s):
+        punct, dash, body = m.group(1), m.group(2), m.group(3).strip()
+        if not re.search(r'[\.?!,:;…]$', body):
+            s = f"{dash} {body}{punct}"
+
+    # 3. P_FULL_EDGE_SWAP: '.המתקפה האחרונה ברצף מתקפות-' or '".המתקפה-' or '...המתקפה-'
+    m = re.match(r'^([\"\'\״\׳]?\s*(?:\.{2,3}|…|[\.?!,:;]+)\s*[\"\'\״\׳]?)\s*(.+?)\s*([-–—])$', s)
+    if m:
+        lead_punct, body, dash = m.group(1).strip(), m.group(2).strip(), m.group(3)
+        # Normalize quote+punct at the end if quote was part of lead_punct
+        if len(lead_punct) == 2 and lead_punct[0] in '"\'״׳' and lead_punct[1] in '.?!,:;':
+            lead_punct = lead_punct[1] + lead_punct[0]
+        s = f"{dash} {body}{lead_punct}"
+
+    # 4. P_START_QUOTE_PUNCT: '".אהבה משחררת אותך' or '."אבל זה בטח לא ימצא חן בעיניכם"'
+    m_qp1 = re.match(r'^([\"\'\״\׳])((?:\.{2,3}|…|[\.?!,:;]+))\s*([\u0590-\u05FF].*)$', s)
+    if m_qp1 and not re.search(r'[\.?!,:;…][\"\'\״\׳]?$', s):
+        q, punct, body = m_qp1.group(1), m_qp1.group(2), m_qp1.group(3).strip()
+        if body.endswith(('"', "'", '״', '׳')):
+            s = f"{q}{body[:-1]}{punct}{body[-1]}"
+        else:
+            s = f"{body}{punct}{q}"
+    else:
+        m_qp2 = re.match(r'^((?:\.{2,3}|…|[\.?!,:;]+))([\"\'\״\׳])\s*([\u0590-\u05FF].*)$', s)
+        if m_qp2 and not re.search(r'[\.?!,:;…][\"\'\״\׳]?$', s):
+            punct, q, body = m_qp2.group(1), m_qp2.group(2), m_qp2.group(3).strip()
+            if body.endswith(('"', "'", '״', '׳')):
+                s = f"{q}{body[:-1]}{punct}{body[-1]}"
+            else:
+                s = f"{body}{punct}{q}"
+
+    # 5. P_START_PUNCT_NUMBER: ',19 יש לי קול. אני בת"' -> '"יש לי קול. אני בת 19,'
+    m_num = re.match(r'^(?:([,!:;\?]+)|(\.(?!\.)))(\d+)\s+([\u0590-\u05FF].*?)(?:([\"\'\״\׳]))?$', s)
+    if m_num and not re.search(r'[\.?!,:;…][\"\'\״\׳]?$', s):
+        punct = m_num.group(1) or m_num.group(2)
+        num = m_num.group(3)
+        body = m_num.group(4).strip()
+        trail_q = m_num.group(5) or ""
+        s = f"{trail_q}{body} {num}{punct}"
+
+    # 6. P_START_PUNCT_ATTACHED & P_START_PUNCT_SPACED (excluding '...' and '? ')
+    # Matches single/compound punctuation (. , ! : ; ?!) attached to start, or (. , ! : ;) with spaces
+    if not re.search(r'[\.?!,:;…][\"\'\״\׳\)\]]*$', s):
+        # 6a. Attached punctuation (excluding 2+ dots '..' / '...' / '…')
+        m_att = re.match(r'^(?!\.{2,}|…)([\.?!,:;]+)(?=[\u0590-\u05FF\(\)\[\]\"\'\״\׳])(.*)$', s)
+        if m_att:
+            punct, body = m_att.group(1), m_att.group(2).strip()
+            s = f"{body}{punct}"
+        else:
+            # 6b. Spaced punctuation (. , ! : ;) - never valid at start of Hebrew line even with spaces
+            m_sp = re.match(r'^(?!\.{2,}|…)([,!:;]+|\.(?!\.))\s+([\u0590-\u05FF].*)$', s)
+            if m_sp:
+                punct, body = m_sp.group(1), m_sp.group(2).strip()
+                s = f"{body}{punct}"
+            elif is_preflipped_file:
+                # 6c. Polarity-dependent: '? ' with space (WALL-E vs The Night Before musical note '?' artifact)
+                m_qm = re.match(r'^(\?+)\s+([\u0590-\u05FF].*)$', s)
+                if m_qm:
+                    punct, body = m_qm.group(1), m_qm.group(2).strip()
+                    s = f"{body}{punct}"
+                else:
+                    # 6d. Polarity-dependent: '...בכך שתגיד' (leading ellipsis only in preflipped files)
+                    m_el = re.match(r'^(\.{2,3}|…)\s*([\u0590-\u05FF].*)$', s)
+                    if m_el:
+                        punct, body = m_el.group(1), m_el.group(2).strip()
+                        s = f"{body}{punct}"
+
+    # 7. P_END_DASH_ONLY: 'עובדות, שם: אלאניס נדין -' or 'הגנרל בקהיר-' -> '- עובדות...'
+    if not re.match(r'^[-–—]', s):
+        m_ed_attached = re.match(r'^(.+[\u0590-\u05FF])([-–—])$', s)
+        if m_ed_attached:
+            s = f"{m_ed_attached.group(2)} {m_ed_attached.group(1).strip()}"
+        elif is_preflipped_file:
+            m_ed_spaced = re.match(r'^(.+[\u0590-\u05FF][\.?!,:;\"\'\״\׳]*)\s+([-–—])$', s)
+            if m_ed_spaced:
+                s = f"{m_ed_spaced.group(2)} {m_ed_spaced.group(1).strip()}"
+
+    # 8. Parentheses & Brackets Canonicalization
+    # 8a. P_DOUBLE_OPEN_PAREN: '(לאודיטור (אדם שמקשיב.' -> 'לאודיטור (אדם שמקשיב).'
+    if s.count('(') == 2 and s.count(')') == 0:
+        m_dop = re.match(r'^\(\s*([^\(]+?\s*\([^\(]+?)([\.?!,:;…]*)$', s)
+        if m_dop:
+            s = f"{m_dop.group(1).strip()}){m_dop.group(2)}"
+        elif s.endswith('('):
+            s = s[:-1] + ')'
+    # 8b. P_DOUBLE_CLOSE_PAREN: ')ראשית, הם הביאו את הדליקטסן )מעדנייה,' -> 'ראשית, הם הביאו את הדליקטסן (מעדנייה),'
+    elif s.count(')') == 2 and s.count('(') == 0:
+        m_dcp = re.match(r'^\)\s*([^\)]+?)\s*\)\s*([^\)]+?)([\.?!,:;…]*)$', s)
+        if m_dcp:
+            s = f"{m_dcp.group(1).strip()} ({m_dcp.group(2).strip()}){m_dcp.group(3)}"
+        elif s.startswith(')'):
+            s = '(' + s[1:]
+    # 8c. P_INVERTED_PARENS: ')מדרגות לפני הבית(' -> '(מדרגות לפני הבית)'
+    elif s.count('(') == 1 and s.count(')') == 1 and s.index(')') < s.index('('):
+        s = re.sub(r'\)([^\(\)]+)\(', r'(\1)', s)
+
+    # 8d. P_DOUBLE_BRACKETS: '[אתם מוקפים! [צרפתית' -> 'אתם מוקפים! [צרפתית]'
+    if s.count('[') == 2 and s.count(']') == 0:
+        m_dob = re.match(r'^\[\s*([^\[]+?\s*\[[^\[]+?)([\.?!,:;…]*)$', s)
+        if m_dob:
+            s = f"{m_dob.group(1).strip()}]{m_dob.group(2)}"
+        elif s.endswith('['):
+            s = s[:-1] + ']'
+    elif s.count(']') == 2 and s.count('[') == 0:
+        m_dcb = re.match(r'^\]\s*([^\]]+?)\s*\]\s*([^\]]+?)([\.?!,:;…]*)$', s)
+        if m_dcb:
+            s = f"{m_dcb.group(1).strip()} [{m_dcb.group(2).strip()}]{m_dcb.group(3)}"
+        elif s.startswith(']'):
+            s = '[' + s[1:]
+    elif s.count('[') == 1 and s.count(']') == 1 and s.index(']') < s.index('['):
+        s = re.sub(r'\]([^\[\]]+)\[', r'[\1]', s)
+
+    return s
+
+def apply_rlm_to_line(line, is_preflipped_file=False):
+    """
+    Applies 3-stage BiDi canonicalization and RLM wrapping safely around tags
+    (<i>, <b>, <u>, <font...>, {\\anX}) according to Unicode UAX #9:
+      Stage 1: Strip existing BiDi controls & separate outer SSA/HTML tags.
+      Stage 2: Canonicalize visually pre-flipped punctuation/brackets into logical order.
+      Stage 3: Wrap inner logical core with leading RLM and trailing RLM (after trailing punctuation).
     """
     # Sanitize and normalize line first
     line = clean_and_sanitize_text(line)
@@ -364,22 +620,22 @@ def apply_rlm_to_line(line):
     if not re.search(r'[\u0590-\u05FF]', stripped):
         return line
 
-    # Strip any stray outer RLM before extracting leading tags
-    stripped = stripped.lstrip(RLM)
+    # Strip any stray outer BiDi controls before extracting leading tags
+    stripped = BIDI_CONTROL_CHARS_REGEX.sub('', stripped)
 
     # Separate SSA override prefix if present, e.g. "{\an8}..."
     ssa_prefix = ""
     ssa_match = re.match(r'^((?:\{\\[^}]+\})+)\s*(.*)$', stripped)
     if ssa_match:
         ssa_prefix = ssa_match.group(1)
-        stripped = ssa_match.group(2).strip().lstrip(RLM)
+        stripped = ssa_match.group(2).strip()
 
     # Separate opening HTML tags like <i>, <b>, <u>, <font color="...">
     tag_prefix = ""
     tag_open_match = re.match(r'^((?:<(?:[iIuUbB]|font\b[^>]*)>\s*)+)(.*)$', stripped, flags=re.IGNORECASE)
     if tag_open_match:
         tag_prefix = tag_open_match.group(1)
-        stripped = tag_open_match.group(2).strip().lstrip(RLM)
+        stripped = tag_open_match.group(2).strip()
 
     # Separate closing HTML tags like </i>, </b>, </u>, </font>
     tag_suffix = ""
@@ -388,24 +644,23 @@ def apply_rlm_to_line(line):
         tag_suffix = tag_close_match.group(1)
         stripped = stripped[:tag_close_match.start()].strip()
 
+    # Stage 2: Canonicalize pre-flipped visual order into logical order
+    stripped = canonicalize_visual_flipped_line(stripped, is_preflipped_file=is_preflipped_file)
+
     # Convert standard double quotes in Hebrew acronyms to Hebrew gershayim (״)
     stripped = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', stripped)
 
-    # Clean existing trailing RLMs (both before and after trailing punctuation) for idempotency
-    stripped = stripped.rstrip(RLM)
-    trailing_punct_pattern = r'([\.!\?,:;\-\–\—\)»\]"\'״׳”’…]+)$'
-    stripped = re.sub(rf'{RLM}+{trailing_punct_pattern}', r'\1', stripped)
-
-    # Clean existing RLM after leading dialogue hyphen, then re-inject if followed by an English word
-    stripped = re.sub(rf'^([-\–\—]\s*){RLM}+', r'\1', stripped)
+    # Inject RLM after leading dialogue hyphen when followed by an English word so the hyphen stays on the right
     stripped = re.sub(r'^([-\–\—]\s+)(?=[A-Za-z])', rf'\1{RLM}', stripped)
 
-    # Add RLM before trailing neutral punctuation
-    stripped = re.sub(trailing_punct_pattern, f'{RLM}\\1', stripped)
+    # If a Hebrew line ends with an English word immediately followed by punctuation (e.g. 'ב-FBI.'),
+    # place an RLM before the punctuation as well so the period does not attach to the LTR word's right edge
+    stripped = re.sub(r'(?<=[A-Za-z])([\.!\?,:;…]+)$', rf'{RLM}\1', stripped)
 
-    # Clean and add leading RLM
-    stripped = stripped.lstrip(RLM)
-    stripped = RLM + stripped
+    # Stage 3: Wrap logical core with leading RLM and trailing RLM (AFTER trailing punctuation)
+    # Under UAX #9 Rule N1 (R + Neutral + R -> R), sandwiching trailing punctuation between the last
+    # Hebrew letter (R) and a final RLM (R) locks all trailing punctuation to the visual left in Plex & Infuse.
+    stripped = f"{RLM}{stripped}{RLM}"
 
     # Reconstruct with original tags
     return f"{ssa_prefix}{tag_prefix}{stripped}{tag_suffix}"
@@ -421,6 +676,7 @@ SPEAKER_TAG_REGEX = re.compile(
 )
 
 def process_srt_content(content, clean_ads=False, clean_speakers=True):
+    is_preflipped_file = detect_file_flip_polarity(content)
     blocks = re.split(r'\n\s*\n', content.strip())
     new_blocks = []
     total_subs = 0
@@ -439,13 +695,8 @@ def process_srt_content(content, clean_ads=False, clean_speakers=True):
             expanded_lines = [l for l in flat_text.splitlines() if l.strip()]
 
             if clean_ads:
-                filtered_lines = []
-                for l in expanded_lines:
-                    if is_ad_line(l):
-                        ads_removed += 1
-                    else:
-                        filtered_lines.append(l)
-                expanded_lines = filtered_lines
+                expanded_lines, removed_in_block = _filter_ad_lines_from_block(expanded_lines)
+                ads_removed += removed_in_block
                 if not expanded_lines:
                     continue
 
@@ -455,9 +706,10 @@ def process_srt_content(content, clean_ads=False, clean_speakers=True):
                 orig_tl = tl
                 if clean_speakers:
                     tl = SPEAKER_TAG_REGEX.sub('', tl)
-                fixed = apply_rlm_to_line(tl)
+                fixed = apply_rlm_to_line(tl, is_preflipped_file=is_preflipped_file)
                 # Discard orphan dashes or empty lines
-                if fixed.strip() not in ['', '-', f'{RLM}-', f'{RLM} -', '—', f'{RLM}—']:
+                clean_check = BIDI_CONTROL_CHARS_REGEX.sub('', fixed).strip()
+                if clean_check not in ['', '-', '–', '—']:
                     new_text_lines.append(fixed)
                 if fixed != orig_tl:
                     modified_lines += 1

@@ -76,21 +76,25 @@ Rules:
 
 ---
 
-## 🛑 What Requires AI vs What Is 100% Local?
+## 🛑 What Requires AI vs. What Is 100% Local? (The AI Key Decision Matrix)
 
-| Local / Offline Operation | CLI Command | Requires AI? |
-| :--- | :--- | :---: |
-| **Autonomous Detection & Runner** | `./rightsub auto` | ❌ **No AI** (unless translation requested) |
-| **Subtitle Extraction from MKV/MP4** | `./rightsub extract` | ❌ **No AI** (FFmpeg) |
-| **Speech-to-Text Transcription (quicksubs)** | `./rightsub transcribe` | ❌ **No LLM/API** (Apple Speech / Whisper local) |
-| **Plex BiDi Punctuation Fix** | `./rightsub fix-plex` | ❌ **No AI** (Unicode RLM algorithm) |
-| **Legacy Encoding Conversion (CP1255)** | `./rightsub fix-plex` | ❌ **No AI** (Auto-charset detector) |
-| **Ad & Spam Stripping** | `./rightsub fix-plex --clean-ads` | ❌ **No AI** (Deterministic regex) |
-| **Framerate / Offset Adjustment** | `./rightsub adjust-fps` | ❌ **No AI** (Time stretching math) |
-| **Phoneme-based Audio Synchronization** | `./rightsub audio-sync` | ❌ **No AI** (Alignment engine) |
-| **Batch Merging into Final SRT** | `./rightsub merge` | ❌ **No AI** (Validation & RLM injection) |
-| **Comprehensive Quality Assurance (QA)** | `./rightsub qa` | ❌ **No AI** (Deterministic 1:1 parity audit) |
-| **Dialogue Translation from English to Hebrew** | `./rightsub prompt-gen` / `translate-ollama` | 🧠 **The Only Step Requiring AI!** |
+**99% of subtitle fixing operations in RightSub do NOT use AI at all.** RightSub strictly separates deterministic technical mastering from AI-assisted workflows based on the task and whether the user configured an AI API key:
+
+| Operation | CLI Command | Without AI Key (Default) | With AI Key (`GEMINI_API_KEY` / `--ollama`) |
+| :--- | :--- | :---: | :---: |
+| **Content-Based Hebrew `.srt` Discovery & Seed-Safe `.he.srt` Creation** | `./rightsub auto` | ✅ **100% Deterministic (0 AI)** — detects Hebrew inside any `.srt`, preserves original `.srt` for torrent seeding, writes `.he.srt` | Same (0 AI for existing Hebrew subtitles) |
+| **3-Stage Plex BiDi, UAX #9 Rule N1 & Legacy `Subabi` Un-Flipping** | `./rightsub fix-plex` / `auto` | ✅ **100% Deterministic (0 AI)** | Same (never uses AI) |
+| **Encoding Rescue (`CP1255` $\rightarrow$ `UTF-8`) & Homoglyph Repair** | `./rightsub fix-plex` / `auto` | ✅ **100% Deterministic (0 AI)** | Same (never uses AI) |
+| **Bilingual Number Un-Flipping (`84` $\rightarrow$ `48` vs `.en.srt`) & Cue Drift Check** | `./rightsub merge` / `polish` | ✅ **100% Deterministic (0 AI)** | Same (runs before any LLM step) |
+| **Subtitle Extraction (`FFmpeg`) & Local STT (`quicksubs`)** | `./rightsub extract` / `transcribe` | ✅ **100% Local (0 LLM tokens)** | Same |
+| **Framerate (`adjust-fps`), Audio Sync (`audio-sync`) & QA (`qa`)** | `./rightsub qa` | ✅ **100% Deterministic (0 AI)** | Same |
+| **Polishing Existing Subtitles (Rare Edge Cases Only)** | `./rightsub polish` | ✅ **Offline Deterministic Canon & Number Pass (0 AI)** | 🧠 **Semantic AI Proofreader** *(Strictly for rare cases: very old, OCR-corrupted, or low-quality machine translations)* |
+| **Translating English Media to Hebrew from Scratch** | `./rightsub prompt-gen` / `auto` | Generates prompt batches for your chat agent | 🧠 **Full AI Translation (`EN` $\rightarrow$ `HE`)** |
+
+> [!IMPORTANT]
+> **When Do You Actually Need an AI Key for Existing Subtitles?**
+> - **Standard Human Subtitles (99% of cases):** Never. Running `rightsub auto` or `rightsub fix-plex` fixes all BiDi, punctuation, encoding, and `Subabi` reversal issues deterministically with **0 tokens** while keeping the original torrent `.srt` untouched.
+> - **Rare Legacy / Low-Quality Subtitles (~1% of cases):** Only when an existing subtitle is an old, raw machine translation or a corrupted OCR scan (`PGS`/`VobSub`) suffering from cross-line gender errors or broken syntax should you run `rightsub polish` with an AI key.
 
 ---
 
@@ -115,7 +119,22 @@ Rules:
 
 ---
 
-## 🛠️ Step-by-Step Instructions for AI Assistants
+## 🛠️ Step-by-Step Instructions for AI Assistants & 1-Command MCP Setup
+
+### 0. Native MCP Server Auto-Registration (`rightsub mcp --install` — Recommended)
+Instead of copying prompt files manually, connect RightSub's native **Model Context Protocol (MCP)** server directly to all your AI agents (**Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf**, and **Claude Code**) with a single command:
+```bash
+# Auto-detect and register RightSub in all installed AI agents:
+rightsub mcp --install
+
+# Or register in a specific agent:
+rightsub mcp --install --agent claude
+rightsub mcp --install --agent cursor
+
+# Check registration status across all agents:
+rightsub mcp --status
+```
+Once registered, your AI assistant natively receives 8 tools (`inspect_media`, `fix_plex_subtitles`, `extract_subtitles`, `prepare_translation`, `merge_and_master`, `polish_subtitles`, `audit_subtitles_qa`, `transcribe_audio`) and can inspect, fix, or translate any media folder directly from chat.
 
 ### 1. Google Antigravity (Default Multi-Agent Orchestrator)
 Simply request:

@@ -3,14 +3,36 @@
 > **Overview**: Automate RightSub across your home lab and media server stack. Run subtitle mastering, BiDi correction, and translation in a 100% hands-off "Set-and-Forget" workflow.
 
 This guide provides tested, copy-pasteable configurations for the most popular home media tools across **Windows** and **macOS/Linux**:
-0. [The Recommended 2-Phase Strategy & Daemon Architecture](#0-the-recommended-2-phase-strategy--daemon-architecture)
+0. [The Recommended 2-Phase Strategy & Automated Wizard (`rightsub setup`)](#0-the-recommended-2-phase-strategy--daemon-architecture)
 1. [qBittorrent (Run on Completion & Seed-Safe)](#1-qbittorrent-torrent-completion-hook)
-2. [Sonarr & Radarr (Webhook Integration or Post-Import Script)](#2-sonarr--radarr-webhook-integration-or-post-import-script)
-3. [Bazarr (Webhook Daemon or Post-Processing Hook)](#3-bazarr-webhook-daemon-or-post-processing-hook)
+2. [Sonarr & Radarr (Custom Connect Scripts)](#2-sonarr--radarr-connect-scripts)
+3. [Bazarr (Custom Post-Processing Hook)](#3-bazarr-post-processing-hook)
 4. [Transmission (Torrent Completion Script)](#4-transmission-completion-script)
 5. [Tautulli / Plex (Recently Added Webhook)](#5-tautulli--plex-recently-added-hook)
 6. [Standalone OS Folder Watchers (Non-Arr / Manual Setups)](#6-standalone-os-folder-watchers-non-arr--manual-setups)
 7. [Troubleshooting & Verifying Integrations](#7-troubleshooting--verifying-integrations)
+
+---
+
+## ⚡ New in v1.5.0: Automated Hook & Background Service Generator (`rightsub setup`)
+
+Instead of writing shell/batch scripts or plist/systemd service files manually, you can now generate and register them interactively in seconds:
+
+```bash
+# Full interactive onboarding (Health check + API keys + Hooks + Background Service):
+rightsub setup
+
+# Generate qBittorrent (.sh/.bat) & Transmission hooks + optional live Sonarr/Radarr API webhook registration:
+rightsub config --install-hooks
+
+# Install 'rightsub serve' as an auto-starting OS background service (macOS launchd / Linux systemd / Windows schtasks):
+rightsub config --install-service
+```
+- **Generated Hook Scripts Location:** `~/.config/rightsub/hooks/` (`qbittorrent_hook.sh`, `qbittorrent_hook.bat`, `transmission_hook.sh`).
+- **Generated Background Service Files:**
+  - **macOS:** `~/Library/LaunchAgents/com.rightsub.webhook.plist`
+  - **Linux:** `~/.config/systemd/user/rightsub-webhook.service`
+  - **Windows:** `~/.config/rightsub/service/start_rightsub_webhook.bat` (with ready-to-run `schtasks` command).
 
 ---
 
@@ -28,42 +50,42 @@ Before configuring individual hooks, understand RightSub's architectural philoso
    # macOS / Linux:
    rightsub auto /Volumes/Media/TV_Shows
    ```
-   RightSub recursively scans the entire directory, converts legacy CP1255 / ISO-8859-8 charsets to clean UTF-8, injects RLM marks for flawless Plex BiDi punctuation, cleans ads and SDH hearing-impaired noise, and outputs standard `.he.srt` files without modifying original torrent downloads.
-2. **Phase 2: Event-Driven Automation (Set-and-Forget)**  
-   From this point on, **do not run** a heavy, polling background directory scanner. Instead, connect your downloaders (qBittorrent, Sonarr, Radarr, Bazarr) to trigger RightSub **the exact second a new file finishes downloading**.
+   RightSub recursively scans all subdirectories, converts CP1255/Windows-1255 to UTF-8, injects BiDi RLM marks for Plex, sanitizes ads/SDH, and creates `.he.srt` files without modifying original torrent downloads.
+2. **Phase 2: Ongoing Hands-Off Ingress (Event-Driven Hooks)**  
+   From this point forward, you do **not** need a heavy background scanner. You configure your download clients (qBittorrent, Sonarr, Radarr, Bazarr) to invoke RightSub **only when new media finishes downloading**.
 
-### 🏛️ Why Event-Driven Hooks Beat a 24/7 Polling Daemon
+### 🏛️ Why Event-Driven Hooks Beat a 24/7 Background Daemon
 
-Users often ask: *"Why doesn't RightSub run as a persistent background daemon that watches directories?"*
+Users often ask: *"Why doesn't RightSub run as a continuous background daemon/service that polls folders?"*
 
-In home media environments, constant filesystem polling is an **architectural anti-pattern**:
-1. **Race Conditions & Partial File Corruption**: When torrent clients download large 15GB files or extract multi-part archives, disk writes take minutes or hours. A naive watcher daemon detects file creation instantly and attempts to read or lock partial, incompletely written files — resulting in crashes and corrupt subtitle output.
-2. **Zero Idle Resource Consumption**: Background daemons keep Python runtime active continuously (40–80 MB RAM) and wake CPU cores periodically. Event-driven hooks consume **0% CPU and 0 MB RAM when idle** — RightSub spawns for a fraction of a second, masters the subtitle, and exits cleanly.
-3. **Atomic, Verified Execution**: Downloaders know with mathematical certainty when a file has passed hash verification, finished writing, and closed its file handles. Triggering at that moment guarantees zero errors.
+In home media pipelines, a continuous folder watcher daemon is an **architectural anti-pattern**:
+1. **Race Conditions on Active Writes**: When a torrent client downloads a 15GB video file or unpacks a release, the file is being written continuously for minutes or hours. A folder watcher daemon triggers immediately upon file creation and attempts to read or lock an incomplete, partially-written file—causing crashes or corrupt outputs.
+2. **Zero Idle Resource Consumption**: A background daemon keeps a Python runtime loaded in RAM 24/7 (~40–80 MB) and continually wakes CPU cores for filesystem polling. Event-driven hooks consume **0% CPU and 0 MB RAM**—RightSub is spawned only when an item finishes, does its work, and immediately terminates.
+3. **Atomic Execution**: Download managers know with 100% cryptographic certainty when a file is fully downloaded, verified against its torrent hash, and closed. Invoking RightSub at that exact instant guarantees complete safety.
 
 ---
 
 ## 1. qBittorrent (Torrent Completion Hook)
 
-qBittorrent can invoke RightSub the exact millisecond a download finishes.
+qBittorrent can automatically trigger RightSub the exact millisecond a download finishes.
 
-### Key Benefit: Seed-Safe Guarantee
-Modifying an active torrent's subtitle file (changing its name to `Movie.he.srt` or editing punctuation directly) changes the file's hash and triggers qBittorrent I/O recheck errors.  
-RightSub's **Seed-Safe** engine avoids this by **duplicating** the subtitle into a clean `.he.srt` file while leaving the original file **100% bit-for-bit intact**. Active torrent seeding is never interrupted.
+### The Seed-Safe Advantage
+Normally, modifying a downloaded subtitle (e.g., renaming `Movie.srt` to `Movie.he.srt` or editing the text) alters the file hash and breaks active torrent seeding with an `I/O Error` or hash mismatch.  
+RightSub's default **Seed-Safe architecture** avoids this completely: it duplicates non-standard subtitles into `Movie.he.srt` and masters the copy for Plex/Infuse, leaving the downloaded source file **100% bit-for-bit intact**. Active seeding continues uninterrupted.
 
 ### How to Configure:
 1. Open qBittorrent.
-2. Go to: **Tools** -> **Options** (or `Preferences` on macOS).
-3. Select the **Downloads** tab in the sidebar.
+2. Go to **Tools** -> **Options** (or `Preferences` on macOS).
+3. Select **Downloads** in the sidebar.
 4. Scroll to the bottom and check:  
    ☑ **"Run external program on torrent completion"**.
-5. Enter the command for your operating system:
+5. Paste the appropriate command:
 
-#### Windows (CMD / PowerShell):
+#### Windows (Command Prompt / PowerShell):
 ```cmd
 rightsub auto "%F"
 ```
-*(If `rightsub` is not in your system PATH, use: `python "C:\path\to\RightSub\rightsub.py" auto "%F"`)*
+*(If `rightsub` is not in your global PATH, specify the full path: `python "C:\path\to\RightSub\rightsub.py" auto "%F"`)*
 
 #### macOS / Linux (Terminal):
 ```bash
@@ -71,7 +93,7 @@ rightsub auto "%F"
 ```
 *(Or `~/.local/bin/rightsub auto "%F"`)*
 
-> **Note on `%F`**: qBittorrent replaces `%F` with the absolute path of the downloaded file or directory.
+> **Note on `%F`**: qBittorrent automatically replaces `%F` with the absolute path to the downloaded file or root folder.
 
 ---
 
@@ -234,7 +256,7 @@ rightsub auto "{{subtitles_path}}"
 
 ---
 
-### 🌐 Cross-Container Path Translation (PATH_MAP) & Security Hardening
+### 🌐 Cross-Container Path Translation (PATH_MAP)
 
 In Docker environments (Docker Compose, Unraid, TrueNAS SCALE, Synology DSM), `*arr` containers and Bazarr often mount media shares under different directory prefixes than RightSub.
 For example:
@@ -243,18 +265,16 @@ For example:
 
 Specify `PATH_MAP` when launching RightSub:
 ```bash
-# Syntax: FROM_PREFIX:TO_PREFIX (multiple mappings separated by commas or semicolons)
-rightsub serve --path-map "/data/media/tv:/media/tv,/data/media:/media"
+# Syntax: FROM_PREFIX:TO_PREFIX
+rightsub serve --path-map "/data/media:/media"
 
 # Or in docker-compose.yml:
 environment:
-  - PATH_MAP=/data/media/tv:/media/tv,/data/media:/media
+  - PATH_MAP=/data/media:/media
 ```
-RightSub automatically rewrites path prefixes for every incoming Sonarr, Radarr, and Bazarr webhook event:
-- **Longest-Prefix Priority**: Overlapping prefixes (e.g., `/data/media` and `/data/media/tv`) are automatically sorted by descending prefix length so the most specific mount always matches first.
-- **Windows Drive Support**: Case-insensitive Windows drive prefixes (`C:\Media` -> `/media`) and backslash normalization are handled natively.
-- **Path Traversal Protection**: Mapped paths are normalized via `posixpath.normpath` and validated to ensure relative `..` segments cannot escape the target mount root.
-- **Concurrency & Payload Guards**: The server enforces a 2 MB request body limit (`HTTP 413`), runs daemon worker threads, and serializes concurrent Sonarr/Bazarr hooks targeting the same subtitle file via per-file locks and atomic `os.replace()` writes.
+RightSub automatically rewrites path prefixes for every incoming Sonarr, Radarr, and Bazarr webhook event.
+- **Longest-Prefix Precedence**: When multiple nested mappings are configured (e.g. `/data` and `/data/media`), RightSub automatically sorts rules from longest prefix to shortest and matches Windows drive letters case-insensitively (`C:\` vs `c:\`).
+- **Daemon Security & Concurrency Hardening**: Enforces path traversal protection (`..` normalization within the mapped target root), a 2 MB `Content-Length` cap (`HTTP 413`), and per-file thread locks with atomic disk replacement when Sonarr and Bazarr fire simultaneous webhooks on the same release.
 
 ---
 
@@ -272,9 +292,9 @@ if [ -e "$TARGET_DIR" ]; then
     /usr/local/bin/rightsub auto "$TARGET_DIR"
 fi
 ```
-*(Grant execution permissions: `chmod +x /usr/local/bin/transmission_rightsub.sh`)*
+*(Run `chmod +x /usr/local/bin/transmission_rightsub.sh`)*
 
-### Step 2: Configure in Transmission `settings.json`:
+### Step 2: Enable in Transmission `settings.json`:
 ```json
 "script-torrent-done-enabled": true,
 "script-torrent-done-filename": "/usr/local/bin/transmission_rightsub.sh"
@@ -284,63 +304,98 @@ fi
 
 ## 5. Tautulli / Plex (Recently Added Hook)
 
-For users running Tautulli to monitor Plex libraries and trigger instant subtitle checks whenever new items land:
+For users running Tautulli alongside Plex Media Server who want automated subtitle verification the moment new media enters their library:
 
-1. Go to: **Settings** -> **Notification Agents**.
+### How to Configure:
+1. In Tautulli, navigate to **Settings** -> **Notification Agents**.
 2. Click **Add a Notification Agent** -> **Script**.
-3. Configuration:
-   - **Script Folder**: Folder containing your script.
-   - **Script File**: Script invoking `rightsub auto "{file}"`.
-   - **Triggers**: Check ☑ **Recently Added**.
-   - **Arguments** (under Recently Added): `"{file}"`
+3. Set **Script Folder** to your scripts directory.
+4. Set **Script File** to `rightsub_arr_hook.bat` (Windows) or `rightsub_arr_hook.sh` (macOS/Linux).
+5. In the **Triggers** tab, check ☑ **Recently Added**.
+6. In the **Arguments** tab, under **Recently Added**, pass:
+   ```text
+   <file>
+   ```
+7. Save the agent. RightSub will verify and master the subtitle before anyone sits down to stream.
 
 ---
 
 ## 6. Standalone OS Folder Watchers (Non-Arr / Manual Setups)
 
-If you do not use automated downloaders and prefer dropping video files into an intake folder manually:
+If you do **not** use automated download managers (such as qBittorrent, Sonarr, or Radarr) and instead manually copy or drop files into a folder, you can configure a native OS-level watcher with **write-settle protection**:
 
-### macOS / Linux (using `fswatch`):
+### macOS: Folder Action with Write-Settle Loop
+Create an Automator Folder Action on your target folder (e.g. `~/Downloads` or `/Volumes/Media/Incoming`) with a **Run Shell Script** action:
+
 ```bash
-fswatch -0 -e ".*" -i "\\.(mkv|mp4|srt)$" /path/to/incoming | while read -d "" event; do
-    echo "[*] New file detected: $event"
-    rightsub auto "$event"
+#!/usr/bin/env bash
+for f in "$@"; do
+    # Only process video and subtitle files
+    case "$f" in
+        *.mkv|*.mp4|*.avi|*.srt) ;;
+        *) continue ;;
+    esac
+
+    # Ensure file is completely written and unlocked before processing
+    PREV_SIZE=-1
+    while true; do
+        CURR_SIZE=$(stat -f%z "$f" 2>/dev/null || echo 0)
+        if [ "$CURR_SIZE" -eq "$PREV_SIZE" ] && [ "$CURR_SIZE" -gt 0 ]; then
+            break
+        fi
+        PREV_SIZE="$CURR_SIZE"
+        sleep 2
+    done
+
+    /usr/local/bin/rightsub auto "$f"
 done
 ```
 
-### Windows (PowerShell FileSystemWatcher):
+### Windows: PowerShell Folder Watcher (`rightsub_watcher.ps1`)
+Save this script and launch it at startup (or via Windows Task Scheduler):
+
 ```powershell
-$watcher = New-Object System.IO.FileSystemWatcher
-$watcher.Path = "C:\Media\Incoming"
-$watcher.Filter = "*.*"
-$watcher.IncludeSubdirectories = $true
-$watcher.EnableRaisingEvents = $true
+param (
+    [string]$WatchFolder = "C:\Users\$env:USERNAME\Downloads"
+)
+
+Write-Host "[*] RightSub Folder Watcher active on: $WatchFolder"
+$watcher = New-Object System.IO.FileSystemWatcher $WatchFolder, "*.*" -Property @{
+    IncludeSubdirectories = $false
+    NotifyFilter = [System.IO.NotifyFilters]::FileName -bor [System.IO.NotifyFilters]::LastWrite
+}
 
 Register-ObjectEvent $watcher "Created" -Action {
     $path = $Event.SourceEventArgs.FullPath
-    if ($path -match '\.(mkv|mp4|srt)$') {
-        Start-Sleep -Seconds 5 # Wait for write flush
-        & rightsub auto "$path"
+    $ext = [System.IO.Path]::GetExtension($path).ToLower()
+    if ($ext -notin @(".mkv", ".mp4", ".avi", ".srt")) { return }
+
+    # Wait until file handle is unlocked (copy/download complete)
+    while ($true) {
+        try {
+            $stream = [System.IO.File]::Open($path, 'Open', 'Read', 'None')
+            $stream.Close()
+            break
+        } catch {
+            Start-Sleep -Seconds 2
+        }
     }
+
+    Write-Host "[+] Processing completed file: $path"
+    rightsub auto "$path"
 }
+
+# Keep script running
+while ($true) { Start-Sleep -Seconds 60 }
 ```
 
 ---
 
-## 7. Troubleshooting & Verifying Integrations
+## 7. 💡 Troubleshooting & Verifying Integrations
 
-### How to Verify RightSub Triggered Successfully:
-1. **Plex / Infuse Validation**:
-   - Check Hebrew punctuation: question marks (`?`), exclamation points (`!`), and periods should sit at the correct natural Hebrew ends of lines.
-2. **Log Verification**:
-   - Webhook server prints structured timestamped logs:
-     `[Webhook] Sonarr [Download] Translated '/data/media/tv/ep.mkv' -> '/media/tv/ep.mkv'`
-     `[Webhook] Bazarr [download] Processed 1 subs (1 lines adjusted, fixed) -> Show.S01E01.he.srt`
-3. **Backup Protection**:
-   - When modifying in-place, pass `--backup` to preserve the original subtitle as `.srt.bak`.
-
----
-
-<p align="center">
-  <b>RightSub Automation Suite</b> • <i>Subtitles Done Right, 100% Hands-Free.</i>
-</p>
+To test that your automated pipeline is executing correctly:
+1. Run a manual dry run on a sample file:
+   ```bash
+   rightsub auto "/path/to/Sample.mkv" --dry-run
+   ```
+2. Inspect the historical report at `docs/analytics/TRAFFIC_REPORT.md` to observe automated hits and processing records.

@@ -1,14 +1,16 @@
-# 🔌 RFC 002: RightSub Native Model Context Protocol (MCP) Server
+# 🔌 RFC 002: RightSub Native Model Context Protocol (MCP) Server (`rightsub mcp`)
+
+> **Status:** ✅ **Shipped in Production (`v1.5.0`)** — Implemented in [`scripts/23_mcp_server.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/23_mcp_server.py) and [`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). Verified by [`tests/test_mcp_server.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_mcp_server.py).
 
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="מפרט-שרת-MCP"><b>עברית</b></a>
+  <a href="RFC_002_MCP_SERVER.he.md"><b>עברית</b></a>
 </p>
 
-This Request for Comments (RFC) specifies the architectural design, protocol interfaces, tool schemas, and integration strategy for turning **RightSub** into an official **Model Context Protocol (MCP) Server**.
+This document specifies the architectural design, protocol interfaces, tool schemas, and multi-agent auto-installer for **RightSub's official Model Context Protocol (MCP) Server** (`v1.5.0`).
 
-The objective is to expose RightSub's core media discovery, FFmpeg stream extraction, SubRefine BiDi processing, and translation orchestrator natively to leading AI agents and desktop environments (e.g. **Claude Desktop**, **Antigravity**, **Cursor**, **Windsurf**, and **ChatGPT**).
+The MCP server exposes RightSub's core media discovery, FFmpeg stream extraction, SubRefine BiDi processing, semantic polish engine, and translation orchestrator natively to leading AI agents and desktop environments (**Google Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf**, and **Claude Code**).
 
 ---
 
@@ -43,62 +45,37 @@ The objective is to expose RightSub's core media discovery, FFmpeg stream extrac
 
 ---
 
-## 3. Proposed MCP Toolset Schema
+## 3. Shipped MCP Toolset Schema (8 Native Tools)
 
-### Tool 1: `rightsub_inspect_media`
-- **Description:** Probes a video file, subtitle file, or directory and returns structured media information.
-- **Arguments:**
-  - `path` (string, required): Absolute filesystem path to media container or subtitle.
-- **Returns:**
-  - Embedded subtitle tracks (languages, codecs, track indices).
-  - External companion subtitle presence and encoding (UTF-8, CP1255).
-  - BiDi RLM compliance status.
-
-### Tool 2: `rightsub_extract_subtitles`
-- **Description:** Extracts embedded subtitle stream to standalone `.srt` file.
-- **Arguments:**
-  - `video_path` (string, required): Path to video container.
-  - `lang` (string, default: `"eng"`): Preferred language code.
-  - `track_index` (integer, optional): Specific stream index.
-
-### Tool 3: `rightsub_fix_plex_bidi`
-- **Description:** Runs SubRefine engine to inject Plex/Infuse RLM marks, strip ads, and normalize character encodings.
-- **Arguments:**
-  - `subtitle_path` (string, required): Path to subtitle file.
-  - `in_place` (boolean, default: `false`): Overwrite in-place with `.bak` safety.
-
-### Tool 4: `rightsub_polish_cues`
-- **Description:** Reviews and modernizes a batch of Hebrew cues against English master text using franchise domain rules.
-- **Arguments:**
-  - `english_cues` (array of objects, required): Master English dialogue cues.
-  - `hebrew_cues` (array of objects, required): Hebrew translation cues.
-  - `domain` (string, optional): Domain pack (`"sci_fi"`, `"legal"`, `"military"`, etc.).
+1. **`inspect_media(path)`**: Probes a video file, subtitle file, or directory and returns embedded tracks, companion `.srt` encodings, Hebrew ratios, BiDi compliance status, and recommended next steps.
+2. **`fix_plex_subtitles(path, in_place=True, keep_sdh=False)`**: Runs the 0-token `SubRefine` engine (`Windows-1255` recovery, 18-pattern visual un-flipping, UAX #9 Rule N1 `RLM` wrapping, ad/SDH cleaning, and Seed-Safe `.srt` $\rightarrow$ `.he.srt` duplication).
+3. **`extract_subtitles(video_path, lang="eng", output_path=None)`**: Extracts embedded text subtitle tracks from `.mkv`/`.mp4` containers via `ffmpeg`.
+4. **`prepare_translation(srt_path, title="", is_tv=False, enrich_tmdb=True)`**: Generates `translation_bible.json` (with TMDb cast genders when `TMDB_API_KEY` is present) and splits the English `.srt` into ~210-cue JSON batches with sliding context overlap.
+5. **`merge_and_master(en_srt_path, translated_batches_dir, output_path=None)`**: Validates 1:1 cue parity, checks for cue drift (`validate_anchor_alignment`), injects `RLM` marks, and writes the final `.he.srt`.
+6. **`polish_subtitles(he_srt_path, en_srt_path="", diff_only=False, use_gemini=False)`**: Executes the 0-token deterministic franchise canon & bilingual 2-digit number un-flipping pass (`cross_check_bilingual_numbers`), plus optional Gemini AI proofreading.
+7. **`audit_subtitles_qa(en_srt_path, he_srt_path, strict_gender=True)`**: Runs the Red Team QA suite (line count parity, timestamp drift, foreign homoglyphs, vocative & intra-line gender mismatches).
+8. **`transcribe_audio(video_path, lang="en")`**: Invokes on-device Speech-to-Text (`quicksubs` — Apple SpeechAnalyzer on Apple Silicon or Whisper) when no embedded subtitle tracks exist.
 
 ---
 
-## 4. Claude Desktop / Antigravity Configuration Example
+## 4. Multi-Agent Auto-Installer & Protocol Hardening (`v1.5.0`)
 
-Add to `claude_desktop_config.json` or Antigravity MCP settings:
-
-```json
-{
-  "mcpServers": {
-    "rightsub": {
-      "command": "rightsub",
-      "args": ["mcp"],
-      "env": {
-        "PYTHONUNBUFFERED": "1"
-      }
-    }
-  }
-}
+Instead of editing JSON config files manually, run:
+```bash
+rightsub mcp --install      # Auto-registers in Antigravity, Claude Desktop, Cursor, Windsurf & Claude Code
+rightsub mcp --status       # Displays registration status across all detected AI clients
+rightsub mcp --print-config # Prints the exact JSON block with absolute Python & script paths
+rightsub mcp --uninstall    # Cleanly removes RightSub from agent configs
 ```
 
+### Red Team Safeguards Implemented in `scripts/23_mcp_server.py`:
+- **Strict `stdout` Isolation (`_isolated_stdio`)**: Redirects Python `sys.stdout` to `sys.stderr` during tool execution so internal `print()` calls or `ffmpeg` output never corrupt the JSON-RPC 2.0 wire stream.
+- **Dual-Mode Wire Framing**: Automatically detects and replies in either newline-delimited JSON (MCP stdio standard) or LSP-style `Content-Length` headers.
+- **GUI Subprocess `PATH` Injection**: Injects `/opt/homebrew/bin`, `/usr/local/bin`, and `~/.local/bin` into the MCP `env` block so GUI clients (Claude Desktop, Cursor) always locate `ffmpeg` and `python3`.
+
 ---
 
-## 5. Target Release & Tracking
+## 5. Release Status
 
-- **Target Release:** Version 1.5.0
-- **Milestone:** [`v1.5.0 — Agentic Subtitle Protocol & MCP Server`](https://github.com/omerninyo/RightSub/milestone/2)
-- **Tracking Issue:** [#3](https://github.com/omerninyo/RightSub/issues/3)
-- **Roadmap:** [Product Roadmap](Roadmap)
+- **Status:** ✅ **Shipped in Version 1.5.0**
+- **Milestone:** `v1.5.0 — Agentic Subtitle Protocol, Interactive TUI & Turnkey Setup`

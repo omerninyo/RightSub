@@ -75,3 +75,20 @@ class TestJunkAndSDHCleaning:
         assert "סאבסנטר" not in result_text
         assert "שלום לכולם" in result_text
 
+    def test_multiline_dangling_credit_block_stripped(self):
+        srt_content = (
+            "1\n"
+            "00:00:01,000 --> 00:00:04,000\n"
+            "<i>הובא וסונכרן על ידי\n"
+            "אריאל אפרתי</i>\n\n"
+            "2\n"
+            "00:00:05,000 --> 00:00:07,000\n"
+            "בוקר טוב לכולם.\n"
+        )
+        result_text, total_subs, modified_lines, ads_removed = fix_plex.process_srt_content(srt_content, clean_ads=True)
+        assert ads_removed == 2
+        assert total_subs == 1
+        assert "אריאל אפרתי" not in result_text
+        assert "בוקר טוב לכולם" in result_text
+
+

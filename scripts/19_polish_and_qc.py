@@ -125,20 +125,21 @@ try:
     clean_subtitles = getattr(m07, "process_srt_content", lambda c, **kw: c)
     clean_line = getattr(m07, "clean_line", lambda l, **kw: l)
     apply_bidi_and_punctuation = getattr(m07, "apply_rlm_to_line", lambda l: l)
+    cross_check_bilingual_numbers = getattr(m07, "cross_check_bilingual_numbers", lambda h, e: h)
     RLM = getattr(m07, "RLM", "\u200F")
 except Exception:
     RLM = "\u200F"
     normalize_homoglyphs = lambda t: t
     clean_subtitles = lambda c, **kw: c
     clean_line = lambda l, **kw: l
+    cross_check_bilingual_numbers = lambda h, e: h
     def apply_bidi_and_punctuation(line):
         if not line:
             return line
         line = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', line)
         if re.search(r'[\u0590-\u05FF]', line):
-            line = re.sub(r'([\.!\?,:;\-\—\)»\]]+)$', f'{RLM}\\1', line)
-            if not line.startswith(RLM):
-                line = RLM + line
+            line = line.strip('\u200F')
+            line = f"{RLM}{line}{RLM}"
         return line
 
 try:
@@ -409,12 +410,20 @@ def run_deterministic_canon_pass(aligned_cues, franchise_data=None, domain_profi
                 if re.search(en_pat, current_en, flags=re.IGNORECASE) and re.search(he_pat, modified):
                     modified = re.sub(he_pat, replacement, modified)
                     reasons.append(reason)
+            num_fixed = cross_check_bilingual_numbers(modified, current_en)
+            if num_fixed != modified:
+                modified = num_fixed
+                reasons.append("תיקון היפוך ספרות דו-לשוני (Subabi Number Reversal)")
 
-        # C. Universal typographical pass
+        # C. Universal typographical & homoglyph pass
         for pattern, replacement, reason in universal_corrections:
             if re.search(pattern, modified):
                 modified = re.sub(pattern, replacement, modified)
                 reasons.append(reason)
+        sanitized = normalize_homoglyphs(modified)
+        if sanitized != modified:
+            modified = sanitized
+            reasons.append("ניקוי תווים זרים (Homoglyphs)")
 
         if modified != current_he:
             modifications[idx] = {
@@ -788,6 +797,95 @@ def query_ollama_api(prompt, model="qwen2.5:7b", url="http://localhost:11434"):
     
     response_str = res_json.get("response", "")
     return extract_json_payload(response_str)
+
+def interactive_review_modifications(modifications, en_map=None, input_fn=input):
+    """
+    Interactive terminal diff reviewer (`rightsub polish --interactive`).
+    Allows line-by-line inspection of proposed subtitle modifications with:
+      [Y / Enter] Approve edit
+      [N]         Reject edit (keep original Hebrew line)
+      [E]         Edit manually
+      [A]         Approve all remaining edits
+      [R]         Reject all remaining edits
+      [Q]         Quit without saving (returns None)
+    Includes Ctrl+C (KeyboardInterrupt) recovery asking whether to keep approved edits so far.
+    """
+    en_map = en_map or {}
+    if not modifications:
+        return {}
+
+    sorted_indices = sorted(modifications.keys())
+    total = len(sorted_indices)
+    approved = {}
+
+    print("\n==================================================================")
+    print(f"   RightSub Interactive Diff Reviewer ({total} proposed edits)")
+    print("==================================================================")
+    print(" Controls: [Y/Enter] Approve | [N] Reject | [E] Edit | [A] Approve All | [R] Reject Remaining | [Q] Quit\n")
+
+    for pos, idx in enumerate(sorted_indices, start=1):
+        mod = modifications[idx]
+        orig_en = (en_map.get(idx, "") or "").replace("\n", " / ")
+        old_he = (mod.get("original_he", "") or "").replace("\n", " / ")
+        new_he = (mod.get("polished_he", "") or "").replace("\n", " / ")
+        reason = mod.get("reason", "Polish & QC")
+
+        print("------------------------------------------------------------------")
+        print(f" [{pos}/{total}] Cue #{idx}  ({reason})")
+        if orig_en:
+            print(f"   EN     : {orig_en}")
+        print(f"   OLD HE : {old_he}")
+        print(f"   NEW HE : {new_he}")
+
+        while True:
+            try:
+                ans = input_fn("   Action [Y/n/e/a/r/q]: ").strip().lower()
+            except (KeyboardInterrupt, EOFError):
+                print("\n   [!] Interrupted!")
+                try:
+                    save_partial = input_fn(f"   Save the {len(approved)} edit(s) approved so far? [Y/n]: ").strip().lower()
+                    if save_partial in ("", "y", "yes"):
+                        return approved
+                except (KeyboardInterrupt, EOFError):
+                    pass
+                return None
+
+            if ans in ("", "y", "yes"):
+                approved[idx] = mod
+                break
+            elif ans in ("n", "no"):
+                break
+            elif ans in ("e", "edit"):
+                try:
+                    custom_text = input_fn("   Enter custom Hebrew text (use ' / ' for line break): ").strip()
+                except (KeyboardInterrupt, EOFError):
+                    print()
+                    continue
+                if custom_text:
+                    normalized_custom = normalize_homoglyphs(custom_text.replace(" / ", "\n"))
+                    updated_mod = dict(mod)
+                    updated_mod["polished_he"] = normalized_custom
+                    updated_mod["reason"] = f"{reason} (Manual User Edit)"
+                    approved[idx] = updated_mod
+                    break
+            elif ans in ("a", "all"):
+                for rem_idx in sorted_indices[pos - 1:]:
+                    approved[rem_idx] = modifications[rem_idx]
+                print(f"   [✓] Approved all {total - pos + 1} remaining edits.")
+                return approved
+            elif ans in ("r", "reject"):
+                print(f"   [i] Rejected all {total - pos + 1} remaining edits.")
+                return approved
+            elif ans in ("q", "quit"):
+                return None
+            else:
+                print("   [!] Choose Y (approve), N (reject), E (edit), A (approve all), R (reject remaining), or Q (quit).")
+
+    print("==================================================================")
+    print(f" [✓] Review complete: {len(approved)}/{total} edits approved.")
+    print("==================================================================\n")
+    return approved
+
 
 def generate_diff_report(title, total_cues, modifications, output_report_path, en_map=None):
     """Generates a clean, comprehensive Markdown Diff Audit Report."""
@@ -1194,6 +1292,14 @@ def polish_target(target, en_path=None, args=None):
         else:
             print("[i] No active LLM backend detected (set GEMINI_API_KEY or pass --ollama). Using deterministic canon pass.")
 
+    # 7.5 Interactive Line-by-Line Diff Reviewer (--interactive)
+    if getattr(args, "interactive", False) is True and modifications:
+        reviewed = interactive_review_modifications(modifications, en_map)
+        if reviewed is None:
+            print("[i] Interactive review aborted by user. Subtitle files left unmodified.")
+            return False
+        modifications = reviewed
+
     # 8. Produce Final Mastered Cues
     final_cues = []
     for c in he_cues:
@@ -1210,13 +1316,20 @@ def polish_target(target, en_path=None, args=None):
 
     # 9. Output Paths & Seed-Safe Handling
     stem = he_path.stem
-    if stem.endswith(".he"):
+    if stem.lower().endswith(".he"):
         base_stem = stem[:-3]
+    elif stem.lower().endswith(".heb"):
+        base_stem = stem[:-4]
+    elif stem.lower().endswith(".hebrew"):
+        base_stem = stem[:-7]
     else:
         base_stem = stem
 
+    target_dir = video_path.parent if video_path else he_path.parent
+    target_base = video_path.stem if video_path else base_stem
+
     raw_diff = getattr(args, "diff_report", None)
-    diff_path = Path(raw_diff).resolve() if raw_diff else (he_path.parent / f"{base_stem}_polish_diff.md")
+    diff_path = Path(raw_diff).resolve() if raw_diff else (target_dir / f"{target_base}_polish_diff.md")
     generate_diff_report(title, len(he_cues), modifications, diff_path, en_map)
     print(f"\n[✓] Polish Audit Report saved to: {diff_path.name}")
 
@@ -1228,18 +1341,24 @@ def polish_target(target, en_path=None, args=None):
     output_path = getattr(args, "output", None)
     if not output_path:
         if getattr(args, "in_place", False):
-            # Seed-safe backup before in-place modification
-            backup_path = he_path.parent / f"{base_stem}.he.original.srt"
-            if not backup_path.exists():
-                shutil.copy2(he_path, backup_path)
-                try:
-                    os.utime(backup_path, None)
-                except Exception:
-                    pass
-                print(f"[i] Seed-Safe Backup created: {backup_path.name}")
-            output_path = he_path
+            if he_path.name.lower().endswith(".he.srt"):
+                # Seed-safe backup before in-place modification of existing .he.srt
+                backup_path = he_path.parent / f"{base_stem}.he.original.srt"
+                if not backup_path.exists():
+                    shutil.copy2(he_path, backup_path)
+                    try:
+                        os.utime(backup_path, None)
+                    except Exception:
+                        pass
+                    print(f"[i] Seed-Safe Backup created: {backup_path.name}")
+                output_path = he_path
+            else:
+                # Plain .srt / .heb.srt / Subs/*.srt -> Seed-Safe torrent protection:
+                # Leave original file 100% untouched on disk and write mastered output to .he.srt
+                output_path = target_dir / f"{target_base}.he.srt"
+                print(f"[i] Seed-Safe Torrent Protection: preserving original '{he_path.name}' untouched -> writing '{output_path.name}'")
         else:
-            output_path = he_path.parent / f"{base_stem}.he.polished.srt"
+            output_path = target_dir / f"{target_base}.he.polished.srt"
     else:
         output_path = Path(output_path).resolve()
 
@@ -1270,6 +1389,7 @@ def main():
     parser.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
     parser.add_argument("--diff-only", "--dry-run", dest="diff_only", action="store_true", help="Generate audit report only without saving subtitle file")
     parser.add_argument("--in-place", action="store_true", help="Backup and update original file instead of creating .he.polished.srt")
+    parser.add_argument("--interactive", "-i", action="store_true", help="Interactive terminal diff reviewer: approve, reject, or edit each change line-by-line")
     parser.add_argument("-o", "--output", help="Custom output path for polished subtitle file")
     parser.add_argument("--diff-report", help="Custom output path for markdown diff report")
 

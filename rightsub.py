@@ -37,7 +37,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-__version__ = "1.3.1"
+__version__ = "1.5.0"
 default_engine = "apple" if sys.platform == "darwin" else "whisper"
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -176,15 +176,35 @@ def main():
     p_polish.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
     p_polish.add_argument("--diff-only", "--dry-run", dest="diff_only", action="store_true", help="Generate audit report only without saving subtitle file")
     p_polish.add_argument("--in-place", action="store_true", help="Backup and update original file instead of creating .he.polished.srt")
-    # Command: config (API Key & Configuration Manager)
-    p_config = subparsers.add_parser("config", help="Interactive API key onboarding and credentials manager")
+    p_polish.add_argument("--interactive", "-i", action="store_true", help="Interactive terminal diff reviewer: approve, reject, or edit each change line-by-line")
+    # Command: config (API Key, Hooks & Service Manager)
+    p_config = subparsers.add_parser("config", help="Interactive API key onboarding, downloader hooks & service manager")
     p_config.add_argument("--gemini", help="Directly set Google Gemini API Key")
     p_config.add_argument("--tmdb", help="Directly set TMDb API Key or Bearer Token")
     p_config.add_argument("--show", action="store_true", help="Display current configuration status")
     p_config.add_argument("--clear", action="store_true", help="Delete configuration file")
+    p_config.add_argument("--install-quicksubs", action="store_true", help="Install quicksubs via Homebrew on Apple Silicon")
+    p_config.add_argument("--install-hooks", action="store_true", help="Generate qBittorrent/Transmission completion hooks and Sonarr/Radarr webhook endpoints")
+    p_config.add_argument("--install-service", action="store_true", help="Generate launchd/systemd/Windows startup service for RightSub Webhook daemon")
 
     # Command: doctor (System Diagnostics & Health Check)
     p_doctor = subparsers.add_parser("doctor", help="Run comprehensive health check on dependencies and services")
+
+    # Command: setup (Unified Environment Setup, Hooks & MCP Wizard)
+    p_setup = subparsers.add_parser("setup", help="Run end-to-end Setup, Downloader Hooks & MCP Agent Integration Wizard")
+    p_setup.add_argument("--non-interactive", action="store_true", help="Run setup without interactive prompts")
+
+    # Command: wizard (Interactive Terminal Mastering Wizard)
+    p_wizard = subparsers.add_parser("wizard", help="Launch Interactive Terminal Mastering Wizard (Drag & Drop, File Explorer, Polish)")
+
+    # Command: mcp (Native Model Context Protocol Server & Agent Auto-Installer)
+    p_mcp = subparsers.add_parser("mcp", help="Run Native MCP Server over stdio or auto-register with AI agents (--install)")
+    p_mcp.add_argument("--install", action="store_true", help="Auto-register RightSub MCP server in AI agents (Antigravity, Claude Desktop, Cursor, Windsurf, Claude Code)")
+    p_mcp.add_argument("--uninstall", action="store_true", help="Remove RightSub MCP server from AI agent configurations")
+    p_mcp.add_argument("--agent", default="all", help="Target agent: all, antigravity, claude, cursor, windsurf, claude-code")
+    p_mcp.add_argument("--config-path", help="Custom path to an agent's MCP JSON configuration file")
+    p_mcp.add_argument("--status", action="store_true", help="Show MCP registration status across all known AI agents")
+    p_mcp.add_argument("--print-config", action="store_true", help="Print ready-to-paste mcpServers JSON snippet")
 
     # Command: serve (Webhook Daemon for Sonarr, Radarr, Bazarr)
     p_serve = subparsers.add_parser("serve", help="Run native Webhook daemon for Sonarr, Radarr, and Bazarr")
@@ -199,16 +219,22 @@ def main():
     args, unknown = parser.parse_known_args()
 
     if not args.command:
-        parser.print_help()
-        sys.exit(0)
+        if sys.stdin.isatty() and sys.stdout.isatty() and os.environ.get("RIGHTSUB_NON_INTERACTIVE") != "1":
+            run_script("22_interactive_wizard.py", [])
+        else:
+            parser.print_help()
+            sys.exit(0)
 
     script_mapping = {
         "auto": "18_auto_pipeline.py",
+        "wizard": "22_interactive_wizard.py",
+        "mcp": "23_mcp_server.py",
         "serve": "21_webhook_server.py",
         "translate-ollama": "17_translate_ollama.py",
         "polish": "19_polish_and_qc.py",
         "config": "20_config_and_doctor.py",
         "doctor": "20_config_and_doctor.py",
+        "setup": "20_config_and_doctor.py",
         "split": "04_split_batches.py",
         "merge": "05_merge_and_validate.py",
         "prompt-gen": "09_prompt_builder.py",
@@ -223,7 +249,7 @@ def main():
     }
 
     script_name = script_mapping[args.command]
-    if args.command in ("config", "doctor"):
+    if args.command in ("config", "doctor", "setup"):
         raw_args = [args.command] + sys.argv[2:]
     else:
         raw_args = sys.argv[2:]

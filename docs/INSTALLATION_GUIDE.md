@@ -16,9 +16,10 @@ This guide explains how to install **RightSub** as a global command-line tool ac
 | :--- | :--- | :--- | :--- | :---: |
 | **1. Official Homebrew Tap** | macOS / Linux | `brew tap omerninyo/tap && brew install rightsub` | **Recommended for macOS** (1-sec universal bottle) | Homebrew |
 | **2. Fast Script Installer** | macOS / Linux | `./install.sh` | Local developer setup (Global `~/.local/bin` link) | Python 3 |
-| **3. Windows Batch Installer** | Windows | `install.bat` | **Recommended for Windows** (Checks Python, installs pip packages) | Python 3 |
+| **3. Windows Batch Installer** | Windows | `install.bat` | **Recommended for Windows** (Checks Python, installs packages & auto-updates User PATH) | Python 3 |
 | **4. Isolated Package (`pipx`)**| Cross-Platform | `pipx install .` | Isolated Python virtual environment | pipx |
-| **5. Config & Health Diagnostics**| Cross-Platform | `rightsub config` / `rightsub doctor` | Interactive API key setup & dependency inspector | RightSub installed |
+| **5. Setup, Hooks & Diagnostics**| Cross-Platform | `rightsub setup` / `rightsub doctor` | End-to-end onboarding wizard, downloader hooks, services & health check | RightSub installed |
+| **6. AI Agent MCP Auto-Installer**| Cross-Platform | `rightsub mcp --install` | 1-click native MCP Server registration for Antigravity, Claude, Cursor & Windsurf | RightSub installed |
 
 ---
 
@@ -86,19 +87,22 @@ rightsub --help
    git clone https://github.com/omerninyo/RightSub.git
    cd RightSub
    ```
-2. **Run the Installer:**
+2. **Run the Installer (Automatically Registers Global `PATH`):**
    Double-click `install.bat` (or execute in CMD / PowerShell):
    ```cmd
    install.bat
    ```
-3. **Make `rightsub` Available from ANY Directory (Add to PATH):**
-   Run this single PowerShell command (as current user, no admin required):
+   `install.bat` verifies `python` and `ffmpeg`, installs dependencies from `requirements.txt`, and **automatically registers the RightSub directory in your Windows User `PATH`** via PowerShell (no Administrator privileges required).
+3. **Verify & Launch:**
+   Open a new CMD or PowerShell window and run:
+   ```cmd
+   rightsub          :: Launches the Interactive Mastering Wizard
+   rightsub setup    :: Runs the First-Time Setup & Hooks Wizard
+   rightsub auto "C:\Movies\Gladiator.mkv"
+   ```
+   *(Manual PATH fallback if PowerShell execution is restricted on your system:)*
    ```powershell
    [Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$((Get-Item .).FullName)", "User")
-   ```
-   Open a new CMD or PowerShell window and test:
-   ```cmd
-   rightsub auto "C:\Movies\Gladiator.mkv"
    ```
 
 ---
@@ -165,5 +169,24 @@ If typing `rightsub` in Command Prompt returns `'rightsub' is not recognized`:
 
 ---
 
-## 🔮 Future Roadmap: Interactive Setup Wizard
-For technical details on the planned autonomous onboarding wizard, see [RFC 003: Automated Setup & Health-Check Wizard](proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md) and the [Product Roadmap](../ROADMAP.md).
+## 🧙 Post-Install Onboarding: Setup Wizard, Interactive TUI & MCP Server (`v1.5.0`)
+
+Once RightSub is installed, three built-in interactive wizards let you configure, operate, and connect RightSub without memorizing any flags:
+
+1. **First-Time Setup, Downloader Hooks & Background Service Wizard (`rightsub setup`):**
+   ```bash
+   rightsub setup
+   ```
+   Runs a full system diagnostic (`rightsub doctor`), optionally configures `TMDB_API_KEY` and `GEMINI_API_KEY` (`~/.config/rightsub/config.json` with `chmod 600`), generates ready-to-use `qBittorrent` / `Transmission` completion hooks (`--install-hooks`), registers live Sonarr/Radarr webhooks, and optionally installs `rightsub serve` as a background OS service (`launchd` on macOS, `systemd --user` on Linux, `schtasks` on Windows via `--install-service`).
+2. **Interactive Terminal & Windows CMD Mastering Wizard (`rightsub`):**
+   ```bash
+   rightsub
+   ```
+   Running `rightsub` with no arguments in any interactive terminal opens a numbered menu with Drag & Drop path normalization and a built-in terminal file browser (`[B] Browse`).
+3. **1-Click Native MCP Server Registration for AI Agents (`rightsub mcp --install`):**
+   ```bash
+   rightsub mcp --install
+   ```
+   Automatically registers RightSub's local JSON-RPC 2.0 MCP Server (`8` tools) into **Google Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf**, and **Claude Code**.
+
+For architectural details, see [RFC 001: Interactive CLI Wizard](proposals/RFC_001_INTERACTIVE_TUI.md), [RFC 002: Native MCP Server](proposals/RFC_002_MCP_SERVER.md), [RFC 003: Setup & Health-Check Wizard](proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md), and the [Product Roadmap](../ROADMAP.md).

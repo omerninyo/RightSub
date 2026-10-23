@@ -165,24 +165,25 @@ This is the primary architectural differentiator refuting the misconception that
 
 ---
 
-## 📊 Comprehensive Comparison Matrix (Version 1.3.0)
+## 📊 Comprehensive Comparison Matrix (Version 1.5.0)
 
-| Capability / Dimension | Bazarr | RightSub (v1.3.0) |
+| Capability / Dimension | Bazarr | RightSub (v1.5.0) |
 | :--- | :--- | :--- |
-| **Primary Pipeline Role** | Automated web crawler & downloader for existing community subtitles (Ingest). | Mastering, Semitic linguistics, BiDi RLM, AI proofreading, and headless automation (Mastering). |
-| **Plex & Infuse BiDi Handling** | ❌ Broken physical character swap (`common.py`) or legacy RLE tags (`\u202b`). | ✔️ `SubRefine` engine injecting invisible Unicode RLM (`\u200F`) marks (UAX #9). |
+| **Primary Pipeline Role** | Automated web crawler & downloader for existing community subtitles (Ingest). | Mastering, Semitic linguistics, BiDi RLM, AI proofreading, MCP agent server, and headless automation (Mastering). |
+| **Plex & Infuse BiDi Handling** | ❌ Broken physical character swap (`common.py`) or legacy RLE tags (`\u202b`). | ✔️ `SubRefine` engine injecting invisible Unicode RLM (`\u200F`) marks (UAX #9) + un-flipping 18 legacy visual-flip patterns (`Subabi`). |
 | **Hearing Impaired / SDH Sanitization** | ❌ Latin characters only; blind to Hebrew auditory descriptions. | ✔️ Native bilingual SDH sanitizer with dialogue protection. |
-| **OCR Typo Repair** | ❌ Hebrew is completely missing from dictionary (`data.py`). | ✔️ Homoglyph normalization from 7 scripts + Hebrew Gershayim normalization. |
+| **OCR Typo & Number Repair** | ❌ Hebrew is completely missing from dictionary (`data.py`). | ✔️ Homoglyph normalization from 7 scripts (incl. Georgian `דეייט` $\rightarrow$ `דייט`) + bilingual 2-digit number un-flipping (`84` $\rightarrow$ `48`). |
 | **Legacy Mojibake Repair (CP1255)** | ⚠️ Passes through raw encoding from provider. | ✔️ Auto-Charset engine detecting Windows-1255 and converting to UTF-8. |
 | **Timing Synchronization (Sync)** | ⚠️ Manual web GUI only (Two-Point Fit requires typing 4 timestamps). | ✔️ Direct CLI flags (`rightsub sync`) + hardware-accelerated STT (`quicksubs`). |
 | **Pre-Flight Architecture & Bible** | ❌ None. Static 4-line prompt with zero domain knowledge. | ✔️ TMDb cast resolution, speaker extraction, locked `translation_bible.json`. |
 | **Context Overlap Across Batches** | ❌ Flat 300-line batches. Sentences severed without context. | ✔️ 3–5 cue sliding overlap windows guaranteeing sentence continuity. |
-| **Vocative & Gender Agreement** | ❌ Completely blind (defaults to masculine, frequent gender flips). | ✔️ Explicit 2nd-person gender rules based on speaker continuity. |
-| **Subtitle Proofreading / Polish** | ❌ None. Requires translating from scratch. | ✔️ `rightsub polish` with Minimal Edit Distance (85%–90% preservation). |
-| **Torrent Seeding Protection (Seed-Safe)** | ❌ Modifies files in-place, corrupting torrent hashes. | ✔️ Non-destructive duplication to `<stem>.he.srt` (Bit-for-Bit intact). |
+| **Vocative & Gender Agreement** | ❌ Completely blind (defaults to masculine, frequent gender flips). | ✔️ Explicit 2nd-person gender rules + deterministic vocative & morphological QA audit (`rightsub qa`). |
+| **Subtitle Proofreading / Polish** | ❌ None. Requires translating from scratch. | ✔️ `rightsub polish` (with `--interactive` line-by-line diff reviewer & 0-token deterministic pass). |
+| **AI Agent & MCP Protocol Support** | ❌ None. | ✔️ Native JSON-RPC 2.0 MCP Server (`rightsub mcp --install`) for Antigravity, Claude Desktop, Cursor & Windsurf. |
+| **Torrent Seeding Protection (Seed-Safe)** | ❌ Modifies files in-place, corrupting torrent hashes. | ✔️ Content-based `.srt` discovery & non-destructive duplication to `<stem>.he.srt` (Bit-for-Bit intact). |
 | **NAS / SMB Metadata Synchronization** | None (susceptible to macOS SMB 2001 epoch bug). | Explicit `os.utime()` metadata sync for immediate NAS indexing. |
 | **Automated 24/7 Web Crawling** | ✔️ **Industry standard** (crawls 30+ providers linked to Sonarr/Radarr). | ❌ Does not crawl pirate sites; processes local files or generates subtitles via AI. |
-| **System Resource Overhead** | 24/7 Docker container / background daemon (RAM/CPU). | Zero-daemon CLI running purely on event hooks (0% idle CPU, 0 MB RAM). |
+| **System Resource Overhead** | 24/7 Docker container / background daemon (RAM/CPU). | Zero-daemon CLI on event hooks (0% idle CPU) or ultra-lightweight `<15 MB` Webhook Daemon (`rightsub serve`). |
 
 ---
 

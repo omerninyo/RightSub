@@ -39,16 +39,19 @@ if %errorlevel% neq 0 (
     echo [✓] Dependencies installed successfully.
 )
 
+:: 4. Register RightSub in Windows User PATH automatically via PowerShell
+echo [*] Registering RightSub in your Windows User PATH...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$dir = '%~dp0'.TrimEnd('\'); $p = [Environment]::GetEnvironmentVariable('Path', 'User'); if ($p -notlike \"*$dir*\") { [Environment]::SetEnvironmentVariable('Path', \"$p;$dir\", 'User'); Write-Host '[✓] Added RightSub to Windows User PATH.' } else { Write-Host '[✓] RightSub is already in Windows User PATH.' }"
+
 echo.
 echo ===================================================
-echo [✓] RightSub is ready on Windows!
+echo [✓] RightSub v1.5.0 is ready on Windows!
 echo ===================================================
 echo.
-echo You can run RightSub directly from this directory:
+echo Quick Commands (open a new CMD or PowerShell window):
+echo     rightsub                (Launch Interactive Wizard)
+echo     rightsub setup          (Run Setup, Hooks ^& MCP Agent Wizard)
+echo     rightsub mcp --install  (Connect to Claude, Antigravity, Cursor, Windsurf)
 echo     rightsub auto "C:\path\to\movie.mkv"
-echo     python rightsub.py auto "C:\path\to\movie.mkv"
-echo.
-echo To run 'rightsub' from ANY folder on your computer:
-echo Add "%~dp0" to your Windows User PATH environment variable.
 echo.
 pause

@@ -50,7 +50,7 @@ for _p in (str(SCRIPT_DIR), str(REPO_ROOT)):
 try:
     from rightsub import __version__ as SERVER_VERSION
 except Exception:
-    SERVER_VERSION = "1.3.1"
+    SERVER_VERSION = "1.5.0"
 
 DEFAULT_PORT = 8775
 DEFAULT_HOST = "0.0.0.0"
@@ -485,8 +485,41 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
             self.log_message("Failed to parse JSON body: %s", str(e))
             return None, 400
 
+    def _send_static_file(self, filename: str, content_type: str):
+        site_dir = (SCRIPT_DIR.parent / "site").resolve()
+        target_file = (site_dir / filename).resolve()
+        if not str(target_file).startswith(str(site_dir)) or not target_file.is_file():
+            self._send_json(404, {"error": "Static asset not found"})
+            return
+        raw_bytes = target_file.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(raw_bytes)))
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Powered-By", f"RightSub/{SERVER_VERSION}")
+        self.end_headers()
+        self.wfile.write(raw_bytes)
+
     def do_GET(self):
         url_path = self.path.split("?")[0].rstrip("/")
+        accept_header = self.headers.get("Accept", "")
+
+        # Serve static Web UI assets when requested explicitly or when a browser visits "/"
+        static_routes = {
+            "/ui": ("index.html", "text/html; charset=utf-8"),
+            "/index.html": ("index.html", "text/html; charset=utf-8"),
+            "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+            "/subrefine.js": ("subrefine.js", "application/javascript; charset=utf-8"),
+            "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+        }
+        if url_path in static_routes:
+            fname, ctype = static_routes[url_path]
+            self._send_static_file(fname, ctype)
+            return
+        if url_path == "" and "text/html" in accept_header.lower():
+            self._send_static_file("index.html", "text/html; charset=utf-8")
+            return
+
         if url_path in ("", "/health"):
             uptime = round(time.time() - START_TIME, 2)
             with _METRICS_LOCK:
@@ -498,6 +531,7 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
                 "uptime_seconds": uptime,
                 "metrics": metrics_snapshot,
                 "endpoints": [
+                    "/ui",
                     "/health",
                     "/webhook/sonarr",
                     "/webhook/radarr",
@@ -509,7 +543,7 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
             self._send_json(404, {
                 "error": "Not Found",
                 "path": self.path,
-                "available_endpoints": ["/health", "/webhook/sonarr", "/webhook/radarr", "/webhook/bazarr", "/webhook/generic"]
+                "available_endpoints": ["/ui", "/health", "/webhook/sonarr", "/webhook/radarr", "/webhook/bazarr", "/webhook/generic"]
             })
 
     def do_POST(self):

@@ -1,13 +1,15 @@
-# 🔮 Future Architectural Specification: Docker Webhook Daemon for Sonarr, Radarr, and Bazarr
+# 🐳 Architectural Specification: Docker Webhook Daemon for Sonarr, Radarr, and Bazarr (`rightsub serve`)
+
+> **Status:** ✅ **Shipped in Production (`v1.4.0` & `v1.5.0`)** — Implemented in [`scripts/21_webhook_server.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/21_webhook_server.py), [`Dockerfile`](file:///Volumes/Other/Antigravity/RightSub/Dockerfile), [`docker-compose.yml`](file:///Volumes/Other/Antigravity/RightSub/docker-compose.yml), and [`unraid/rightsub.xml`](file:///Volumes/Other/Antigravity/RightSub/unraid/rightsub.xml). Verified by [`tests/test_webhook_server.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_webhook_server.py).
 
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="מפרט-שרת-Webhook-וקונטיינר-Docker"><b>עברית</b></a>
+  <a href="RFC_004_DOCKER_WEBHOOK_SERVER.he.md"><b>עברית</b></a>
 </p>
 
-This document formalizes the design principles, architecture, API contracts, and deployment model for **RightSub's native Webhook Server and official Docker container**.  
-The objective is to enable turnkey, zero-kludge integration into home media environments (Unraid, TrueNAS SCALE, Synology DSM, Docker Compose) and downloader stacks (`*arr` and Bazarr) without requiring host-level Python installations or brittle custom scripts.
+This document formalizes the design principles, architecture, API contracts, security hardening, and deployment model for **RightSub's native Webhook Server and official Docker container** (`rightsub serve`).  
+The daemon enables turnkey, zero-kludge integration into home media environments (Unraid, TrueNAS SCALE, Synology DSM, Docker Compose) and downloader stacks (`*arr` and Bazarr) without requiring host-level Python installations or brittle custom scripts.
 
 ---
 

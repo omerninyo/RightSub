@@ -12,31 +12,29 @@
 
 ## ⚡ Quickstart in 30 Seconds
 
-Got an out-of-sync subtitle, reversed punctuation, or an English video you want in Hebrew? Simply run one command:
+Got an out-of-sync subtitle, reversed punctuation, or an English video you want in Hebrew? You have three effortless options in **RightSub v1.5.0**:
 
-### Windows (CMD / PowerShell):
-```cmd
-rightsub auto "C:\Movies\Inception.he.srt"
-```
-
-### macOS / Linux (Terminal):
-```bash
-rightsub auto ~/Movies/Inception.he.srt
-```
-
-*Or simply type `rightsub auto ` and drag & drop any file or folder from Explorer / Finder into the terminal.*
+1. **Interactive Mastering Wizard (Zero Flags):** Simply type `rightsub` with no arguments to open the guided interactive menu with Drag & Drop and a built-in file browser (`[B] Browse`).
+2. **One-Command Autonomous Runner (`rightsub auto`):**
+   - **Windows (CMD / PowerShell):** `rightsub auto "C:\Movies\Inception.srt"`
+   - **macOS / Linux (Terminal):** `rightsub auto ~/Movies/Inception.srt`
+3. **1-Click Native MCP Server for AI Agents:** Run `rightsub mcp --install` to connect **Google Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf**, and **Claude Code**.
 
 ---
 
 ## 📚 Complete Wiki Documentation
 
-- 🔰 **[Quickstart for Beginners](Quickstart-for-Beginners)**: Step-by-step guide with zero technical jargon (Instant Plex repair & full translation).
-- 📦 **[Installation & Packaging Guide](Installation-Guide)**: Homebrew tap setup, Windows installer (`install.bat`), and PATH configuration.
-- 🤖 **[AI Integration & Coding Assistants](AI-Integration-Guide)**: What needs AI vs. what runs 100% locally, plus setups for Antigravity, Claude Code, Gemini, and ChatGPT.
-- 📐 **[BiDi & Plex Formatting Guide](BiDi-and-Plex-Guide)**: Deep dive into Unicode RLM (`\u200F`), BiDi rendering levels, and why Plex flips punctuation.
+- 🔰 **[Quickstart for Beginners](Quickstart-for-Beginners)**: Step-by-step guide with zero technical jargon (Interactive Wizard, instant Plex repair & full translation).
+- 📦 **[Installation & Packaging Guide](Installation-Guide)**: Homebrew tap setup, Windows installer (`install.bat`), `rightsub setup`, and `rightsub mcp --install`.
+- 🤖 **[AI Integration & Coding Assistants](AI-Integration-Guide)**: Native MCP Server (`rightsub mcp`), what needs AI (`0` tokens for 99% of repairs) vs. full translation.
+- 📐 **[BiDi & Plex Formatting Guide](BiDi-and-Plex-Guide)**: Deep dive into Unicode RLM (`\u200F`), UAX #9 Rule N1, and un-flipping 18 legacy visual-flip patterns.
+- 💎 **[Semantic AI Polish & QC Specification](Semantic-AI-Polish-and-QC)**: Proofreading, bilingual number un-flipping, and `--interactive` line-by-line diff review.
+- 🔄 **[Home Media & Download Integrations](Integrations-Guide)**: Turnkey automation for qBittorrent, Sonarr, Radarr, Bazarr, Transmission, and Docker (`rightsub serve`).
+- ⚖️ **[RightSub vs. Bazarr Comparison](Bazarr-Comparison)**: Code-level architectural comparison and recommended synergy.
 - 🎙️ **[On-Device STT & Audio Alignment](Quicksubs-Integration)**: Local speech-to-subtitle extraction via quicksubs.
 - 🎬 **[TMDb Metadata & Gender Resolution](TMDb-Integration)**: Deterministic character gender mapping and context priming.
 - 🔄 **[End-to-End Pipeline Workflow](Pipeline-Workflow)**: Step-by-step workflow from raw video file to deployed subtitles.
+- 🗺️ **[Product Roadmap](Roadmap)** & 🚀 **[What's New (`v1.5.0`)](Whats-New)**: Release history and milestone tracking.
 - 🏆 **[Boston Legal Benchmark Case Study (Theoretical)](Boston-Legal-Case-Study)**: Algorithmic validation benchmark across 101 episodes and 78,000+ dialogue cues.
 
 ---
@@ -59,11 +57,16 @@ RightSub separates user-facing CLI operations from its two underlying algorithmi
 
 ---
 
-## 💻 CLI Commands Reference
+## 💻 CLI Commands Reference (`v1.5.0`)
 
 | Command | Engine | Description | Windows Example | macOS / Linux Example |
 | :--- | :---: | :--- | :--- | :--- |
+| `rightsub` *(no args)* / `wizard` | **TUI** | Interactive Mastering Wizard (Drag & Drop + File Browser) | `rightsub` | `rightsub` |
+| `setup` | **Core** | First-Time Setup, Downloader Hooks & Background Service Wizard | `rightsub setup` | `rightsub setup` |
+| `mcp` | **MCP** | Native JSON-RPC 2.0 MCP Server & Multi-Agent Auto-Installer | `rightsub mcp --install` | `rightsub mcp --install` |
 | `auto` | **All** | Zero-flag autonomous runner for files, seasons, or directories | `rightsub auto "Movie.mkv"` | `rightsub auto "Movie.mkv"` |
+| `polish` | **Both** | Semantic AI proofreading, canon/number fix & `--interactive` review | `rightsub polish "Movie.he.srt" -i` | `rightsub polish "Movie.he.srt" -i` |
+| `serve` | **Daemon** | Container & Host Webhook Daemon for Sonarr, Radarr & Bazarr | `rightsub serve --port 8775` | `rightsub serve --port 8775` |
 | `translate-ollama` | **SubSwarm** | 100% offline local subtitle translation via Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
 | `fix-plex` | **SubRefine** | Fix BiDi, RLM, punctuation, CP1255 encoding & ads | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
 | `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
@@ -74,5 +77,7 @@ RightSub separates user-facing CLI operations from its two underlying algorithmi
 | `bible` | **SubSwarm** | Generate Character & Terminology Bible from SRTs & TMDb | `rightsub bible Season1/*.srt -o b.json --tmdb` | `rightsub bible Season1/*.srt -o b.json --tmdb` |
 | `split` | **SubSwarm** | Split master English SRT into ~210 cue JSON chunks | `rightsub split ep.en.srt -o ./batches/` | `rightsub split ep.en.srt -o ./batches/` |
 | `prompt-gen` | **SubSwarm** | Generate AI translation prompt waves with Bible & Context | `rightsub prompt-gen ep.en.srt -t "Title"` | `rightsub prompt-gen ep.en.srt -t "Title"` |
+| `config` | **Core** | API key onboarding, downloader hooks (`--install-hooks`) & services | `rightsub config --install-hooks` | `rightsub config --install-hooks` |
+| `doctor` | **Core** | System diagnostics & health check for dependencies & MCP agents | `rightsub doctor` | `rightsub doctor` |
 | `merge` | **Both** | Assemble translated JSONs into Hebrew SRT with RLM | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` |
 | `qa` | **Both** | Zero-discrepancy 1:1 validation & gender mismatch audit | `rightsub qa ep.en.srt ep.he.srt` | `rightsub qa ep.en.srt ep.he.srt` |

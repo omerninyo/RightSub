@@ -163,7 +163,7 @@ class TestLiveWebhookDaemon:
             assert resp.status == 200
             data = json.loads(resp.read().decode("utf-8"))
             assert data["status"] == "healthy"
-            assert data["version"] == srv.SERVER_VERSION == "1.3.1"
+            assert data["version"] == srv.SERVER_VERSION == "1.5.0"
             assert "uptime_seconds" in data
             assert "/webhook/sonarr" in data["endpoints"]
 
@@ -359,5 +359,6 @@ class TestLiveWebhookDaemon:
         assert len(results) == 8
         assert all(s == 200 and d["status"] == "ok" for s, d in results)
         final_text = sub.read_text(encoding="utf-8")
-        assert "\u200Fשלום עולם\u200F!" in final_text
+        assert "\u200Fשלום עולם!\u200F" in final_text
+
 

@@ -21,6 +21,204 @@ from pathlib import Path
 
 CONFIG_DIR = Path.home() / ".config" / "rightsub"
 CONFIG_FILE = CONFIG_DIR / "config.json"
+HOOKS_DIR = CONFIG_DIR / "hooks"
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+
+
+def install_downloader_hooks(
+    hooks_dir: Path = None,
+    sonarr_url: str = None,
+    sonarr_key: str = None,
+    radarr_url: str = None,
+    radarr_key: str = None
+) -> dict:
+    """
+    Generates ready-to-run downloader completion hook scripts (qBittorrent, Transmission)
+    in ~/.config/rightsub/hooks/ using exact absolute paths to Python and rightsub.py,
+    and optionally registers the RightSub Webhook with local Sonarr/Radarr APIs.
+    """
+    target_dir = Path(hooks_dir) if hooks_dir else HOOKS_DIR
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    python_exe = str(Path(sys.executable).resolve())
+    rightsub_py = str((REPO_ROOT / "rightsub.py").resolve())
+
+    # 1. qBittorrent POSIX script
+    qbit_sh = target_dir / "qbittorrent_hook.sh"
+    qbit_sh_content = (
+        "#!/usr/bin/env bash\n"
+        "# RightSub qBittorrent Completion Hook (Seed-Safe)\n"
+        "# Usage in qBittorrent -> Options -> Downloads -> Run external program on torrent completion:\n"
+        f"#   \"{qbit_sh}\" \"%F\"\n"
+        "TARGET_PATH=\"$1\"\n"
+        "if [ -z \"$TARGET_PATH\" ]; then exit 0; fi\n"
+        f"\"{python_exe}\" \"{rightsub_py}\" auto \"$TARGET_PATH\"\n"
+    )
+    qbit_sh.write_text(qbit_sh_content, encoding="utf-8")
+    try:
+        qbit_sh.chmod(0o755)
+    except Exception:
+        pass
+
+    # 2. qBittorrent Windows batch script
+    qbit_bat = target_dir / "qbittorrent_hook.bat"
+    qbit_bat_content = (
+        "@echo off\r\n"
+        ":: RightSub qBittorrent Completion Hook (Windows Seed-Safe)\r\n"
+        ":: Usage in qBittorrent: \"" + str(qbit_bat) + "\" \"%F\"\r\n"
+        "chcp 65001 >nul 2>&1\r\n"
+        "if \"%~1\"==\"\" exit /b 0\r\n"
+        f"\"{python_exe}\" \"{rightsub_py}\" auto \"%~1\"\r\n"
+    )
+    qbit_bat.write_text(qbit_bat_content, encoding="utf-8")
+
+    # 3. Transmission completion script
+    trans_sh = target_dir / "transmission_hook.sh"
+    trans_sh_content = (
+        "#!/usr/bin/env bash\n"
+        "# RightSub Transmission Completion Hook (Seed-Safe)\n"
+        "TARGET_PATH=\"${TR_TORRENT_DIR}/${TR_TORRENT_NAME}\"\n"
+        "if [ -z \"$TR_TORRENT_NAME\" ]; then exit 0; fi\n"
+        f"\"{python_exe}\" \"{rightsub_py}\" auto \"$TARGET_PATH\"\n"
+    )
+    trans_sh.write_text(trans_sh_content, encoding="utf-8")
+    try:
+        trans_sh.chmod(0o755)
+    except Exception:
+        pass
+
+    api_registrations = []
+    for svc_name, base_url, api_key, endpoint in [
+        ("Sonarr", sonarr_url, sonarr_key, "http://localhost:8775/webhook/sonarr"),
+        ("Radarr", radarr_url, radarr_key, "http://localhost:8775/webhook/radarr"),
+    ]:
+        if base_url and api_key:
+            try:
+                notif_url = f"{base_url.rstrip('/')}/api/v3/notification"
+                payload = {
+                    "name": "RightSub Seed-Safe Subtitle Mastering",
+                    "implementation": "Webhook",
+                    "configContract": "WebhookSettings",
+                    "onDownload": True,
+                    "onUpgrade": True,
+                    "onRename": True,
+                    "fields": [
+                        {"name": "url", "value": endpoint},
+                        {"name": "method", "value": 1}
+                    ],
+                    "tags": []
+                }
+                req = urllib.request.Request(
+                    notif_url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json", "X-Api-Key": api_key.strip()},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=7) as resp:
+                    api_registrations.append({"service": svc_name, "success": resp.status in (200, 201)})
+            except Exception as e:
+                api_registrations.append({"service": svc_name, "success": False, "error": str(e)})
+
+    qbit_cmd = f'"{qbit_bat}" "%F"' if sys.platform == "win32" else f'"{qbit_sh}" "%F"'
+    return {
+        "hooks_dir": str(target_dir),
+        "qbittorrent_script": str(qbit_bat if sys.platform == "win32" else qbit_sh),
+        "qbittorrent_command": qbit_cmd,
+        "transmission_script": str(trans_sh),
+        "webhook_urls": {
+            "sonarr": "http://localhost:8775/webhook/sonarr",
+            "radarr": "http://localhost:8775/webhook/radarr",
+            "bazarr": "http://localhost:8775/webhook/bazarr",
+        },
+        "api_registrations": api_registrations
+    }
+
+
+def install_background_service(service_dir: Path = None, port: int = 8775) -> dict:
+    """
+    Generates a user-level background service definition (macOS launchd plist,
+    Linux systemd --user unit, or Windows startup batch + schtasks command)
+    to run `rightsub serve --seed-safe` automatically.
+    """
+    python_exe = str(Path(sys.executable).resolve())
+    rightsub_py = str((REPO_ROOT / "rightsub.py").resolve())
+
+    if sys.platform == "darwin":
+        target_dir = Path(service_dir) if service_dir else (Path.home() / "Library" / "LaunchAgents")
+        target_dir.mkdir(parents=True, exist_ok=True)
+        plist_path = target_dir / "com.rightsub.webhook.plist"
+        log_path = CONFIG_DIR / "webhook.log"
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rightsub.webhook</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{python_exe}</string>
+        <string>{rightsub_py}</string>
+        <string>serve</string>
+        <string>--port</string>
+        <string>{port}</string>
+        <string>--seed-safe</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>{log_path}</string>
+    <key>StandardErrorPath</key>
+    <string>{log_path}</string>
+</dict>
+</plist>
+"""
+        plist_path.write_text(plist_content, encoding="utf-8")
+        return {
+            "platform": "darwin",
+            "service_file": str(plist_path),
+            "activate_cmd": f"launchctl load -w \"{plist_path}\""
+        }
+    elif sys.platform == "win32":
+        target_dir = Path(service_dir) if service_dir else HOOKS_DIR
+        target_dir.mkdir(parents=True, exist_ok=True)
+        bat_path = target_dir / "start_webhook_daemon.bat"
+        bat_content = (
+            "@echo off\r\n"
+            f"\"{python_exe}\" \"{rightsub_py}\" serve --port {port} --seed-safe\r\n"
+        )
+        bat_path.write_text(bat_content, encoding="utf-8")
+        return {
+            "platform": "win32",
+            "service_file": str(bat_path),
+            "activate_cmd": f'schtasks /Create /SC ONLOGON /TN "RightSubWebhook" /TR "\\"{bat_path}\\"" /F'
+        }
+    else:
+        target_dir = Path(service_dir) if service_dir else (Path.home() / ".config" / "systemd" / "user")
+        target_dir.mkdir(parents=True, exist_ok=True)
+        unit_path = target_dir / "rightsub-webhook.service"
+        unit_content = f"""[Unit]
+Description=RightSub Native Webhook Daemon (Sonarr/Radarr/Bazarr)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart="{python_exe}" "{rightsub_py}" serve --port {port} --seed-safe
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+"""
+        unit_path.write_text(unit_content, encoding="utf-8")
+        return {
+            "platform": "linux",
+            "service_file": str(unit_path),
+            "activate_cmd": "systemctl --user daemon-reload && systemctl --user enable --now rightsub-webhook.service"
+        }
 
 
 def load_config() -> dict:
@@ -104,7 +302,36 @@ def handle_config(args):
     """Handle `rightsub config` command."""
     cfg = load_config()
 
-    if getattr(args, "install_quicksubs", False):
+    if getattr(args, "install_hooks", False) is True:
+        res = install_downloader_hooks()
+        print("\n========================================================")
+        print("       RightSub Downloader Hooks & Webhooks Ready       ")
+        print("========================================================")
+        print(f" [✓] Hook scripts generated in: {res['hooks_dir']}")
+        print(f" [✓] qBittorrent completion command (Copy & Paste):")
+        print(f"     {res['qbittorrent_command']}")
+        print(f" [✓] Transmission completion script:")
+        print(f"     {res['transmission_script']}")
+        print("\n [i] Native Webhook Endpoints (when running `rightsub serve`):")
+        print(f"     Sonarr : {res['webhook_urls']['sonarr']}")
+        print(f"     Radarr : {res['webhook_urls']['radarr']}")
+        print(f"     Bazarr : {res['webhook_urls']['bazarr']}")
+        print("========================================================\n")
+        if getattr(args, "install_service", False) is not True:
+            return 0
+
+    if getattr(args, "install_service", False) is True:
+        svc = install_background_service()
+        print("\n========================================================")
+        print("       RightSub Background Webhook Service Generated    ")
+        print("========================================================")
+        print(f" [✓] Service file created: {svc['service_file']}")
+        print(f" [i] To activate automatic startup in background, run:")
+        print(f"     {svc['activate_cmd']}")
+        print("========================================================\n")
+        return 0
+
+    if getattr(args, "install_quicksubs", False) is True:
         is_silicon = sys.platform == "darwin" and platform.machine() == "arm64"
         if not is_silicon:
             print("[-] quicksubs Apple SpeechAnalyzer requires an Apple Silicon Mac.")
@@ -366,6 +593,19 @@ def handle_doctor(args):
     else:
         print(" [i] Quicksubs STT:   Not installed (Optional speech-to-text engine)")
 
+    # 7. MCP Agent Integrations
+    try:
+        import importlib
+        m23 = importlib.import_module("23_mcp_server")
+        statuses = m23.get_mcp_registration_status()
+        reg_agents = [s["agent"] for s in statuses if s["registered"]]
+        if reg_agents:
+            print(f" [✓] MCP AI Agents:   Registered in {', '.join(reg_agents)}")
+        else:
+            print(" [i] MCP AI Agents:   Not registered yet (Run 'rightsub mcp --install' to connect AI agents)")
+    except Exception:
+        pass
+
     print("========================================================")
     if overall_ok:
         print(" [✓] RightSub is healthy and ready for media automation!")
@@ -375,24 +615,93 @@ def handle_doctor(args):
     return 0 if overall_ok else 1
 
 
+def handle_setup(args, input_fn=input):
+    """
+    Unified End-to-End Setup & Integration Wizard (`rightsub setup`).
+    Walks the user through:
+    1. Environment & Dependency Diagnostics (`doctor`)
+    2. Downloader Hooks & Background Service generation (`--install-hooks` / `--install-service`)
+    3. Local MCP Server registration across AI Agents (`rightsub mcp --install`)
+    4. Optional API Key configuration (`TMDb` / `Gemini`)
+    """
+    print("\n==================================================================")
+    print("       RightSub — Environment Setup & Integration Wizard          ")
+    print("==================================================================")
+
+    # Step 1: Doctor check
+    handle_doctor(args)
+
+    # Step 2: Downloader Hooks
+    hooks_res = install_downloader_hooks()
+    print(f" [✓] Downloader Hooks created in: {hooks_res['hooks_dir']}")
+    print(f"     qBittorrent Command: {hooks_res['qbittorrent_command']}")
+
+    # Step 3: Background Service
+    svc_res = install_background_service()
+    print(f" [✓] Background Webhook Service file ready: {svc_res['service_file']}")
+
+    # Step 4: MCP Auto-Registration across AI Agents
+    try:
+        import importlib
+        m23 = importlib.import_module("23_mcp_server")
+        mcp_res = m23.install_mcp_for_agents(target_agent="all")
+        for item in mcp_res.get("results", []):
+            icon = "[✓]" if item["success"] else "[i]"
+            print(f" {icon} MCP Agent [{item['agent']}]: {item['message']}")
+    except Exception as e:
+        print(f" [!] MCP registration note: {e}")
+
+    if not getattr(args, "non_interactive", False) and sys.stdin.isatty():
+        try:
+            ans = input_fn("\n [?] Would you like to configure optional API keys (TMDb / Gemini) now? [y/N]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            ans = "n"
+        if ans in ("y", "yes"):
+            handle_config(argparse.Namespace(
+                install_quicksubs=False,
+                install_hooks=False,
+                install_service=False,
+                show=False,
+                clear=False,
+                gemini=None,
+                tmdb=None
+            ))
+
+    print("\n==================================================================")
+    print(" [✓] RightSub Setup Wizard Complete!")
+    print("     - Run `rightsub` (no arguments) for the Interactive Wizard")
+    print("     - Run `rightsub auto \"Movie.mkv\"` for instant processing")
+    print("     - Your AI agents can now control RightSub via MCP!")
+    print("==================================================================\n")
+    return 0
+
+
 def main():
-    parser = argparse.ArgumentParser(description="RightSub Configuration & System Diagnostics")
+    parser = argparse.ArgumentParser(description="RightSub Configuration, Setup & System Diagnostics")
     subparsers = parser.add_subparsers(dest="command")
 
     # config sub-command
-    config_parser = subparsers.add_parser("config", help="Interactive API key onboarding and credentials manager")
+    config_parser = subparsers.add_parser("config", help="Interactive API key onboarding, hooks & service manager")
     config_parser.add_argument("--gemini", help="Directly set Google Gemini API Key")
     config_parser.add_argument("--tmdb", help="Directly set TMDb API Key or Bearer Token")
     config_parser.add_argument("--show", action="store_true", help="Display current configuration status")
     config_parser.add_argument("--clear", action="store_true", help="Delete configuration file")
     config_parser.add_argument("--install-quicksubs", action="store_true", help="Install quicksubs via Homebrew on Apple Silicon")
+    config_parser.add_argument("--install-hooks", action="store_true", help="Generate qBittorrent/Transmission completion hooks and Sonarr/Radarr webhook endpoints")
+    config_parser.add_argument("--install-service", action="store_true", help="Generate launchd/systemd/Windows startup service for RightSub Webhook daemon")
 
     # doctor sub-command
     doctor_parser = subparsers.add_parser("doctor", help="Run comprehensive health check on dependencies and services")
 
+    # setup sub-command
+    setup_parser = subparsers.add_parser("setup", help="Run end-to-end Setup, Hooks & MCP Integration Wizard")
+    setup_parser.add_argument("--non-interactive", action="store_true", help="Run setup without interactive prompts")
+
     args = parser.parse_args()
     if args.command == "doctor":
         sys.exit(handle_doctor(args))
+    elif args.command == "setup":
+        sys.exit(handle_setup(args))
     else:
         sys.exit(handle_config(args))
 

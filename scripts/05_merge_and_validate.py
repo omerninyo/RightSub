@@ -94,6 +94,57 @@ def clamp_overlapping_timelines(en_subs_dict):
     return {item[0]: item[3] for item in parsed}, overlaps_fixed
 
 
+def validate_anchor_alignment(en_texts, he_translations):
+    """
+    Cross-checks anchor features (numbers, question marks, musical notes, and short vs long length ratios)
+    between English cues and translated Hebrew cues to detect systematic Cue Drift (off-by-1 / off-by-2 shifts).
+    Returns (is_aligned, drift_report_dict).
+    """
+    common_indices = sorted(set(en_texts.keys()) & set(he_translations.keys()))
+    if len(common_indices) < 10:
+        return True, {"shifted_cues": 0, "details": []}
+
+    def _score_pair(en_t, he_t):
+        en_c = re.sub(r'<[^>]+>', '', en_t or '').strip()
+        he_c = re.sub(r'[\u200e\u200f\u202a-\u202e]|<[^>]+>', '', he_t or '').strip()
+        if not en_c or not he_c:
+            return 0
+        score = 0
+        if ('?' in en_c) == ('?' in he_c):
+            score += 2 if '?' in en_c else 0
+        else:
+            score -= 2
+        en_nums = set(re.findall(r'\d+', en_c))
+        he_nums = set(re.findall(r'\d+', he_c))
+        if en_nums and en_nums == he_nums:
+            score += 4
+        if ('♪' in en_c) and ('♪' in he_c):
+            score += 4
+        ratio = (len(he_c) + 1) / (len(en_c) + 1)
+        if ratio < 0.18 or ratio > 3.5:
+            score -= 3
+        return score
+
+    shifted_details = []
+    # Check in windows of 25 cues for systematic +1 or -1 drift
+    window_size = 25
+    for start in range(0, len(common_indices), window_size):
+        chunk = common_indices[start:start + window_size]
+        if len(chunk) < 8:
+            continue
+        score_0 = sum(_score_pair(en_texts[i], he_translations.get(i, "")) for i in chunk)
+        score_plus1 = sum(_score_pair(en_texts[i], he_translations.get(i + 1, "")) for i in chunk if (i + 1) in he_translations)
+        score_minus1 = sum(_score_pair(en_texts[i], he_translations.get(i - 1, "")) for i in chunk if (i - 1) in he_translations)
+        if score_plus1 >= score_0 + 12 or score_minus1 >= score_0 + 12:
+            direction = "+1" if score_plus1 > score_minus1 else "-1"
+            shifted_details.append(f"Cues {chunk[0]}..{chunk[-1]} (drift {direction})")
+
+    return len(shifted_details) == 0, {
+        "shifted_windows": len(shifted_details),
+        "details": shifted_details
+    }
+
+
 def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
     # 1. Parse original English SRT
     with open(en_srt_path, "r", encoding="utf-8-sig", errors="replace") as f:
@@ -101,6 +152,7 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
     
     en_blocks = re.split(r'\n\s*\n', en_content)
     en_subs = {}
+    en_texts = {}
     for b in en_blocks:
         lines = b.strip().splitlines()
         if len(lines) >= 2:
@@ -108,6 +160,7 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
                 idx = int(lines[0].strip())
                 time_line = lines[1].strip()
                 en_subs[idx] = time_line
+                en_texts[idx] = "\n".join(lines[2:]).strip()
             except ValueError:
                 continue
 
@@ -160,6 +213,10 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
     if extra:
         print(f"[WARNING] Extra subtitle indices found: {extra[:20]}...")
 
+    is_aligned, drift_report = validate_anchor_alignment(en_texts, he_translations)
+    if not is_aligned:
+        print(f"[WARNING] Potential Cue Drift detected in {drift_report['shifted_windows']} window(s): {drift_report['details']}")
+
     # 4. Build output SRT with BiDi / RLM
     out_lines = []
     for idx in sorted(en_subs.keys()):
@@ -172,7 +229,8 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
         formatted_lines = []
         for l in he_text.splitlines():
             clean_l = apply_rlm_punctuation_fix(l)
-            if clean_l.strip() not in ['', '-', f'{RLM}-', f'{RLM} -', '—', f'{RLM}—']:
+            clean_check = re.sub(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', '', clean_l).strip()
+            if clean_check not in ['', '-', '–', '—']:
                 formatted_lines.append(clean_l)
         if not formatted_lines:
             formatted_lines = ['']

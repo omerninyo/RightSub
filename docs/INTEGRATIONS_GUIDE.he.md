@@ -5,7 +5,7 @@
 > **סקירה כללית**: הפעלת RightSub באופן אוטונומי מלא בכל מערך ההורדות והמדיה שלכם בתצורת "הגדר ושכח" (Set-and-Forget). המדריך כולל הגדרות מוכנות להעתקה והדבקה עבור שרתי מדיה ומנהלי הורדות.
 
 המדריך מכסה הגדרות מלאות ומאומתות עבור **Windows** ועבור **macOS/Linux**:
-0. [אסטרטגיית 2 הפעימות המומלצת וארכיטקטורת Daemon](#0-אסטרטגיית-2-הפעימות-המומלצת-וארכיטקטורת-daemon)
+0. [אסטרטגיית 2 הפעימות המומלצת והאשף האוטומטי (`rightsub setup`)](#0-אסטרטגיית-2-הפעימות-המומלצת-וארכיטקטורת-daemon)
 1. [qBittorrent (הפעלה אוטומטית בסיום הורדה ושמירה על טורנטים)](#1-qbittorrent-הפעלה-בסיום-הורדה-ושמירה-על-שיתוף)
 2. [Sonarr ו-Radarr (סקריפטי ייבוא Connect)](#2-sonarr-ו-radarr-סקריפטי-חיבור-connect)
 3. [Bazarr (הרצה כ-Post-Processing)](#3-bazarr-עיבוד-והשבחה-לאחר-הורדה)
@@ -13,6 +13,28 @@
 5. [Tautulli / Plex (בדיקת מדיה שנוספה לאחרונה)](#5-tautulli--plex-בדיקה-עם-קליטת-מדיה-חדשה)
 6. [ניטור תיקיות מקומי עצמאי (ללא תוכנות Arr / עבודה ידנית)](#6-ניטור-תיקיות-מקומי-עצמאי-ללא-תוכנות-arr--העתקה-ידנית)
 7. [אימות ובדיקת פעולה (Troubleshooting)](#7-אימות-ובדיקת-פעולה-troubleshooting)
+
+---
+
+## ⚡ חדש בגרסה v1.5.0: מחולל אוטומטי ל-Hooks ולשירותי רקע (`rightsub setup`)
+
+במקום ליצור ידנית קובצי סקריפט או קובצי שירות למערכת ההפעלה, ניתן כעת לייצר ולרשום אותם אוטומטית תוך שניות:
+
+```bash
+# אשף הקמה מלא (בדיקת מערכת + מפתחות API + יצירת Hooks + שירות רקע):
+rightsub setup
+
+# יצירה אוטומטית של סקריפטי Hook ל-qBittorrent (.sh/.bat) ו-Transmission + רישום Webhook חי ב-API של Sonarr/Radarr:
+rightsub config --install-hooks
+
+# התקנת 'rightsub serve' כשירות רקע שעולה אוטומטית (launchd ב-macOS / systemd ב-Linux / schtasks ב-Windows):
+rightsub config --install-service
+```
+- **מיקום סקריפטי ה-Hooks שנוצרים אוטומטית:** `~/.config/rightsub/hooks/` (`qbittorrent_hook.sh`, `qbittorrent_hook.bat`, `transmission_hook.sh`).
+- **קובצי שירות הרקע שנוצרים אוטומטית:**
+  - **macOS:** `~/Library/LaunchAgents/com.rightsub.webhook.plist`
+  - **Linux:** `~/.config/systemd/user/rightsub-webhook.service`
+  - **Windows:** `~/.config/rightsub/service/start_rightsub_webhook.bat` (כולל פקודת `schtasks` מוכנה להרצה).
 
 ---
 

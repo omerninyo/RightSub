@@ -1,8 +1,10 @@
 <div dir="rtl">
 
-# מפרט ארכיטקטוני לפיתוח עתידי: ממשק אינטראקטיבי בשורת הפקודה (Interactive CLI Wizard)
+# 🧙 מפרט ארכיטקטוני: ממשק אינטראקטיבי בשורת הפקודה (`rightsub` / `rightsub wizard`)
 
-מסמך זה מתעד את עקרונות התכנון, הארכיטקטורה ודרישות המערכת עבור מימוש עתידי של ממשק אינטראקטיבי (TUI / Interactive Wizard) עבור **RightSub**. מטרת הממשק היא לאפשר למשתמשי קצה להפעיל את מלוא יכולות המערכת ללא צורך בידיעת פקודות או דגלים (Flags).
+> **סטטוס:** ✅ **שוחרר בייצור (`v1.5.0`)** — מומש ב-[`scripts/22_interactive_wizard.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/22_interactive_wizard.py), ב-[`scripts/19_polish_and_qc.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/19_polish_and_qc.py) (`--interactive`) וב-[`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). מאומת על ידי [`tests/test_interactive_wizard.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_interactive_wizard.py).
+
+מסמך זה מתעד את עקרונות התכנון, הארכיטקטורה והמימוש בייצור של הממשק האינטראקטיבי (**Interactive CLI Wizard**) עבור **RightSub** (`v1.5.0`). הממשק מאפשר למשתמשי קצה ב-macOS, ב-Windows (`CMD` / `PowerShell`) וב-Linux להפעיל את מלוא יכולות המערכת ללא צורך בזכירת פקודות או דגלים (Flags).
 
 ---
 
@@ -89,13 +91,15 @@
 
 ---
 
-## 6. ספריות וטכנולוגיות מומלצות למימוש
+## 6. פרטי המימוש בייצור (`v1.5.0`)
 
-1. **אפשרות מועדפת (Zero Dependencies):**
-   - מימוש באמצעות ספריות הליבה של Python בלבד (`sys`, `os`, `pathlib`, `shlex`, `getpass`).
-   - מבטיח הפצה מיידית ללא צורך בהתקנת חבילות נוספות דרך `pip`.
-2. **אפשרות משופרת (Rich Terminal UI):**
-   - שימוש בספריית `questionary` או `InquirerPy`.
-   - מעניקה חוויית חצים צבעונית, רשימות בחירה עם מקש רווח (Multi-select), והסתרת סיסמאות אינטואיטיבית.
+1. **אפס תלויות חיצוניות (`scripts/22_interactive_wizard.py`):**
+   - ממומש באמצעות ספריות הליבה של Python בלבד (`sys`, `os`, `pathlib`, `shlex`, `getpass`, `platform`).
+   - מופעל אוטומטית כאשר מקלידים `rightsub` ללא ארגומנטים בטרמינל אינטראקטיבי (`sys.stdin.isatty() and sys.stdout.isatty()`), בעוד שבצינורות CI/Cron לא-אינטראקטיביים מודפס פלט `--help` כדי שסקריפטים לעולם לא ייתקעו בהמתנה לקלט.
+2. **גרירת נתיבים חוצת-פלטפורמות ודפדפן קבצים מובנה (`[B] Browse`):**
+   - הפונקציה `normalize_dragged_path()` מנקה תווי בריחה של Finder (`\ `), מירכאות של Windows Explorer וקידומות `& '...'` של PowerShell.
+   - הפונקציה `interactive_file_browser()` מספקת סייר תיקיות וקבצים ממוספר ישירות בתוך הטרמינל.
+3. **מבקר ליטוש אינטראקטיבי שורה-אחר-שורה (`rightsub polish --interactive` / `-i`):**
+   - מומש ב-`scripts/19_polish_and_qc.py` (`interactive_review_modifications`) עם אפשרויות `[Y/Enter] Approve`, `[N] Reject`, `[E] Edit manually`, `[A] Approve All`, `[R] Reject Remaining`, `[Q] Quit` והגנת שמירה חלקית ב-`Ctrl+C`.
 
 </div>

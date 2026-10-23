@@ -1,6 +1,8 @@
 <div dir="rtl">
 
-# 🔮 מפרט ארכיטקטוני לפיתוח עתידי: אשף התקנה, אבחון והגדרה אוטומטי (Setup & Health-Check Wizard)
+# 🛠️ מפרט ארכיטקטוני: אשף התקנה, אבחון, Hooks ושירותי רקע (`rightsub setup` / `rightsub doctor`)
+
+> **סטטוס:** ✅ **שוחרר בייצור (`v1.3.0` ו-`v1.5.0`)** — מומש ב-[`scripts/20_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/20_config_and_doctor.py), ב-[`install.sh`](file:///Volumes/Other/Antigravity/RightSub/install.sh), ב-[`install.bat`](file:///Volumes/Other/Antigravity/RightSub/install.bat) וב-[`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). מאומת על ידי [`tests/test_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_config_and_doctor.py).
 
 <p align="right">
   <b>שפה / Language:</b>
@@ -8,8 +10,8 @@
   <a href="RFC_003_SYSTEM_INTEGRATION_WIZARD.md"><b>English</b></a>
 </p>
 
-מסמך זה מתעד את עקרונות התכנון, הארכיטקטורה והתרחישים הטכניים עבור **אשף התקנה ואבחון עצמאי (Interactive Setup & Health-Check Wizard)** עבור **RightSub**.  
-מטרת האשף היא להפוך את תהליך ההתקנה וההגדרה לאוטונומי לחלוטין (One-Click / One-Liner), **אפילו במחשב נקי לחלוטין (Clean Slate)** שבו חסרים כלי הבסיס הנפוצים ביותר (כגון היעדר `Homebrew` ב-macOS, או היעדר `winget` ו-Python בחלונות).
+מסמך זה מתעד את עקרונות התכנון, הארכיטקטורה והמימוש בייצור של **אשף ההתקנה, האבחון והחיבור למנהלי הורדות** ב-**RightSub** (`rightsub setup`, `rightsub config`, `rightsub doctor`).  
+האשף הופך את תהליך ההתקנה וההגדרה לאוטונומי לחלוטין, כולל הגדרת מפתחות API, יצירת סקריפטי Hook מוכנים ל-`qBittorrent` ו-`Transmission`, חיבור חי ל-`Sonarr`/`Radarr`, ורישום שירות רקע במערכת ההפעלה (`launchd`, `systemd`, `schtasks`).
 
 ---
 
@@ -104,12 +106,14 @@ if ($userPath -notlike "*$installDir*") {
 
 ---
 
-## 5. פקודת בדיקת תקינות ייעודית (`rightsub doctor`)
+## 5. הפקודות הזמינות בייצור (`v1.5.0`)
 
-בעתיד, אותה תשתית תאפשר למשתמשים להריץ בכל שלב:
 ```bash
-rightsub doctor
+rightsub setup                    # אשף הקמה מלא: בדיקת מערכת + מפתחות API + יצירת Hooks + שירות רקע
+rightsub doctor                   # דשבורד אבחון מערכת מלא (Python, FFmpeg, quicksubs, Ollama, מפתחות API וסוכני MCP)
+rightsub config                   # אשף הגדרת מפתחות API שמורים בהרשאות מחמירות (chmod 600)
+rightsub config --install-hooks   # יצירת סקריפטי Hook ל-qBittorrent (.sh/.bat) ו-Transmission ב-~/.config/rightsub/hooks/ + רישום Webhook ב-Sonarr/Radarr
+rightsub config --install-service # התקנת 'rightsub serve' כשירות רקע מערכתי (launchd ב-macOS / systemd --user ב-Linux / schtasks ב-Windows)
 ```
-הפקודה תריץ בדיקת אבחון מלאה, תציג דוח צבעוני של כל התלויות (Python, ספריות, FFmpeg, Ollama, TMDb, משתני סביבה) ותציע תיקון אוטומטי בלחיצה אחת לכל רכיב חסר.
 
 </div>

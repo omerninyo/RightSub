@@ -491,10 +491,32 @@ you're on the planet that it's farthest from.
         polish_module.write_mastered_srt(cues, out_srt)
         written = out_srt.read_text(encoding="utf-8")
         assert "סאבסנטר" not in written
-        assert "{\\an8}\u200Fשלום עולם\u200F!" in written
+        assert "{\\an8}\u200Fשלום עולם!\u200F" in written
 
+    def test_seed_safe_plain_srt_torrent_protection_and_bilingual_numbers(self, tmp_path):
+        # Plain Movie.srt (no .he suffix) from a torrent
+        raw_he_srt = "1\n00:00:01,000 --> 00:00:03,000\nהוא בן 84.\n"
+        raw_en_srt = "1\n00:00:01,000 --> 00:00:03,000\nHe is 48 years old.\n"
+        plain_srt = tmp_path / "Movie.srt"
+        en_srt = tmp_path / "Movie.en.srt"
+        plain_srt.write_text(raw_he_srt, encoding="utf-8")
+        en_srt.write_text(raw_en_srt, encoding="utf-8")
 
+        args = MagicMock()
+        args.offline_canon_only = True
+        args.diff_only = False
+        args.dry_run = False
+        args.in_place = True
+        args.output = None
+        args.diff_report = None
+        args.title = "Movie"
 
-
-
+        res = polish_module.polish_subtitle_file(plain_srt, en_srt, args)
+        assert res is True
+        # Original Movie.srt MUST remain 100% untouched on disk (Seed-Safe torrent protection)
+        assert plain_srt.read_text(encoding="utf-8") == raw_he_srt
+        # Separate Movie.he.srt MUST be created with the un-flipped number (48) and RLM
+        he_out = tmp_path / "Movie.he.srt"
+        assert he_out.exists()
+        assert "48" in he_out.read_text(encoding="utf-8")
 

@@ -3,7 +3,7 @@
 > **Overview**: Automate RightSub across your home lab and media server stack. Run subtitle mastering, BiDi correction, and translation in a 100% hands-off "Set-and-Forget" workflow.
 
 This guide provides tested, copy-pasteable configurations for the most popular home media tools across **Windows** and **macOS/Linux**:
-0. [The Recommended 2-Phase Strategy & Daemon Architecture](#0-the-recommended-2-phase-strategy--daemon-architecture)
+0. [The Recommended 2-Phase Strategy & Automated Wizard (`rightsub setup`)](#0-the-recommended-2-phase-strategy--daemon-architecture)
 1. [qBittorrent (Run on Completion & Seed-Safe)](#1-qbittorrent-torrent-completion-hook)
 2. [Sonarr & Radarr (Custom Connect Scripts)](#2-sonarr--radarr-connect-scripts)
 3. [Bazarr (Custom Post-Processing Hook)](#3-bazarr-post-processing-hook)
@@ -11,6 +11,28 @@ This guide provides tested, copy-pasteable configurations for the most popular h
 5. [Tautulli / Plex (Recently Added Webhook)](#5-tautulli--plex-recently-added-hook)
 6. [Standalone OS Folder Watchers (Non-Arr / Manual Setups)](#6-standalone-os-folder-watchers-non-arr--manual-setups)
 7. [Troubleshooting & Verifying Integrations](#7-troubleshooting--verifying-integrations)
+
+---
+
+## ⚡ New in v1.5.0: Automated Hook & Background Service Generator (`rightsub setup`)
+
+Instead of writing shell/batch scripts or plist/systemd service files manually, you can now generate and register them interactively in seconds:
+
+```bash
+# Full interactive onboarding (Health check + API keys + Hooks + Background Service):
+rightsub setup
+
+# Generate qBittorrent (.sh/.bat) & Transmission hooks + optional live Sonarr/Radarr API webhook registration:
+rightsub config --install-hooks
+
+# Install 'rightsub serve' as an auto-starting OS background service (macOS launchd / Linux systemd / Windows schtasks):
+rightsub config --install-service
+```
+- **Generated Hook Scripts Location:** `~/.config/rightsub/hooks/` (`qbittorrent_hook.sh`, `qbittorrent_hook.bat`, `transmission_hook.sh`).
+- **Generated Background Service Files:**
+  - **macOS:** `~/Library/LaunchAgents/com.rightsub.webhook.plist`
+  - **Linux:** `~/.config/systemd/user/rightsub-webhook.service`
+  - **Windows:** `~/.config/rightsub/service/start_rightsub_webhook.bat` (with ready-to-run `schtasks` command).
 
 ---
 

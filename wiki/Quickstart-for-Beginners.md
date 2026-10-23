@@ -1,22 +1,39 @@
 # 🔰 Quickstart for Beginners — RightSub (The Zero-Jargon Guide)
 
+<p align="left">
+  <b>Language / שפה:</b>
+  <b>English</b> |
+  <a href="QUICKSTART_FOR_BEGINNERS.he.md"><b>עברית</b></a>
+</p>
+
 Welcome to **RightSub**!  
 If you are unfamiliar with command-line tools, do not know what CLI "flags" are, or simply want perfect Plex subtitles with zero hassle — **this guide was written specifically for you.**
 
 ---
 
-## 🚀 The Ultimate Workflow: One Single Command (`./rightsub auto`)
+## 🚀 Two Zero-Jargon Ways to Use RightSub
 
-Forget about remembering complex flags or chained commands. In this version of RightSub, a single smart command handles everything automatically:
+Forget about remembering complex flags or chained commands. In **RightSub v1.5.0**, you have two effortless ways to do everything:
 
+### Option A (Zero Flags): Launch the Interactive Mastering Wizard (`rightsub`)
+Simply type `rightsub` with no arguments in your Terminal (macOS/Linux) or Command Prompt / PowerShell (Windows) and press **Enter**:
 ```bash
-./rightsub auto "Drag and drop your file or directory here"
+rightsub
+```
+An interactive menu opens automatically:
+1. Choose your action (`1. Full Autonomous Ingest`, `2. Fix Subtitles for Plex`, `3. Polish & Proofread`, `4. AI Translation`, `7. First-Time Setup`, `8. Connect AI Agents via MCP`).
+2. **Drag & drop** any file or folder into the window — or type **`B`** to use the built-in interactive file browser!
+
+### Option B: One Single Command (`rightsub auto`)
+Run a single smart command directly on any file or folder:
+```bash
+rightsub auto "Drag and drop your file or directory here"
 ```
 
-### 💡 How to run it using Drag & Drop:
-1. Open your Terminal inside the RightSub project folder.
-2. Type: `./rightsub auto ` *(make sure to include a space after auto)*.
-3. Open **Finder**, click and drag your movie file, subtitle file, or entire TV season folder — **and drop it right onto the Terminal window**.
+#### 💡 How to run it using Drag & Drop:
+1. Open your Terminal or Windows Command Prompt.
+2. Type: `rightsub auto ` *(make sure to include a space after auto)*.
+3. Open **Finder** (macOS) or **File Explorer** (Windows), click and drag your movie file, subtitle file, or entire TV season folder — **and drop it right onto the Terminal window**.
 4. Press **Enter**.
 
 ---
@@ -25,31 +42,28 @@ Forget about remembering complex flags or chained commands. In this version of R
 
 ```mermaid
 graph TD
-    Start["Dragged an item into ./rightsub auto"] --> Check{"What did you drop?"}
+    Start["Dragged an item into rightsub / rightsub auto"] --> Check{"What did you drop?"}
     
-    Check -- "Hebrew subtitle file (.he.srt / .srt in Hebrew encoding)" --> Action1["Plex BiDi & RLM Punctuation Fix<br/>+ Automatic CP1255 to UTF-8 Conversion<br/>+ Automatic Plex .he.srt standardization<br/>+ Ad & credit spam stripping + .bak backup"]
+    Check -- "Hebrew subtitle file (.he.srt or plain .srt in any encoding)" --> Action1["Plex BiDi & RLM Punctuation Fix<br/>+ Auto CP1255 to UTF-8 conversion<br/>+ Seed-Safe .he.srt output (leaves torrent .srt untouched)<br/>+ Ad & credit spam stripping + .bak backup"]
     
-    Check -- "Video file (MKV / MP4)" --> VideoCheck{"Does a Hebrew subtitle exist in folder?"}
-    VideoCheck -- "Hebrew subtitle exists (any encoding/name)" --> Action1
+    Check -- "Video file (MKV / MP4)" --> VideoCheck{"Does a Hebrew subtitle exist?"}
+    VideoCheck -- "Hebrew subtitle exists (any name/encoding)" --> Action1
     VideoCheck -- "No Hebrew subtitle" --> Action2["Extracts English subtitles from video<br/>(If missing: transcribes audio on-device!)<br/>+ Prepares translation batches & Bible"]
     
-    Check -- "Entire Directory (Season / Library)" --> Action3["Deep Directory Scan:<br/>1. Repairs all Hebrew subtitles & standardizes to .he.srt<br/>2. Prepares English subtitles & batches for new titles"]
+    Check -- "Entire Directory (Season / Library)" --> Action3["Deep Directory Scan:<br/>1. Detects all Hebrew .srt files by content & masters to .he.srt<br/>2. Prepares English subtitles & batches for untranslated titles"]
 ```
 
 ---
 
 ## ⚡ 3 Common Everyday Scenarios
 
-### 1. Fix Hebrew Subtitles for Plex / Infuse / Apple TV
-- **The Issue**: Question marks (`?`), periods, or dashes jump to the wrong end of lines, characters are mojibake gibberish (legacy Windows-1255 / Torec encoding), or `.he` suffix is missing so Plex displays the track as "Unknown".
+### 1. Fix Hebrew Subtitles for Plex / Infuse / Apple TV (0 AI Tokens Required)
+- **The Issue**: Question marks (`?`), periods, or dashes jump to the wrong end of lines, characters are mojibake gibberish (`Windows-1255`), the file lacks the `.he` suffix (`Movie.srt`) so Plex shows `"Unknown"`, or lines are cluttered with website ads.
 - **The Solution**:
   ```bash
-  ./rightsub auto "Movie.srt"   # or "Movie.he.srt"
+  rightsub auto "Movie.srt"   # or "Movie.he.srt"
   ```
-  *The system detects Hebrew across encodings, converts to clean UTF-8, applies BiDi with RLM, strips promo ads, and standardizes the filename to `Movie.he.srt` for Plex/Infuse recognition.*
-
-  > [!TIP]
-  > **Seed-Safe Protection**: If your subtitle is named `Movie.srt` (e.g. from a torrent), RightSub duplicates it to `Movie.he.srt` and masters the copy, leaving `Movie.srt` 100% untouched so torrent seeding is never broken. If you prefer replacing/renaming in-place, pass `--replace-original`.
+  *RightSub detects Hebrew by content in any encoding, converts to clean UTF-8, fixes BiDi with RLM, strips ads, and saves a Seed-Safe `Movie.he.srt` copy (leaving the original `Movie.srt` 100% untouched so torrent seeding never breaks).*
 
 ### 2. Fix an Entire TV Season or Complete Library
 - **The Issue**: You have a folder with 24 episodes or dozens of movies and want them all mastered at once.
@@ -102,16 +116,24 @@ Unlike traditional subtitle tools that fail when subtitles are missing, RightSub
 
 ---
 
-## 🤖 Want Your AI Agent to Do Everything for You?
+## 🤖 Want Your AI Agent to Do Everything for You? (Native MCP Server)
 
-If you work with AI agents such as **Google Antigravity**, **Claude Code**, **Cursor**, or **ChatGPT**, you don't even have to touch the terminal yourself!  
-Simply copy and paste this single prompt to your AI assistant:
+If you work with AI agents such as **Google Antigravity**, **Claude Desktop**, **Claude Code**, **Cursor**, or **Windsurf**, you can connect RightSub directly to your agent in **one single command**:
+
+```bash
+rightsub mcp --install
+```
+
+This automatically registers RightSub's **Native MCP Server** (`8` local subtitle & media tools) inside your AI client. From that moment on, you don't even have to touch the terminal yourself — simply tell your AI assistant in plain language:
 
 > *"Please use RightSub to inspect, fix, and translate the subtitles in my directory [path], ensure 100% Plex compliance, and report back when finished."*
+
+For complete MCP tool schemas, ready-to-copy prompt templates, and system prompt configurations, see the [AI Integration Guide](AI_INTEGRATION_GUIDE.md).
 
 ---
 
 ## 🛡️ Built-in Safety & Protection
 1. **Foreign Language Protection**: RightSub checks the Hebrew character ratio in every file. English subtitles are never touched or modified.
-2. **Idempotency**: Running repeatedly on the same file never duplicates RLM marks or degrades formatting.
-3. **Automatic Backups**: Creates a `.srt.bak` file before making changes to any file.
+2. **Seed-Safe Torrent Protection**: Plain `.srt` files (`Movie.srt`) are duplicated into `Movie.he.srt`, leaving the original downloaded file 100% bit-for-bit intact for active torrent seeding.
+3. **Idempotency**: Running repeatedly on the same file never duplicates RLM marks or degrades formatting.
+4. **Automatic Backups**: Creates a `.srt.bak` file before making in-place changes to any `.he.srt` file.

@@ -16,10 +16,13 @@
 [![גרסת פייתון: 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![פלטפורמה: Windows ו-macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![מאומת ל-Plex ו-Infuse](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-143%2F143%20Passing-success.svg)]()
+[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-193%2F193%20Passing-success.svg)]()
+[![אפליקציית Web: תיקון מיידי בדפדפן](https://img.shields.io/badge/Web%20App-Client--Side%20SubRefine-teal.svg)](https://omerninyo.github.io/RightSub/)
 [![בנצ׳מרק: 101/101 פרקים](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
-> **כתוביות כמו שצריך — מתיקון מהיר ב-Plex ו-BiDi ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**
+> **כתוביות כמו שצריך — מתיקון מיידי בדפדפן וב-Plex ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**
+>
+> 🌐 **חדש ב-`v1.5.0` — אתר רשמי ואפליקציית Web לתיקון מיידי בדפדפן:** תקנו קובצי `.srt` בעברית ישירות מתוך הדפדפן ב-**0 התקנה ו-100% פרטיות מקומית** דרך **[omerninyo.github.io/RightSub](https://omerninyo.github.io/RightSub/)** (או מקומית בכתובת `http://localhost:8775/ui` בעת הרצת `rightsub serve`).
 
 **RightSub** היא סוויטת כלי CLI וספריית פייתון ברמת Production, שתוכננה עבור **Windows** ועבור **macOS** במטרה לתקן, להשביח, לנקות, לסנכרן ולתרגם כתוביות עבור **כל סרט וכל סדרת טלוויזיה**.
 
@@ -48,30 +51,34 @@ rightsub auto ~/Movies/Breaking_Bad_S01/
 ```
 
 ### מה קורה באופן אוטומטי?
-- **קובץ כתוביות בעברית (`.srt`)**: RightSub מתקנת מיידית היפוכי פיסוק (`? ! .`), ממירה קידודי ג'יבריש ל-UTF-8, מנקה פרסומות ומתאימה את הקובץ ל-Plex ול-Infuse.
-- **קובץ וידאו (`.mkv` / `.mp4`)**: RightSub מחלצת כתוביות מובנות, מתמללת את האודיו במידת הצורך ומכינה מנות עבודה לתרגום.
-- **שמירה על שיתוף טורנטים (Seed-Safe)**: כאשר הכלי מזהה כתובית שאינה בעלת סיומת סטנדרטית (למשל `Movie.srt` או `Movie.heb.srt`), הוא משכפל אותה ל-`Movie.he.srt` ומתקן את העותק בלבד. קובץ המקור נשאר זהה ב-100% ברמת הביט, כך שה-Seeding אינו נפגע לעולם.
+- **זיהוי תוכן עברי בכל קובץ `.srt` והגנת טורנט (Seed-Safe)**: RightSub **אינה** מחפשת רק קובצי `.he.srt`. היא סורקת את התוכן של **כל** קובץ `.srt` (כולל `Movie.srt` רגיל, `Movie.heb.srt`, או כתוביות בתוך `Subs/` בקידודי `UTF-8` או `CP1255`). כאשר מזוהה קובץ עברי ללא סיומת `.he.srt`, הקובץ המקורי **נשאר ללא שום שינוי ברמת הביט** (להגנה מלאה על Seeding בטורנט), והקובץ המתוקן נשמר בנפרד כ-**`Movie.he.srt`**.
+- **תיקון והשבחת כתוביות בעברית (`.srt` $\rightarrow$ `.he.srt`)**: מתקנת מיידית היפוכי פיסוק (`? ! .`), הופכת חזרה כתוביות שעברו היפוך ויזואלי ישן (`Subabi`), ממירה קידודי ג'יבריש ל-`UTF-8`, מנקה פרסומות ומתאימה את הקובץ ל-Plex ול-Infuse (`\u200F` לפי `UAX #9 Rule N1`).
+- **קובץ וידאו (`.mkv` / `.mp4`)**: מחלצת כתוביות מובנות, מתמללת את האודיו במידת הצורך ומכינה מנות עבודה לתרגום.
 - **אוטומציה מלאה לשרתי מדיה (Set-and-Forget)**: חיבור RightSub ל-**qBittorrent**, **Sonarr**, **Radarr**, **Bazarr** או **Transmission** לעיבוד שקוף ברקע ללא צורך בדמון כבד שרץ 24/7. ראו [מדריך אינטגרציות ואוטומציה לשרתי מדיה](docs/INTEGRATIONS_GUIDE.he.md).
 
 ---
 
-## 🎯 בחרו את מסלול השימוש שלכם
+## 🎯 בחרו את מסלול השימוש שלכם (מתי מעורב AI ומתי לא?)
 
-RightSub מציעה שני מסלולי עבודה ברורים:
+RightSub מפרידה באופן מוחלט בין **תיקון טכני דטרמיניסטי (0% AI)** לבין **תרגום ושיקום סמנטי נדיר (מבוסס AI)** לפי סוג הפעולה והאם המשתמש הגדיר מפתח AI:
 
-### מסלול 1: השבחה ותיקון כתוביות קיימות (100% מקומי, חינמי וללא אינטרנט)
-*ללא צורך בבינה מלאכותית, ללא מפתחות API ואפס תלות בענן.*
+### מסלול 1: השבחה ותיקון כתוביות קיימות (100% דטרמיניסטי, מקומי וחינמי — ל-99% מהכתוביות הקיימות)
+*ללא בינה מלאכותית, ללא מפתחות API, אפס תלות בענן ואפס שינוי של ניסוח אנושי תקין.*
 
-- **תיקון BiDi ל-Plex ו-Infuse**: הזרקה אוטומטית של תווי כיווניות סמויים (`\u200F` / RLM) כך שסימני פיסוק, מקפים ומספרים לא יתהפכו ב-Apple TV, Android TV, LG WebOS, Infuse ו-VLC.
-- **הצלת קידודים (Encoding Rescue)**: זיהוי והמרה אוטומטית של CP1255 / Windows-1255 / ISO-8859-8 ל-UTF-8 מודרני ונקי.
-- **ניקוי רעשי שמע (SDH Cleaner)**: הסרת תיאורי שמיעה כגון `[מחיאות כפיים]` או `♪ מוזיקת רקע ♪` תוך שמירה מוחלטת על תזמון הדיאלוג.
-- **ניקוי פרסומות וספאם**: הסרת שורות קרדיטים, אתרי טורנטים וקישורי טלגרם.
+- **זיהוי תוכן עברי והגנת טורנט אוטומטית (`.srt` $\rightarrow$ `.he.srt`)**: מזהה כל קובץ `.srt` שמכיל עברית, משאיר את קובץ הטורנט המקורי ללא מגע, ושומר קובץ `.he.srt` מתוקן בנפרד.
+- **מנוע BiDi תלת-שלבי והיפוך כתוביות ישנות (`Subabi`)**: הופך חזרה 18 תבניות של סקריפטי היפוך ישנים ועוטף כל שורה ב-`RLM` כפול (`\u200F`) **אחרי** סימן הפיסוק הסופי (`UAX #9 Rule N1`) לתצוגה מושלמת ב-Apple TV, Android TV, LG WebOS, Infuse ו-VLC.
+- **הצלבה דו-לשונית דטרמיניסטית (0 טוקנים)**: כאשר קיים קובץ `.en.srt` תואם, המערכת מתקנת דטרמיניסטית גם מספרים דו-ספרתיים שהתהפכו ב-`Subabi` (למשל `84` $\rightarrow$ `48` בהצלבה מול השורה באנגלית) ובודקת סנכרון עוגנים (`validate_anchor_alignment`).
+- **הצלת קידודים וניקוי תווים זרים (`Homoglyphs`)**: המרה אוטומטית מ-`CP1255` / `ISO-8859-8` ל-`UTF-8`, והחלפת אותיות זרות (ערבית, קירילית, גאורגית, יוונית) עם תיקון אותיות סופיות מותנה.
+- **ניקוי פרסומות וקרדיטים רב-שורתיים**: הסרת שורות קרדיטים, אתרי כתוביות וקישורים.
+
+> 💡 **מתי כן נעשה שימוש במפתח AI על כתוביות קיימות (`rightsub polish`)?**  
+> ב-**99% מהכתוביות הקיימות ברשת** (תרגומים אנושיים מ-Wizdom, כתובית וכו'), **מסלול 1 הדטרמיניסטי (`0` טוקנים) הוא כל מה שנדרש**. הפעלת מפתח AI בפקודת `rightsub polish` מיועדת **אך ורק למקרים נדירים מאוד** — בעיקר **תרגומים ישנים מאוד, כתוביות משובשות מ-OCR (`PGS`/`VobSub`), או תרגומי מכונה ירודים מאוד** שסובלים משגיאות מגדר קשות לאורך הדיאלוג או משיבושי קאנון. אם המשתמש לא הזין מפתח AI, גם `rightsub polish` רץ אוטומטית במצב דטרמיניסטי מקומי (`0` טוקנים).
 
 ```bash
-# Windows:
-rightsub fix-plex "C:\Movies\Season 01" --recursive --clean-ads
+# מומלץ — זיהוי אוטומטי של .srt עברי, הגנת טורנט ויצירת .he.srt מתוקן:
+rightsub auto "C:\Movies\Season 01"
 
-# macOS / Linux:
+# הפעלה ישירה של מנוע ה-BiDi:
 rightsub fix-plex ~/Movies/Season_01 --recursive --clean-ads
 ```
 
@@ -261,12 +268,27 @@ rightsub polish "Movie.he.srt" --diff-only
 rightsub polish "Movie.he.srt" --in-place
 ```
 
-### מתכון 6: אשף הגדרות מהיר ואבחון בריאות מערכת
+### מתכון 6: אשף ההרצה האינטראקטיבי, אשף ההתקנה ושרת ה-MCP לסוכני AI
 ```bash
-# אשף הגדרת מפתחות API (Gemini ו-TMDb) תוך 10 שניות:
-rightsub config
+# הפעלת אשף המאסטר האינטראקטיבי בטרמינל / Windows CMD (גרירת קבצים וסייר תיקיות):
+rightsub
+# (או באופן מפורש: rightsub wizard)
 
-# אבחון מקיף לסביבת ההפעלה (FFmpeg, Python, Gemini, TMDb, Quicksubs):
+# הרצת אשף ההתקנה המאוחד (בדיקת תלויות, יצירת Hooks ל-qBittorrent/Sonarr ורישום MCP):
+rightsub setup
+
+# חיבור אוטומטי של שרת ה-MCP המקומי לכל סוכני ה-AI המותקנים במחשב
+# (Antigravity, Claude Desktop, Cursor, Windsurf, Claude Code):
+rightsub mcp --install
+
+# מעבר אינטראקטיבי שורה-אחר-שורה על הצעות ליטוש ([Y] אשר / [N] דחה / [E] ערוך):
+rightsub polish "Movie.he.srt" --interactive
+
+# הגדרת מפתחות API והתקנת Hooks לתוכנות הורדה:
+rightsub config
+rightsub config --install-hooks
+
+# אבחון מקיף לסביבת ההפעלה (FFmpeg, Python, Gemini, TMDb, Quicksubs, MCP Agents):
 rightsub doctor
 ```
 
@@ -333,8 +355,11 @@ rightsub doctor
 | פקודה | מנוע אחראי | תיאור | דוגמה ב-Windows | דוגמה ב-macOS / Linux |
 | :--- | :---: | :--- | :--- | :--- |
 | `auto` | **הכל** | הפעלה אוטונומית שלמה (קובץ בודד, עונה או תיקייה) | `rightsub auto "Movie.mkv"` | `rightsub auto "Movie.mkv"` |
+| `wizard` | **אינטראקטיבי** | אשף הרצה אינטראקטיבי לטרמינל ול-CMD (גרירת קבצים וסייר תיקיות) | `rightsub` או `rightsub wizard` | `rightsub` או `rightsub wizard` |
+| `setup` | **ליבה** | אשף התקנה מקצה לקצה, יצירת Hooks לתוכנות הורדה ורישום שרת MCP | `rightsub setup` | `rightsub setup` |
+| `mcp` | **MCP / סוכנים** | שרת MCP מקומי מעל stdio ומתקין אוטומטי לכל סוכני ה-AI (`--install`) | `rightsub mcp --install` | `rightsub mcp --install` |
 | `serve` | **שרת ודמון** | שרת Webhook ואירועים אוטומטי עבור Sonarr, Radarr ו-Bazarr | `rightsub serve --port 8775` | `rightsub serve --port 8775` |
-| `polish` | **SubRefine & AI** | הגהה סמנטית, יישור קאנון ובקרת איכות על כתובית קיימת | `rightsub polish "Star Wars.he.srt"` | `rightsub polish "Star Wars.he.srt"` |
+| `polish` | **SubRefine & AI** | הגהה סמנטית, יישור קאנון ומבקר שינויים אינטראקטיבי (`-i`) | `rightsub polish "Star Wars.he.srt" -i` | `rightsub polish "Star Wars.he.srt" -i` |
 | `translate-ollama` | **SubSwarm** | תרגום מקומי 100% חינמי ואופליין דרך Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
 | `fix-plex` | **SubRefine** | תיקון פיסוק, RLM, קידוד CP1255, ניקוי SDH וספאם | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
 | `adjust-fps` | **SubRefine** | מתיחת פריימים (25 <-> 23.976) או הזזת אופסט | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
@@ -345,8 +370,8 @@ rightsub doctor
 | `bible` | **SubSwarm** | הפקת Translation Bible (דמויות, מונחים ומגדר מ-TMDb) | `rightsub bible Season1/*.srt -o b.json --tmdb` | `rightsub bible Season1/*.srt -o b.json --tmdb` |
 | `split` | **SubSwarm** | פיצול SRT באנגלית למנות JSON של כ-210 שורות | `rightsub split ep.en.srt -o ./batches/` | `rightsub split ep.en.srt -o ./batches/` |
 | `prompt-gen` | **SubSwarm** | מחולל פרומפטים וגלי סוכנים עם מילון דמויות וחפיפה | `rightsub prompt-gen ep.en.srt -t "Inception"` | `rightsub prompt-gen ep.en.srt -t "Inception"` |
-| `config` | **ליבה** | אשף אינטראקטיבי מהיר להגדרת מפתחות API (TMDb / Gemini) | `rightsub config` | `rightsub config` |
-| `doctor` | **ליבה** | דשבורד אבחון ובדיקת בריאות מקיפה לסביבת המערכת | `rightsub doctor` | `rightsub doctor` |
+| `config` | **ליבה** | אשף הגדרת מפתחות API, מתקין Hooks (`--install-hooks`) ושירותי רקע | `rightsub config --install-hooks` | `rightsub config --install-hooks` |
+| `doctor` | **ליבה** | דשבורד אבחון ובדיקת בריאות לתלויות, שירותים וסוכני MCP | `rightsub doctor` | `rightsub doctor` |
 | `merge` | **שניהם** | מיזוג מנות תרגום ל-SRT סופי עם הזרקת RLM מלאה | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` | `rightsub merge ep.en.srt ./b/ -o ep.he.srt` |
 | `qa` | **שניהם** | דוח בקרת איכות של 1-לאחד, טיהור תווים זרים ומגדר | `rightsub qa ep.en.srt ep.he.srt` | `rightsub qa ep.en.srt ep.he.srt` |
 
@@ -370,23 +395,28 @@ RightSub נבחנה ואומתה על גבי מערך נתונים הממודל 
 
 ## 🧪 בדיקות יחידה ואימות אוטומטי
 
-RightSub מגיעה עם סוויטת בדיקות מקיפה של 103 בדיקות יחידה עצמאיות:
+RightSub מגיעה עם סוויטת בדיקות מקיפה של 193 בדיקות אוטומטיות (168 בדיקות יחידה + 25 בדיקות אינטגרציה על מערך הפרקים):
 ```bash
 pytest -v
 ```
 
 הבדיקות מוודאות:
-- הזרקת RLM ואי-שכפול תווי כיווניות (אידמפוטנטיות).
+- הזרקת RLM, ביטול 18 תבניות היפוך ויזואליות (`Subabi`) ואי-שכפול תווי כיווניות (אידמפוטנטיות).
+- זהות מוחלטת (1:1 Parity) בין מנוע ה-JavaScript בדפדפן (`site/subrefine.js`) לבין מנוע ה-Python (`07_fix_plex_punctuation.py`) על פני 15 וקטורי Red Team, פענוח בייטים CP1255 בדפדפן והיפוך מספרים דו-לשוני.
 - המרת גרשיים עבריים תקניים בראשי תיבות (`עו״ד`, `ארה״ב`).
-- נרמול הומוגליפים רב-לשוניים (גאורגית, יוונית, ארמנית, ערבית, קירילית ואסייתית).
+- נרמול הומוגליפים רב-לשוניים (גאורגית `דეייט` $\rightarrow$ `דייט`, יוונית, ארמנית, ערבית, קירילית ואסייתית).
+- אימות והיפוך מספרים דו-לשוני (`cross_check_bilingual_numbers`, `84` $\rightarrow$ `48`) וזיהוי קובצי `.srt` עבריים לפי תוכן במצב Seed-Safe (`.srt` $\rightarrow$ `.he.srt`).
 - הזרקת Translation Bible לפרומפטים ומנגנון חפיפת הקשר (Context Overlap).
-- איתור ובקרת שגיאות מגדר ופנייה ישירה (Vocative Gender Mismatch).
+- איתור ובקרת שגיאות מגדר בפנייה ישירה וסתירות מורפולוגיות פנימיות בשורה.
 - זיהוי והמרת קידודי עברית ישנים (CP1255).
 - ניקוי רעשי שמיעה (SDH) ומחיקת פרסומות ספאם.
-- חישובי תזמון ומתיחת פריימים.
+- חישובי תזמון, מתיחת פריימים וזיהוי סטיית סנכרון שקטה (`Cue Drift`).
 - מעטפת CLI של quicksubs, מנגנוני Fallback ואלגוריתמי כיול תזמונים מונחי שמע.
 - פענוח מטא-דאטה מ-TMDb API, מפענח שמות קבצים חכם ושיוך מגדר דטרמיניסטי.
-- עקביות תיעוד מלאה, קישורים תקנים בדיסק ושמירה על שוויון בין Windows ל-macOS.
+- שרת MCP מובנה בפרוטוקול JSON-RPC 2.0 (`Content-Length` + JSONL), בידוד פלט `stdout` ומתקין אוטומטי לסוכני AI (`--install` / `--uninstall` / `--status`).
+- אשף אינטראקטיבי לטרמינל ולחלונות (`rightsub`), נרמול נתיבי גרירה (Drag & Drop), דפדפן קבצים מובנה ומבקר ליטוש שורה-אחר-שורה (`polish --interactive`).
+- שרת Webhook לקונטיינרים (`rightsub serve`), קדימות תחיליות `PATH_MAP`, הגנת Path Traversal וכתיבה אטומית מוגנת-תהליכונים.
+- עקביות תיעוד מלאה, אימות גרסאות SemVer אחיד, קישורים תקנים בדיסק ושמירה על שוויון בין Windows ל-macOS.
 - אימות חי של כל 101 הפרקים במאגר המדיה.
 
 ---

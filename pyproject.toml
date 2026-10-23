@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rightsub"
-version = "1.3.1"
+version = "1.5.0"
 description = "Universal Subtitle Mastering & Translation Suite for Movies & TV Series (Plex/Infuse BiDi & AI SubSwarm)"
 readme = "README.md"
 requires-python = ">=3.9"
