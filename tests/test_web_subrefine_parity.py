@@ -59,6 +59,11 @@ def test_site_files_exist_and_comply_with_a11y_and_bidi():
     assert '<a href="#content" class="skip-link"' in index_html
     assert '<main id="content" tabindex="-1">' in index_html
     assert 'aria-live="polite"' in index_html
+    assert 'role="tablist"' in index_html
+    assert 'role="tab"' in index_html
+    assert 'role="tabpanel"' in index_html
+    assert '<link rel="icon"' in index_html
+    assert 'id="sb-render-before" class="sb-player-line" dir="rtl"' in index_html
     assert "unicode-bidi: isolate" in styles_css
     assert "prefers-reduced-motion: reduce" in styles_css
     assert "decodeSrtBuffer" in subrefine_js
@@ -76,16 +81,20 @@ def test_js_vs_python_18_visual_flip_and_homoglyph_parity():
         ("- ,חיי אינם ראויים", True),
         (".-או-טי 8. הרמה הגבוהה ביותר", True),
         ('".אהבה משחררת אותך', True),
+        ('"...אהבה משחררת אותך', True),
         (',19 יש לי קול. אני בת"', True),
         ("(לאודיטור (אדם שמקשיב.", True),
+        ("(לאודיטור (אדם שמקשיב...", True),
         (")מדרגות לפני הבית(", True),
         ("[אתם מוקפים! [צרפתית", True),
+        (".<i>שלום עולם</i>", True),
         ("ראיתי את הסוכנים של ה-FBI.", False),
         ("יצאנו ל-ד\u10D4ייט מעולה אתמול!", False),
         ('אביהם וגם אִמם הגיעו עם עו"ד בכיר.', False),
         ("אמם... אני לא בטוח אם לקחת טרמף.", False),
         ("<i>שלום עולם!</i>", False),
         ("{\\an8}- שלום דני!", False),
+        ("{\\an8}{\\fad(100,100)}- שלום דני!", False),
     ]
 
     for raw_line, is_preflipped in vectors:
@@ -120,6 +129,37 @@ def test_js_cp1255_byte_decoding_and_bilingual_number_unflipping():
     assert res["encoding"] == "windows-1255"
     assert res["proc"]["numbersUnflipped"] == 1
     assert "\u200F- חיכינו לך 48 שעות במשרד.\u200F" in res["proc"]["resultText"]
+
+
+def test_single_line_preflipped_polarity_and_shifted_timestamp_bilingual_numbers():
+    """
+    Verify QA/QC fixes:
+    1. Single-line Subabi inputs (`? ...`, `...`) trigger pre-flipped polarity in both Python & JS.
+    2. Timestamp-based bilingual number matching un-flips numbers even when cue indices shift by +1.
+    """
+    single_subabi = "1\n00:00:01,000 --> 00:00:03,000\n?אלן, אתה שומע אותי\n"
+    assert fix_plex.detect_file_flip_polarity(single_subabi) is True
+
+    he_shifted = (
+        "1\n00:00:05,000 --> 00:00:08,000\n"
+        "?חיכינו לך 84 שעות במשרד\n"
+    )
+    en_shifted = (
+        "1\n00:00:01,000 --> 00:00:03,000\n"
+        "Previously on Boston Legal...\n\n"
+        "2\n00:00:05,000 --> 00:00:08,000\n"
+        "Did we wait 48 hours for you at the office?\n"
+    )
+    res = _run_js_eval(
+        f"""sr.processSrtContent({json.dumps(he_shifted)}, {{
+            cleanAds: true,
+            cleanSpeakers: true,
+            enContent: {json.dumps(en_shifted)}
+        }})"""
+    )
+    assert res["isPreflippedFile"] is True
+    assert res["numbersUnflipped"] == 1
+    assert "\u200Fחיכינו לך 48 שעות במשרד?\u200F" in res["resultText"]
 
 
 def test_webhook_server_serves_web_ui_and_preserves_json_health():

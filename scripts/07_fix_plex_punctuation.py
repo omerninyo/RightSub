@@ -298,9 +298,9 @@ def clean_and_sanitize_text(text):
 
     # Preserve leading SSA tags (e.g. {\an8}, {\pos(x,y)}) before stripping stray JSON braces
     ssa_lead = ""
-    ssa_match = re.match(r'^\s*(\{\\[^}]+\})\s*(.*)$', text, flags=re.DOTALL)
+    ssa_match = re.match(r'^\s*((?:\{\\[^}]+\}\s*)+)(.*)$', text, flags=re.DOTALL)
     if ssa_match:
-        ssa_lead = ssa_match.group(1)
+        ssa_lead = re.sub(r'\s+', '', ssa_match.group(1))
         text = ssa_match.group(2)
 
     # 1. Clean transcript truncation tags and leaked tool artifacts
@@ -465,7 +465,10 @@ def detect_file_flip_polarity(content):
         elif re.search(r'[\u0590-\u05FF][\"\'\״\׳\)\]]*[\.?!,:;]+$', s) and not re.match(r'^[\.?!,:;…]', s):
             logical_votes += 1
 
-    return preflipped_votes >= 2 and preflipped_votes >= logical_votes * 0.25
+    return (
+        (preflipped_votes >= 2 or (preflipped_votes == 1 and logical_votes == 0))
+        and preflipped_votes >= logical_votes * 0.25
+    )
 
 def canonicalize_visual_flipped_line(core, is_preflipped_file=False):
     """
@@ -498,8 +501,9 @@ def canonicalize_visual_flipped_line(core, is_preflipped_file=False):
     if m:
         lead_punct, body, dash = m.group(1).strip(), m.group(2).strip(), m.group(3)
         # Normalize quote+punct at the end if quote was part of lead_punct
-        if len(lead_punct) == 2 and lead_punct[0] in '"\'״׳' and lead_punct[1] in '.?!,:;':
-            lead_punct = lead_punct[1] + lead_punct[0]
+        m_qp_edge = re.match(r'^([\"\'\״\׳])(\.{2,3}|…|[\.?!,:;]+)$', lead_punct)
+        if m_qp_edge:
+            lead_punct = m_qp_edge.group(2) + m_qp_edge.group(1)
         s = f"{dash} {body}{lead_punct}"
 
     # 4. P_START_QUOTE_PUNCT: '".אהבה משחררת אותך' or '."אבל זה בטח לא ימצא חן בעיניכם"'
@@ -532,7 +536,7 @@ def canonicalize_visual_flipped_line(core, is_preflipped_file=False):
     # Matches single/compound punctuation (. , ! : ; ?!) attached to start, or (. , ! : ;) with spaces
     if not re.search(r'[\.?!,:;…][\"\'\״\׳\)\]]*$', s):
         # 6a. Attached punctuation (excluding 2+ dots '..' / '...' / '…')
-        m_att = re.match(r'^(?!\.{2,}|…)([\.?!,:;]+)(?=[\u0590-\u05FF\(\)\[\]\"\'\״\׳])(.*)$', s)
+        m_att = re.match(r'^(?!\.{2,}|…)([\.?!,:;]+)(?=[\u0590-\u05FF\(\)\[\]\"\'\״\׳<])(.*)$', s)
         if m_att:
             punct, body = m_att.group(1), m_att.group(2).strip()
             s = f"{body}{punct}"
@@ -571,8 +575,8 @@ def canonicalize_visual_flipped_line(core, is_preflipped_file=False):
         m_dop = re.match(r'^\(\s*([^\(]+?\s*\([^\(]+?)([\.?!,:;…]*)$', s)
         if m_dop:
             s = f"{m_dop.group(1).strip()}){m_dop.group(2)}"
-        elif s.endswith('('):
-            s = s[:-1] + ')'
+        else:
+            s = re.sub(r'\(([\.?!,:;…]*)$', r')\1', s)
     # 8b. P_DOUBLE_CLOSE_PAREN: ')ראשית, הם הביאו את הדליקטסן )מעדנייה,' -> 'ראשית, הם הביאו את הדליקטסן (מעדנייה),'
     elif s.count(')') == 2 and s.count('(') == 0:
         m_dcp = re.match(r'^\)\s*([^\)]+?)\s*\)\s*([^\)]+?)([\.?!,:;…]*)$', s)
@@ -589,8 +593,8 @@ def canonicalize_visual_flipped_line(core, is_preflipped_file=False):
         m_dob = re.match(r'^\[\s*([^\[]+?\s*\[[^\[]+?)([\.?!,:;…]*)$', s)
         if m_dob:
             s = f"{m_dob.group(1).strip()}]{m_dob.group(2)}"
-        elif s.endswith('['):
-            s = s[:-1] + ']'
+        else:
+            s = re.sub(r'\[([\.?!,:;…]*)$', r']\1', s)
     elif s.count(']') == 2 and s.count('[') == 0:
         m_dcb = re.match(r'^\]\s*([^\]]+?)\s*\]\s*([^\]]+?)([\.?!,:;…]*)$', s)
         if m_dcb:
@@ -647,6 +651,13 @@ def apply_rlm_to_line(line, is_preflipped_file=False):
     # Stage 2: Canonicalize pre-flipped visual order into logical order
     stripped = canonicalize_visual_flipped_line(stripped, is_preflipped_file=is_preflipped_file)
 
+    # If leading punctuation preceded an opening HTML tag (e.g. '.<i>שלום</i>'), extract tag_prefix now
+    if not tag_prefix:
+        post_tag_open = re.match(r'^((?:<(?:[iIuUbB]|font\b[^>]*)>\s*)+)(.*)$', stripped, flags=re.IGNORECASE)
+        if post_tag_open:
+            tag_prefix = post_tag_open.group(1)
+            stripped = post_tag_open.group(2).strip()
+
     # Convert standard double quotes in Hebrew acronyms to Hebrew gershayim (״)
     stripped = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', stripped)
 
@@ -669,10 +680,11 @@ def apply_rlm_to_line(line, is_preflipped_file=False):
 apply_bidi_and_punctuation = apply_rlm_to_line
 
 SPEAKER_TAG_REGEX = re.compile(
-    r'^[‏\u200F\s]*(?:'
-    r'אלן|דני|שירלי|פול|בראד|לורי|טרה|סאלי|דניס|קייטי|ג\'רי|בברלי|אדווין|'
+    r'^((?:<(?:[iIuUbB]|font\b[^>]*)>\s*)*)[\u200e\u200f\u202a-\u202e\u2066-\u2069\s]*(?:[-–—]\s*)?(?:'
+    r'אלן|דני|שירלי|פול|בראד|לורי|טרה|סאלי|דניס|קייטי|ג[\'\׳]רי|בברלי|אדווין|'
     r'אישה|גבר|שופט|שופטת|השופט|השופטת|קול|קריין|כולם|גבר 2|אישה 2'
-    r'):\s*'
+    r'):\s*',
+    re.IGNORECASE
 )
 
 def process_srt_content(content, clean_ads=False, clean_speakers=True):
@@ -705,7 +717,7 @@ def process_srt_content(content, clean_ads=False, clean_speakers=True):
             for tl in expanded_lines:
                 orig_tl = tl
                 if clean_speakers:
-                    tl = SPEAKER_TAG_REGEX.sub('', tl)
+                    tl = SPEAKER_TAG_REGEX.sub(r'\1', tl)
                 fixed = apply_rlm_to_line(tl, is_preflipped_file=is_preflipped_file)
                 # Discard orphan dashes or empty lines
                 clean_check = BIDI_CONTROL_CHARS_REGEX.sub('', fixed).strip()

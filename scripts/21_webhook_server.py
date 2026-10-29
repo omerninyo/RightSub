@@ -488,7 +488,7 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
     def _send_static_file(self, filename: str, content_type: str):
         site_dir = (SCRIPT_DIR.parent / "site").resolve()
         target_file = (site_dir / filename).resolve()
-        if not str(target_file).startswith(str(site_dir)) or not target_file.is_file():
+        if target_file.parent != site_dir or not target_file.is_file():
             self._send_json(404, {"error": "Static asset not found"})
             return
         raw_bytes = target_file.read_bytes()
