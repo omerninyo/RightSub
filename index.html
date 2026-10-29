@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>RightSub — מאסטרינג, תיקון כיווניות ותרגום כתוביות בעברית</title>
   <meta name="description" content="כלי קוד פתוח לתיקון פיסוק וכיווניות (BiDi) בכתוביות עברית עבור Plex, Infuse ו-Apple TV. כולל מנוע תיקון מיידי בדפדפן, אשף CLI, הגנת טורנט (Seed-Safe) ושרת MCP מובנה." />
+  <meta name="theme-color" id="meta-theme-color" content="#09090b" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" id="og-title" content="RightSub — מאסטרינג, תיקון כיווניות ותרגום כתוביות בעברית" />
+  <meta property="og:description" id="og-desc" content="תיקון פיסוק וכיווניות (UAX #9 Rule N1), קידוד Windows-1255, הגנת טורנט ושרת MCP מובנה עבור Plex, Infuse ו-Apple TV." />
+  <meta property="og:url" content="https://omerninyo.github.io/RightSub/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314b8a6' stroke-width='2.2' stroke-linecap='square'%3E%3Crect x='2' y='4' width='20' height='16' rx='2' fill='%2309090b'/%3E%3Cline x1='6' y1='12' x2='18' y2='12'/%3E%3Cline x1='10' y1='16' x2='18' y2='16'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -17,7 +24,7 @@
   <header class="topbar">
     <div class="container topbar-inner">
       <div class="brand-group">
-        <a href="#" class="brand-link" aria-label="RightSub Home">
+        <a href="#" class="brand-link" aria-label="דף הבית של RightSub" data-i18n-aria="aria_home">
           <svg class="brand-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">
             <rect x="2" y="4" width="20" height="16" rx="2" />
             <line x1="6" y1="12" x2="18" y2="12" />
@@ -32,7 +39,7 @@
         </span>
       </div>
 
-      <nav class="primary-nav" aria-label="Primary">
+      <nav class="primary-nav" aria-label="ניווט ראשי" data-i18n-aria="aria_nav">
         <ul>
           <li><a href="#studio" data-i18n="nav_studio">התנסות חיה</a></li>
           <li><a href="#capabilities" data-i18n="nav_capabilities">מה הכלי עושה</a></li>
@@ -43,7 +50,16 @@
       </nav>
 
       <div class="topbar-actions">
-        <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle color theme" title="החלף ערכת נושא">
+        <button
+          type="button"
+          id="theme-toggle"
+          class="icon-btn"
+          aria-pressed="false"
+          aria-label="החלף ערכת נושא"
+          title="החלף ערכת נושא"
+          data-i18n-aria="aria_theme"
+          data-i18n-title="aria_theme"
+        >
           <svg id="theme-icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -55,11 +71,29 @@
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
           </svg>
+          <svg id="theme-icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
         </button>
-        <button type="button" id="lang-toggle" class="lang-btn" aria-label="Switch language">
+        <button
+          type="button"
+          id="lang-toggle"
+          class="lang-btn"
+          aria-label="החלף שפה לאנגלית"
+          title="החלף שפה לאנגלית"
+          data-i18n-aria="aria_lang"
+          data-i18n-title="aria_lang"
+        >
           <span id="lang-toggle-label">EN</span>
         </button>
-        <a href="https://github.com/omerninyo/RightSub" target="_blank" rel="noopener" class="gh-link" aria-label="GitHub Repository">
+        <a
+          href="https://github.com/omerninyo/RightSub"
+          target="_blank"
+          rel="noopener"
+          class="gh-link"
+          aria-label="מאגר קוד המקור ב-GitHub"
+          data-i18n-aria="aria_gh"
+        >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
           </svg>
@@ -114,13 +148,33 @@
         </div>
 
         <!-- Interactive Studio Workbench -->
-        <div class="workbench" aria-label="SubRefine Interactive Studio">
+        <div class="workbench" aria-label="סביבת התנסות SubRefine" data-i18n-aria="aria_workbench">
           <div class="workbench-header">
-            <div class="workbench-tabs" role="tablist" aria-label="Studio Mode">
-              <button type="button" role="tab" aria-selected="true" class="wb-tab active" data-wb-mode="file" data-i18n="wb_tab_file">
+            <div class="workbench-tabs" role="tablist" aria-label="מצב התנסות" data-i18n-aria="aria_wb_tabs">
+              <button
+                type="button"
+                role="tab"
+                id="wb-tab-file"
+                aria-selected="true"
+                aria-controls="wb-panel-file"
+                tabindex="0"
+                class="wb-tab active"
+                data-wb-mode="file"
+                data-i18n="wb_tab_file"
+              >
                 תיקון קובץ .srt
               </button>
-              <button type="button" role="tab" aria-selected="false" class="wb-tab" data-wb-mode="sandbox" data-i18n="wb_tab_sandbox">
+              <button
+                type="button"
+                role="tab"
+                id="wb-tab-sandbox"
+                aria-selected="false"
+                aria-controls="wb-panel-sandbox"
+                tabindex="-1"
+                class="wb-tab"
+                data-wb-mode="sandbox"
+                data-i18n="wb_tab_sandbox"
+              >
                 בדיקת שורה חיה
               </button>
             </div>
@@ -128,7 +182,7 @@
           </div>
 
           <!-- MODE 1: FILE DROP & DEMO -->
-          <div id="wb-panel-file" class="wb-panel active" role="tabpanel">
+          <div id="wb-panel-file" class="wb-panel active" role="tabpanel" aria-labelledby="wb-tab-file">
             <div
               id="dropzone"
               class="dropzone"
@@ -174,9 +228,9 @@
 
               <div class="diff-preview-wrapper" id="diff-preview-wrapper" hidden>
                 <div class="diff-header-row">
-                  <h3 data-i18n="diff_heading">שורות שתוקנו בקובץ (לפני לעומת אחרי)</h3>
+                  <h3 id="diff-table-heading" data-i18n="diff_heading">שורות שתוקנו בקובץ (לפני לעומת אחרי)</h3>
                 </div>
-                <div tabindex="0" role="region" aria-label="Subtitle Diff Table" class="table-container">
+                <div tabindex="0" role="region" aria-labelledby="diff-table-heading" class="table-container">
                   <table class="data-table diff-table">
                     <thead>
                       <tr>
@@ -193,26 +247,26 @@
           </div>
 
           <!-- MODE 2: LIVE LINE SANDBOX (GREAT FOR MOBILE & QUICK TESTING) -->
-          <div id="wb-panel-sandbox" class="wb-panel" role="tabpanel" hidden>
+          <div id="wb-panel-sandbox" class="wb-panel" role="tabpanel" aria-labelledby="wb-tab-sandbox" hidden>
             <div class="sandbox-presets">
               <span class="preset-label" data-i18n="sb_preset_label">דוגמאות מוכנות:</span>
-              <div class="preset-chips">
-                <button type="button" class="chip-btn active" data-sb-preset="punct" data-i18n="sb_chip_1">פיסוק קופץ</button>
-                <button type="button" class="chip-btn" data-sb-preset="subabi" data-i18n="sb_chip_2">היפוך Subabi</button>
-                <button type="button" class="chip-btn" data-sb-preset="english" data-i18n="sb_chip_3">מילה באנגלית (FBI.)</button>
-                <button type="button" class="chip-btn" data-sb-preset="homoglyph" data-i18n="sb_chip_4">תו זר (דეייט) + ראשי תיבות</button>
+              <div class="preset-chips" role="group" aria-label="דוגמאות מוכנות" data-i18n-aria="sb_preset_label">
+                <button type="button" class="chip-btn active" aria-pressed="true" data-sb-preset="punct" data-i18n="sb_chip_1">פיסוק קופץ</button>
+                <button type="button" class="chip-btn" aria-pressed="false" data-sb-preset="subabi" data-i18n="sb_chip_2">היפוך Subabi</button>
+                <button type="button" class="chip-btn" aria-pressed="false" data-sb-preset="english" data-i18n="sb_chip_3">מילה באנגלית (FBI.)</button>
+                <button type="button" class="chip-btn" aria-pressed="false" data-sb-preset="homoglyph" data-i18n="sb_chip_4">תו זר (דეייט) + ראשי תיבות</button>
               </div>
             </div>
 
             <div class="sandbox-field">
               <label for="sandbox-input" class="field-label" data-i18n="sb_input_label">הקלידו או הדביקו שורת כתובית לבדיקה:</label>
-              <textarea id="sandbox-input" class="sandbox-textarea" rows="2" dir="rtl">.שלום אלן, אתה חושב שבית המשפט של ארה"ב יקבל את זה-</textarea>
+              <textarea id="sandbox-input" class="sandbox-textarea" rows="2" dir="rtl">שלום אלן, אתה חושב שבית המשפט של ארה"ב יקבל את זה?</textarea>
             </div>
 
             <div class="sandbox-outputs">
               <div class="sb-card sb-card-broken">
                 <div class="sb-card-label" data-i18n="sb_out_broken">תצוגה שבורה בנגן (ללא RightSub)</div>
-                <div id="sb-render-before" class="sb-player-line" dir="ltr"></div>
+                <div id="sb-render-before" class="sb-player-line" dir="rtl"></div>
               </div>
               <div class="sb-card sb-card-fixed">
                 <div class="sb-card-label" data-i18n="sb_out_fixed">תצוגה מתוקנת בנגן (אחרי RightSub)</div>
@@ -248,7 +302,7 @@
             </div>
             <h3 data-i18n="cap1_title">תיקון כיווניות (BiDi) וביטול היפוכי Subabi</h3>
             <p data-i18n="cap1_desc">
-              נגנים כמו Plex ו-Apple TV מציגים סימני פיסוק בסוף משפט עברי (`?`, `!`, `.`) בצד ימין של השורה. בנוסף, אלפי כתוביות ישנות ברשת עברו "היפוך ויזואלי" (`Subabi`) שהפך פיזית את הנקודות והסוגריים בקובץ. RightSub מזהה את קוטביות הקובץ, משחזר 18 תבניות היפוך ישנות, ועוטף כל שורה בתווי `RLM` (`\u200F`) לפי תקן **Unicode UAX #9 Rule N1**.
+              נגנים כמו Plex ו-Apple TV מציגים סימני פיסוק בסוף משפט עברי (<code>?</code>, <code>!</code>, <code>.</code>) בצד ימין של השורה. בנוסף, אלפי כתוביות ישנות ברשת עברו "היפוך ויזואלי" (<code>Subabi</code>) שהפך פיזית את הנקודות והסוגריים בקובץ. RightSub מזהה את קוטביות הקובץ, משחזר 18 תבניות היפוך ישנות, ועוטף כל שורה בתווי <code>RLM</code> (<code>\u200F</code>) לפי תקן <strong>Unicode UAX #9 Rule N1</strong>.
             </p>
           </article>
 
@@ -259,7 +313,7 @@
             </div>
             <h3 data-i18n="cap2_title">הצלת קידוד Windows-1255, הומוגליפים והצלבת מספרים</h3>
             <p data-i18n="cap2_desc">
-              זיהוי אוטומטי ברמת הבייטים של קובצי `CP1255` / `ISO-8859-8` והמרתם ל-`UTF-8` תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-`דეייט` ← `דייט`), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (`84` ← `48`) בהצלבה מול כתובית באנגלית.
+              זיהוי אוטומטי ברמת הבייטים של קובצי <code>CP1255</code> / <code>ISO-8859-8</code> והמרתם ל-<code>UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code>דეייט</code> ← <code>דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code>84</code> ← <code>48</code>) בהצלבה מול כתובית באנגלית.
             </p>
           </article>
 
@@ -268,9 +322,9 @@
               <span class="cell-index" dir="ltr">03 / SEED-SAFE TORRENTS</span>
               <span class="cell-badge" data-i18n="badge_seedsafe">הגנת טורנט פעילה</span>
             </div>
-            <h3 data-i18n="cap3_title">זיהוי עברית לפי תוכן ושמירת `.he.srt` נפרד</h3>
+            <h3 data-i18n="cap3_title">זיהוי עברית לפי תוכן ושמירת <code>.he.srt</code> נפרד</h3>
             <p data-i18n="cap3_desc">
-              הורדתם סרט עם קובץ `Movie.srt` רגיל (ללא סיומת `.he.srt`) או תיקיית `Subs/`? RightSub סורקת את תוכן הקובץ, מזהה שמדובר בעברית, משאירה את קובץ ה-`.srt` המקורי ללא שום שינוי בדיסק כדי לא לשבור שיתוף טורנט ב-qBittorrent/Transmission, ושומרת קובץ `Movie.he.srt` מתוקן לצד הווידאו.
+              הורדתם סרט עם קובץ <code>Movie.srt</code> רגיל (ללא סיומת <code>.he.srt</code>) או תיקיית <code>Subs/</code>? RightSub סורקת את תוכן הקובץ, מזהה שמדובר בעברית, משאירה את קובץ ה-<code>.srt</code> המקורי ללא שום שינוי בדיסק כדי לא לשבור שיתוף טורנט ב-qBittorrent/Transmission, ושומרת קובץ <code>Movie.he.srt</code> מתוקן לצד הווידאו.
             </p>
           </article>
 
@@ -281,7 +335,7 @@
             </div>
             <h3 data-i18n="cap4_title">תרגום מאנגלית לעברית וחיבור MCP לסוכני AI</h3>
             <p data-i18n="cap4_desc">
-              כאשר אין כתוביות בעברית כלל, RightSub מחלצת כתוביות מובנות מ-`.mkv`/`.mp4` (או מתמללת שמע מקומית), בונה מילון דמויות ומגדר מ-TMDb (`את/היא` מול `אתה/הוא`), ומתרגמת בהתאמת שורות 1:1 דרך שרת ה-MCP המובנה (Claude, Cursor, Antigravity), Gemini או Ollama מקומי.
+              כאשר אין כתוביות בעברית כלל, RightSub מחלצת כתוביות מובנות מ-<code>.mkv</code>/<code>.mp4</code> (או מתמללת שמע מקומית), בונה מילון דמויות ומגדר מ-TMDb (<code>את/היא</code> מול <code>אתה/הוא</code>), ומתרגמת בהתאמת שורות 1:1 דרך שרת ה-MCP המובנה (Claude, Cursor, Antigravity), Gemini או Ollama מקומי.
             </p>
           </article>
         </div>
@@ -299,30 +353,70 @@
           </p>
         </div>
 
-        <div class="scenario-bar" role="tablist" aria-label="Select Subtitle Defect Scenario">
-          <button type="button" class="scenario-btn active" data-scenario="punct" data-i18n="scen_punct">
+        <div class="scenario-bar" role="tablist" aria-label="בחירת תרחיש תצוגה בנגן" data-i18n-aria="aria_scenarios">
+          <button
+            type="button"
+            role="tab"
+            id="scen-tab-punct"
+            aria-selected="true"
+            aria-controls="simulator-panel"
+            tabindex="0"
+            class="scenario-btn active"
+            data-scenario="punct"
+            data-i18n="scen_punct"
+          >
             01. סימני שאלה ופיסוק קופצים לימין
           </button>
-          <button type="button" class="scenario-btn" data-scenario="subabi" data-i18n="scen_subabi">
+          <button
+            type="button"
+            role="tab"
+            id="scen-tab-subabi"
+            aria-selected="false"
+            aria-controls="simulator-panel"
+            tabindex="-1"
+            class="scenario-btn"
+            data-scenario="subabi"
+            data-i18n="scen_subabi"
+          >
             02. היפוך Subabi + מספר הפוך (84 ← 48)
           </button>
-          <button type="button" class="scenario-btn" data-scenario="english" data-i18n="scen_english">
+          <button
+            type="button"
+            role="tab"
+            id="scen-tab-english"
+            aria-selected="false"
+            aria-controls="simulator-panel"
+            tabindex="-1"
+            class="scenario-btn"
+            data-scenario="english"
+            data-i18n="scen_english"
+          >
             03. מילה באנגלית בסוף משפט (FBI.)
           </button>
-          <button type="button" class="scenario-btn" data-scenario="cp1255" data-i18n="scen_cp1255">
+          <button
+            type="button"
+            role="tab"
+            id="scen-tab-cp1255"
+            aria-selected="false"
+            aria-controls="simulator-panel"
+            tabindex="-1"
+            class="scenario-btn"
+            data-scenario="cp1255"
+            data-i18n="scen_cp1255"
+          >
             04. ג׳יבריש Windows-1255 ותו זר (דეייט)
           </button>
         </div>
 
-        <div class="simulator-grid">
+        <div id="simulator-panel" class="simulator-grid" role="tabpanel" aria-labelledby="scen-tab-punct">
           <div class="sim-panel sim-panel-before">
             <div class="sim-panel-bar">
               <span class="sim-status sim-status-bad" data-i18n="tv_before_label">לפני RightSub (תצוגה שבורה)</span>
               <span class="sim-timecode" dir="ltr">00:14:22,100 --&gt; 00:14:25,400</span>
             </div>
             <div class="sim-viewport">
-              <div id="tv-before-line1" class="sim-caption" dir="ltr">?אלן, אתה באמת חושב שהשופט יקבל את זה</div>
-              <div id="tv-before-line2" class="sim-caption" dir="ltr">!אין לנו שום סיכוי בלי ראיות-</div>
+              <div id="tv-before-line1" class="sim-caption" dir="rtl">?אלן, אתה באמת חושב שהשופט יקבל את זה</div>
+              <div id="tv-before-line2" class="sim-caption" dir="rtl">!אין לנו שום סיכוי בלי ראיות-</div>
             </div>
             <p id="tv-before-explain" class="sim-note" data-i18n="tv_before_exp_punct">
               ללא תו RLM סמוי אחרי סימן הפיסוק, אלגוריתם ה-BiDi של הנגן מפרש את סימן השאלה כתו ניטרלי בראש שורת LTR ומקפיץ אותו לימין.
@@ -353,27 +447,67 @@
           <div class="kicker" data-i18n="inst_kicker">CLI · WIZARD · MCP SERVER</div>
           <h2 data-i18n="install_title">התקנה לעבודה מקומית, עונות שלמות ואוטומציה</h2>
           <p data-i18n="install_subtitle">
-            מעבר לכלי הדפדפן, ניתן להתקין את חבילת ה-CLI המלאה הכוללת אשף אינטראקטיבי לטרמינל ול-CMD, חיבור לסוכני AI בפקודה אחת (`rightsub mcp --install`), ואוטומציה ל-qBittorrent / Sonarr / Bazarr.
+            מעבר לכלי הדפדפן, ניתן להתקין את חבילת ה-CLI המלאה הכוללת אשף אינטראקטיבי לטרמינל ול-CMD, חיבור לסוכני AI בפקודה אחת (<code>rightsub mcp --install</code>), ואוטומציה ל-qBittorrent / Sonarr / Bazarr.
           </p>
         </div>
 
-        <div class="platform-tabs" role="tablist" aria-label="Installation Platforms">
-          <button type="button" role="tab" aria-selected="true" class="tab-btn active" data-tab="macos">
+        <div class="platform-tabs" role="tablist" aria-label="פלטפורמות התקנה" data-i18n-aria="aria_platforms">
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-macos"
+            aria-selected="true"
+            aria-controls="tab-macos"
+            tabindex="0"
+            class="tab-btn active"
+            data-tab="macos"
+            data-i18n="tab_macos"
+          >
             macOS &amp; Linux
           </button>
-          <button type="button" role="tab" aria-selected="false" class="tab-btn" data-tab="windows">
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-windows"
+            aria-selected="false"
+            aria-controls="tab-windows"
+            tabindex="-1"
+            class="tab-btn"
+            data-tab="windows"
+            data-i18n="tab_windows"
+          >
             Windows (CMD / PowerShell)
           </button>
-          <button type="button" role="tab" aria-selected="false" class="tab-btn" data-tab="mcp">
-            AI Agents (MCP Server)
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-mcp"
+            aria-selected="false"
+            aria-controls="tab-mcp"
+            tabindex="-1"
+            class="tab-btn"
+            data-tab="mcp"
+            data-i18n="tab_mcp"
+          >
+            סוכני AI (שרת MCP)
           </button>
-          <button type="button" role="tab" aria-selected="false" class="tab-btn" data-tab="docker">
-            Docker &amp; *arr Automation
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-docker"
+            aria-selected="false"
+            aria-controls="tab-docker"
+            tabindex="-1"
+            class="tab-btn"
+            data-tab="docker"
+            data-i18n="tab_docker"
+          >
+            Docker ואוטומציית *arr
           </button>
         </div>
 
         <!-- TAB 1: macOS / Linux -->
-        <div class="tab-panel active" id="tab-macos" role="tabpanel">
+        <div class="tab-panel active" id="tab-macos" role="tabpanel" aria-labelledby="tab-btn-macos">
           <div class="install-grid">
             <div class="install-card">
               <div class="install-step-num" dir="ltr">STEP 01</div>
@@ -391,7 +525,7 @@
               <div class="install-step-num" dir="ltr">STEP 02</div>
               <h3 data-i18n="mac_step2_title">הפעלת האשף האינטראקטיבי או תיקון אוטומטי</h3>
               <div class="code-box" dir="ltr">
-                <pre><code id="cmd-mac-wizard">rightsub                        # תפריט אינטראקטיבי + גרירת קבצים
+                <pre><code id="cmd-mac-wizard" data-i18n="cmd_mac_wizard">rightsub                        # תפריט אינטראקטיבי + גרירת קבצים
 rightsub auto ~/Movies/Season1  # תיקון/תרגום אוטומטי לתיקייה שלמה</code></pre>
                 <button type="button" class="copy-btn" data-copy-target="cmd-mac-wizard" data-i18n="copy_btn">העתק</button>
               </div>
@@ -400,7 +534,7 @@ rightsub auto ~/Movies/Season1  # תיקון/תרגום אוטומטי לתיק�
         </div>
 
         <!-- TAB 2: Windows -->
-        <div class="tab-panel" id="tab-windows" role="tabpanel" hidden>
+        <div class="tab-panel" id="tab-windows" role="tabpanel" aria-labelledby="tab-btn-windows" hidden>
           <div class="install-grid">
             <div class="install-card">
               <div class="install-step-num" dir="ltr">STEP 01</div>
@@ -429,7 +563,7 @@ rightsub auto "C:\Media\Movie.mkv"</code></pre>
         </div>
 
         <!-- TAB 3: AI Agents / MCP -->
-        <div class="tab-panel" id="tab-mcp" role="tabpanel" hidden>
+        <div class="tab-panel" id="tab-mcp" role="tabpanel" aria-labelledby="tab-btn-mcp" hidden>
           <div class="install-grid">
             <div class="install-card">
               <div class="install-step-num" dir="ltr">STEP 01</div>
@@ -447,8 +581,8 @@ rightsub mcp --status</code></pre>
             <div class="install-card">
               <div class="install-step-num" dir="ltr">STEP 02</div>
               <h3 data-i18n="mcp_step2_title">הנחיית הסוכן בשפה טבעית</h3>
-              <div class="code-box" dir="ltr">
-                <pre><code id="cmd-mcp-prompt">"בדוק את תיקיית המדיה ב-/Volumes/Media/Show, תקן את כתוביות העברית לפלקס במצב Seed-Safe, ואם חסר תרגום — חלץ את האנגלית ותרגם."</code></pre>
+              <div class="code-box code-box-prompt">
+                <pre><code id="cmd-mcp-prompt" data-i18n="cmd_mcp_prompt">"בדוק את תיקיית המדיה ב-&#x2066;/Volumes/Media/Show&#x2069;, תקן את כתוביות העברית לפלקס במצב Seed-Safe, ואם חסר תרגום — חלץ את האנגלית ותרגם."</code></pre>
                 <button type="button" class="copy-btn" data-copy-target="cmd-mcp-prompt" data-i18n="copy_btn">העתק</button>
               </div>
             </div>
@@ -456,7 +590,7 @@ rightsub mcp --status</code></pre>
         </div>
 
         <!-- TAB 4: Docker / Arr / qBittorrent -->
-        <div class="tab-panel" id="tab-docker" role="tabpanel" hidden>
+        <div class="tab-panel" id="tab-docker" role="tabpanel" aria-labelledby="tab-btn-docker" hidden>
           <div class="install-grid">
             <div class="install-card">
               <div class="install-step-num" dir="ltr">STEP 01</div>
@@ -489,13 +623,13 @@ rightsub config --install-hooks</code></pre>
       <div class="container">
         <div class="section-head">
           <div class="kicker" data-i18n="mat_kicker">DETERMINISTIC VS. AI</div>
-          <h2 data-i18n="matrix_title">מתי מעורב AI ומתי המנוע רץ ב-0 טוקנים?</h2>
+          <h2 id="matrix-heading" data-i18n="matrix_title">מתי מעורב AI ומתי המנוע רץ ב-0 טוקנים?</h2>
           <p data-i18n="matrix_subtitle">
             ב-99% מהכתוביות הקיימות בעברית אין שום צורך ב-AI. מודל שפה נדרש אך ורק לתרגום מאפס מאנגלית או לשיקום סמנטי של תרגומים ישנים:
           </p>
         </div>
 
-        <div tabindex="0" role="region" aria-label="Deterministic vs AI Comparison Table" class="table-container">
+        <div tabindex="0" role="region" aria-labelledby="matrix-heading" class="table-container">
           <table class="data-table matrix-table">
             <thead>
               <tr>
@@ -508,33 +642,33 @@ rightsub config --install-hooks</code></pre>
             <tbody>
               <tr>
                 <th scope="row" data-i18n="mat_row1_task">תיקון BiDi ופיסוק לפלקס, ביטול 18 תבניות Subabi, המרת CP1255, ניקוי פרסומות והומוגליפים</th>
-                <td data-label="Command"><code dir="ltr">Web Studio / rightsub fix-plex / rightsub auto</code></td>
-                <td data-label="AI Key"><span class="tag-pill tag-green" data-i18n="no_ai">לא (100% דטרמיניסטי)</span></td>
-                <td data-label="Cost"><strong dir="ltr">0</strong></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">Web Studio / rightsub fix-plex / rightsub auto</code></td>
+                <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-green" data-i18n="no_ai">לא (100% דטרמיניסטי)</span></td>
+                <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">0</strong></td>
               </tr>
               <tr>
                 <th scope="row" data-i18n="mat_row2_task">אימות והיפוך מספרים דו-לשוני (<code>84</code> ← <code>48</code>) ותיקון מונחי קאנון</th>
-                <td data-label="Command"><code dir="ltr">Web Studio (HE+EN) / rightsub polish</code></td>
-                <td data-label="AI Key"><span class="tag-pill tag-green" data-i18n="no_ai">לא (שלב 0 דטרמיניסטי)</span></td>
-                <td data-label="Cost"><strong dir="ltr">0</strong></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">Web Studio (HE+EN) / rightsub polish</code></td>
+                <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-green" data-i18n="no_ai_stage0">לא (שלב 0 דטרמיניסטי)</span></td>
+                <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">0</strong></td>
               </tr>
               <tr>
                 <th scope="row" data-i18n="mat_row3_task">בקרת איכות (QA), תאימות זמנים 1:1, גילוי Cue Drift וזיהוי שגיאות מגדר בפנייה</th>
-                <td data-label="Command"><code dir="ltr">rightsub qa</code></td>
-                <td data-label="AI Key"><span class="tag-pill tag-green" data-i18n="no_ai">לא (100% אלגוריתמי)</span></td>
-                <td data-label="Cost"><strong dir="ltr">0</strong></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">rightsub qa</code></td>
+                <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-green" data-i18n="no_ai_algo">לא (100% אלגוריתמי)</span></td>
+                <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">0</strong></td>
               </tr>
               <tr>
                 <th scope="row" data-i18n="mat_row4_task">ליטוש סמנטי של תרגום ישן/חובבני עם סקירה אינטראקטיבית שורה-אחר-שורה</th>
-                <td data-label="Command"><code dir="ltr">rightsub polish --interactive --gemini</code></td>
-                <td data-label="AI Key"><span class="tag-pill tag-amber" data-i18n="opt_ai">אופציונלי (למקרי קצה נדירים)</span></td>
-                <td data-label="Cost"><strong dir="ltr">~15%</strong></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">rightsub polish --interactive --gemini</code></td>
+                <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-amber" data-i18n="opt_ai">אופציונלי (למקרי קצה נדירים)</span></td>
+                <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">~15%</strong></td>
               </tr>
               <tr>
                 <th scope="row" data-i18n="mat_row5_task">תרגום סרט או סדרה חדשים מאנגלית לעברית מאפס (כולל TMDb ו-Translation Bible)</th>
-                <td data-label="Command"><code dir="ltr">rightsub auto / MCP Agent</code></td>
-                <td data-label="AI Key"><span class="tag-pill tag-blue" data-i18n="req_ai">כן (או דרך סוכן ה-MCP)</span></td>
-                <td data-label="Cost"><strong dir="ltr">100%</strong></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">rightsub auto / MCP Agent</code></td>
+                <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-blue" data-i18n="req_ai">כן (או דרך סוכן ה-MCP)</span></td>
+                <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">100%</strong></td>
               </tr>
             </tbody>
           </table>

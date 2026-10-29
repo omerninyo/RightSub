@@ -175,7 +175,7 @@
   const BIDI_CONTROL_CHARS_REGEX = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 
   const SPEAKER_TAG_REGEX =
-    /^[\u200F\s]*(?:אלן|דני|שירלי|פול|בראד|לורי|טרה|סאלי|דניס|קייטי|ג'רי|בברלי|אדווין|אישה|גבר|שופט|שופטת|השופט|השופטת|קול|קריין|כולם|גבר 2|אישה 2):\s*/;
+    /^((?:<(?:[iIuUbB]|font\b[^>]*)>\s*)*)[\u200e\u200f\u202a-\u202e\u2066-\u2069\s]*(?:[-–—]\s*)?(?:אלן|דני|שירלי|פול|בראד|לורי|טרה|סאלי|דניס|קייטי|ג['׳]רי|בברלי|אדווין|אישה|גבר|שופט|שופטת|השופט|השופטת|קול|קריין|כולם|גבר 2|אישה 2):\s*/i;
 
   /**
    * Decodes raw subtitle bytes (ArrayBuffer or Uint8Array) with automatic
@@ -299,9 +299,9 @@
     if (!text) return "";
 
     let ssaLead = "";
-    const ssaMatch = text.match(/^\s*(\{\\[^}]+\})\s*([\s\S]*)$/);
+    const ssaMatch = text.match(/^\s*((?:\{\\[^}]+\}\s*)+)([\s\S]*)$/);
     if (ssaMatch) {
-      ssaLead = ssaMatch[1];
+      ssaLead = ssaMatch[1].replace(/\s+/g, "");
       text = ssaMatch[2];
     }
 
@@ -471,7 +471,11 @@
       }
     }
 
-    return preflippedVotes >= 2 && preflippedVotes >= logicalVotes * 0.25;
+    return (
+      (preflippedVotes >= 2 ||
+        (preflippedVotes === 1 && logicalVotes === 0)) &&
+      preflippedVotes >= logicalVotes * 0.25
+    );
   }
 
   function canonicalizeVisualFlippedLine(core, isPreflippedFile = false) {
@@ -508,12 +512,9 @@
       let leadPunct = m[1].trim();
       const body = m[2].trim();
       const dash = m[3];
-      if (
-        leadPunct.length === 2 &&
-        '"\'״׳'.includes(leadPunct[0]) &&
-        ".?!,:;".includes(leadPunct[1])
-      ) {
-        leadPunct = leadPunct[1] + leadPunct[0];
+      const mQpEdge = leadPunct.match(/^(["'״׳])(\.{2,3}|…|[\.?!,:;]+)$/);
+      if (mQpEdge) {
+        leadPunct = mQpEdge[2] + mQpEdge[1];
       }
       s = `${dash} ${body}${leadPunct}`;
     }
@@ -560,7 +561,7 @@
     // 6. P_START_PUNCT_ATTACHED & P_START_PUNCT_SPACED
     if (!/[\.?!,:;…]["'״׳\)\]]*$/.test(s)) {
       const mAtt = s.match(
-        /^(?!\.{2,}|…)([\.?!,:;]+)(?=[\u0590-\u05FF\(\)\[\]"'״׳])(.*)$/
+        /^(?!\.{2,}|…)([\.?!,:;]+)(?=[\u0590-\u05FF\(\)\[\]"'״׳<])(.*)$/
       );
       if (mAtt) {
         s = `${mAtt[2].trim()}${mAtt[1]}`;
@@ -606,8 +607,8 @@
       const mDop = s.match(/^\(\s*([^\(]+?\s*\([^\(]+?)([\.?!,:;…]*)$/);
       if (mDop) {
         s = `${mDop[1].trim()})${mDop[2]}`;
-      } else if (s.endsWith("(")) {
-        s = s.slice(0, -1) + ")";
+      } else {
+        s = s.replace(/\(([\.?!,:;…]*)$/, ")$1");
       }
     } else if (closeParens === 2 && openParens === 0) {
       const mDcp = s.match(/^\)\s*([^\)]+?)\s*\)\s*([^\)]+?)([\.?!,:;…]*)$/);
@@ -630,8 +631,8 @@
       const mDob = s.match(/^\[\s*([^\[]+?\s*\[[^\[]+?)([\.?!,:;…]*)$/);
       if (mDob) {
         s = `${mDob[1].trim()}]${mDob[2]}`;
-      } else if (s.endsWith("[")) {
-        s = s.slice(0, -1) + "]";
+      } else {
+        s = s.replace(/\[([\.?!,:;…]*)$/, "]$1");
       }
     } else if (closeBrackets === 2 && openBrackets === 0) {
       const mDcb = s.match(/^\]\s*([^\]]+?)\s*\]\s*([^\]]+?)([\.?!,:;…]*)$/);
@@ -686,6 +687,16 @@
     }
 
     stripped = canonicalizeVisualFlippedLine(stripped, isPreflippedFile);
+
+    if (!tagPrefix) {
+      const postTagOpen = stripped.match(
+        /^((?:<(?:[iIuUbB]|font\b[^>]*)>\s*)+)(.*)$/i
+      );
+      if (postTagOpen) {
+        tagPrefix = postTagOpen[1];
+        stripped = postTagOpen[2].trim();
+      }
+    }
     stripped = stripped.replace(/([\u0590-\u05FF])"([\u0590-\u05FF])/g, "$1״$2");
     stripped = stripped.replace(/^([-\–\—]\s+)(?=[A-Za-z])/, `$1${RLM}`);
     stripped = stripped.replace(/(?<=[A-Za-z])([\.!\?,:;…]+)$/, `${RLM}$1`);
@@ -713,18 +724,21 @@
   }
 
   function parseEnCueMap(enContent) {
-    const map = new Map();
-    if (!enContent) return map;
+    const byIdx = new Map();
+    const byTime = new Map();
+    if (!enContent) return { byIdx, byTime };
     const blocks = enContent.trim().split(/\r?\n\s*\r?\n/);
     for (const b of blocks) {
       const lines = b.trim().split(/\r?\n/);
       if (lines.length >= 3) {
         const idx = lines[0].trim();
+        const time = lines[1].trim();
         const text = lines.slice(2).join("\n");
-        map.set(idx, text);
+        byIdx.set(idx, text);
+        byTime.set(time, text);
       }
     }
-    return map;
+    return { byIdx, byTime };
   }
 
   function processSrtContent(content, options = {}) {
@@ -768,12 +782,15 @@
 
         totalSubs++;
         const newTextLines = [];
-        const companionEn = enCueMap.get(origIdx) || "";
+        const companionEn =
+          enCueMap.byTime.get(timeline.trim()) ||
+          enCueMap.byIdx.get(origIdx) ||
+          "";
 
         for (let tl of expandedLines) {
           const origTl = tl;
           if (cleanSpeakers) {
-            tl = tl.replace(SPEAKER_TAG_REGEX, "");
+            tl = tl.replace(SPEAKER_TAG_REGEX, "$1");
           }
           if (companionEn) {
             const afterNum = crossCheckBilingualNumbers(tl, companionEn);
@@ -796,7 +813,8 @@
                 cue: idxCounter,
                 timeline,
                 before: origNoRlm,
-                after: fixedNoRlm,
+                after: fixed,
+                afterNoRlm: fixedNoRlm,
                 visualChange: origNoRlm !== fixedNoRlm,
               });
             }
