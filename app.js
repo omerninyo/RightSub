@@ -30,10 +30,10 @@
       aria_platforms: "פלטפורמות התקנה",
       skip_link: "דלג לתוכן הראשי",
       nav_studio: "התנסות חיה",
-      nav_capabilities: "מה הכלי עושה",
-      nav_simulator: "תצוגת נגן",
+      nav_capabilities: "יכולות",
+      nav_simulator: "סימולטור",
       nav_install: "התקנה ו-CLI",
-      nav_architecture: "דטרמיניסטי מול AI",
+      nav_architecture: "מתי AI?",
       hero_kicker: "OPEN-SOURCE SUBTITLE ENGINEERING · UAX #9 RULE N1",
       hero_title: "תיקון כיווניות, קידוד ומאסטרינג לכתוביות עברית.",
       hero_lead:
@@ -49,7 +49,7 @@
         "חבילה מלאה ל-macOS, Windows ו-Docker עם חיבור ל-Sonarr/qBittorrent ותרגום מלא מאנגלית לעברית דרך סוכני AI או Ollama.",
       hero_cta_cli: "התקנת CLI ושרת MCP",
       hero_cta_how: "איך המנוע עובד",
-      wb_tab_file: "תיקון קובץ .srt",
+      wb_tab_file: "תיקון קובץ \u2066.srt\u2069",
       wb_tab_sandbox: "בדיקת שורה חיה",
       wb_privacy: "רץ מקומית בדפדפן",
       drop_prompt: "גררו לכאן קובץ <code>.srt</code> או לחצו לבחירה מהמכשיר",
@@ -79,16 +79,16 @@
       badge_ai: "סוכני AI / Ollama",
       cap1_title: "תיקון כיווניות (BiDi) וביטול היפוכי Subabi",
       cap1_desc:
-        'נגנים כמו Plex ו-Apple TV מציגים סימני פיסוק בסוף משפט עברי (<code>?</code>, <code>!</code>, <code>.</code>) בצד ימין של השורה. בנוסף, אלפי כתוביות ישנות ברשת עברו "היפוך ויזואלי" (<code>Subabi</code>) שהפך פיזית את הנקודות והסוגריים בקובץ. RightSub מזהה את קוטביות הקובץ, משחזר 18 תבניות היפוך ישנות, ועוטף כל שורה בתווי <code>RLM</code> (<code>\\u200F</code>) לפי תקן <strong>Unicode UAX #9 Rule N1</strong>.',
+        'נגנים כמו Plex ו-Apple TV מציגים סימני פיסוק בסוף משפט עברי (<code>?</code>, <code>!</code>, <code>.</code>) בצד ימין של השורה. בנוסף, אלפי כתוביות ישנות ברשת עברו "היפוך ויזואלי" (<code>Subabi</code>) שהפך פיזית את הנקודות והסוגריים בקובץ. RightSub מזהה את קוטביות הקובץ, משחזר 18 תבניות היפוך ישנות, ועוטף כל שורה בתווי <code>RLM</code> (<code>\\u200F</code>) לפי תקן <code>UAX #9 Rule N1</code> של יוניקוד.',
       cap2_title: "הצלת קידוד Windows-1255, הומוגליפים והצלבת מספרים",
       cap2_desc:
-        "זיהוי אוטומטי ברמת הבייטים של קובצי <code>CP1255</code> / <code>ISO-8859-8</code> והמרתם ל-<code>UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code>דეייט</code> ← <code>דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code>84</code> ← <code>48</code>) בהצלבה מול כתובית באנגלית.",
+        'זיהוי אוטומטי ברמת הבייטים של קובצי <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> והמרתם ל-<code dir="ltr">UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code dir="rtl">\u202Eד\u10D4ייט\u202C</code> ← <code dir="rtl">דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code dir="ltr">84</code> ← <code dir="ltr">48</code>) בהצלבה מול כתובית באנגלית.',
       cap3_title: "זיהוי עברית לפי תוכן ושמירת <code>.he.srt</code> נפרד",
       cap3_desc:
         "הורדתם סרט עם קובץ <code>Movie.srt</code> רגיל (ללא סיומת <code>.he.srt</code>) או תיקיית <code>Subs/</code>? RightSub סורקת את תוכן הקובץ, מזהה שמדובר בעברית, משאירה את קובץ ה-<code>.srt</code> המקורי ללא שום שינוי בדיסק כדי לא לשבור שיתוף טורנט ב-qBittorrent/Transmission, ושומרת קובץ <code>Movie.he.srt</code> מתוקן לצד הווידאו.",
       cap4_title: "תרגום מאנגלית לעברית וחיבור MCP לסוכני AI",
       cap4_desc:
-        "כאשר אין כתוביות בעברית כלל, RightSub מחלצת כתוביות מובנות מ-<code>.mkv</code>/<code>.mp4</code> (או מתמללת שמע מקומית), בונה מילון דמויות ומגדר מ-TMDb (<code>את/היא</code> מול <code>אתה/הוא</code>), ומתרגמת בהתאמת שורות 1:1 דרך שרת ה-MCP המובנה (Claude, Cursor, Antigravity), Gemini או Ollama מקומי.",
+        'כאשר אין כתוביות בעברית כלל, RightSub מחלצת כתוביות מובנות מ-<code>.mkv</code>/<code>.mp4</code> (או מתמללת שמע מקומית), בונה מילון דמויות ומגדר מ-TMDb (<code dir="rtl">את/היא</code> מול <code dir="rtl">אתה/הוא</code>), ומתרגמת בהתאמת שורות 1:1 דרך שרת ה-MCP המובנה (Claude, Cursor, Antigravity), Gemini או Ollama מקומי.',
       sim_kicker: "VISUAL COMPARISON",
       showcase_title: "השוואת תצוגה בנגן: לפני לעומת אחרי",
       showcase_subtitle:
@@ -109,10 +109,10 @@
       tab_docker: "Docker ואוטומציית *arr",
       mac_step1_title: "התקנה בפקודה אחת (Homebrew או סקריפט)",
       mac_step1_note:
-        'או ישירות מ-GitHub: <code>git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>',
+        'או התקנה ישירה מ-GitHub:<code class="step-note-cmd" dir="ltr">git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>',
       mac_step2_title: "הפעלת האשף האינטראקטיבי או תיקון אוטומטי",
-      cmd_mac_wizard:
-        "rightsub                        # תפריט אינטראקטיבי + גרירת קבצים\nrightsub auto ~/Movies/Season1  # תיקון/תרגום אוטומטי לתיקייה שלמה",
+      mac_step2_note:
+        '<code dir="ltr">rightsub</code> פותח תפריט אינטראקטיבי עם גרירת קבצים; <code dir="ltr">rightsub auto</code> מתקן או מתרגם תיקייה שלמה.',
       win_step1_title: "מתקין אוטומטי לחלונות (רישום אוטומטי ל-PATH)",
       win_step1_note:
         "<code>install.bat</code> מאמת Python ו-FFmpeg ומוסיף את <code>rightsub</code> ל-PATH של המשתמש ללא צורך בהרשאות Administrator.",
@@ -162,7 +162,7 @@
       lines_mastered: "שורות תוקנו",
       foreign_protected:
         "קובץ זה זוהה ככתובית באנגלית/שפה זרה (מוגן משינוי).",
-      download_btn: "הורד קובץ .he.srt",
+      download_btn: "הורד קובץ \u2066.he.srt\u2069",
       video_warn:
         "זהו קובץ וידאו. לחילוץ ותרגום של קובצי MKV/MP4 על הדיסק המקומי, הריצו בטרמינל: rightsub auto",
     },
@@ -182,11 +182,11 @@
       aria_scenarios: "Select Player Defect Scenario",
       aria_platforms: "Installation Platforms",
       skip_link: "Skip to main content",
-      nav_studio: "Live Studio",
-      nav_capabilities: "What It Does",
-      nav_simulator: "Player Preview",
+      nav_studio: "Studio",
+      nav_capabilities: "Features",
+      nav_simulator: "Simulator",
       nav_install: "CLI & MCP",
-      nav_architecture: "0-Token vs. AI",
+      nav_architecture: "0-Token vs AI",
       hero_kicker: "OPEN-SOURCE SUBTITLE ENGINEERING · UAX #9 RULE N1",
       hero_title: "Hebrew Subtitle BiDi Mastering, Encoding Rescue & AI Translation.",
       hero_lead:
@@ -235,7 +235,7 @@
         "Players like Plex and Apple TV render trailing punctuation (<code>?</code>, <code>!</code>, <code>.</code>) on the right side of Hebrew lines. Furthermore, thousands of older Hebrew subtitles were processed by visual-flipping tools (<code>Subabi</code>) that physically reversed periods and parentheses. RightSub detects file polarity, reverses 18 legacy flip patterns, and wraps lines in <strong>Unicode UAX #9 Rule N1</strong> <code>RLM</code> (<code>\\u200F</code>) marks.",
       cap2_title: "Windows-1255 Rescue, Homoglyphs & Bilingual Numbers",
       cap2_desc:
-        "Byte-level detection of legacy <code>CP1255</code> / <code>ISO-8859-8</code> files converted cleanly to <code>UTF-8</code>. Normalizes lookalike foreign characters from 7 scripts (such as Georgian in <code>דეייט</code> → <code>דייט</code>), strips credit watermarks, and un-flips reversed 2-digit numbers (<code>84</code> → <code>48</code>) verified against companion English cues.",
+        'Byte-level detection of legacy <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> files converted cleanly to <code dir="ltr">UTF-8</code>. Normalizes lookalike foreign characters from 7 scripts (such as Georgian in <code dir="rtl">\u202Eד\u10D4ייט\u202C</code> → <code dir="rtl">דייט</code>), strips credit watermarks, and un-flips reversed 2-digit numbers (<code dir="ltr">84</code> → <code dir="ltr">48</code>) verified against companion English cues.',
       cap3_title: "Content-Based Hebrew Detection & Seed-Safe <code>.he.srt</code>",
       cap3_desc:
         "Downloaded a release with a plain <code>Movie.srt</code> or <code>Subs/</code> folder? RightSub inspects the file content, detects Hebrew automatically, leaves the source <code>.srt</code> 100% untouched on disk so qBittorrent/Transmission seeding never breaks, and outputs <code>Movie.he.srt</code> alongside the video.",
@@ -262,10 +262,10 @@
       tab_docker: "Docker &amp; *arr Automation",
       mac_step1_title: "One-Command Install (Homebrew Tap or Script)",
       mac_step1_note:
-        "Or directly from GitHub: <code>git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>",
+        'Or directly from GitHub:<code class="step-note-cmd" dir="ltr">git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>',
       mac_step2_title: "Launch Interactive Wizard or Autonomous Runner",
-      cmd_mac_wizard:
-        "rightsub                        # Interactive menu + Drag & Drop\nrightsub auto ~/Movies/Season1  # Auto-master or translate entire folder",
+      mac_step2_note:
+        '<code dir="ltr">rightsub</code> opens the interactive drag-and-drop wizard; <code dir="ltr">rightsub auto</code> fixes or translates an entire folder.',
       win_step1_title: "Automated Windows Installer (Auto-Configures PATH)",
       win_step1_note:
         "<code>install.bat</code> verifies Python & FFmpeg and registers <code>rightsub</code> in your User PATH without requiring Admin privileges.",
@@ -573,7 +573,10 @@
 
     beforeEl.textContent = simulateBrokenPlayerView(cleanRaw);
     afterEl.textContent = masteredLine;
-    unicodeEl.textContent = masteredLine.replace(/\u200F/g, "[RLM]");
+    unicodeEl.textContent = masteredLine.replace(
+      /\u200F/g,
+      "\u200F\u2066[RLM]\u2069\u200F"
+    );
   }
 
   function renderScenario(key) {
@@ -709,7 +712,7 @@
         .map(
           (d) => `
         <tr>
-          <td data-label="#" dir="ltr">#${d.cue}</td>
+          <td data-label="#"><span dir="ltr">#${d.cue}</span></td>
           <td class="diff-before" data-label="${escapeHtml(
             dict.diff_col_before
           )}" data-label-i18n="diff_col_before">
