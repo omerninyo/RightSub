@@ -42,10 +42,10 @@
       <nav class="primary-nav" aria-label="ניווט ראשי" data-i18n-aria="aria_nav">
         <ul>
           <li><a href="#studio" data-i18n="nav_studio">התנסות חיה</a></li>
-          <li><a href="#capabilities" data-i18n="nav_capabilities">מה הכלי עושה</a></li>
-          <li><a href="#simulator" data-i18n="nav_simulator">תצוגת נגן</a></li>
+          <li><a href="#capabilities" data-i18n="nav_capabilities">יכולות</a></li>
+          <li><a href="#simulator" data-i18n="nav_simulator">סימולטור</a></li>
           <li><a href="#install" data-i18n="nav_install">התקנה ו-CLI</a></li>
-          <li><a href="#architecture" data-i18n="nav_architecture">דטרמיניסטי מול AI</a></li>
+          <li><a href="#architecture" data-i18n="nav_architecture">מתי AI?</a></li>
         </ul>
       </nav>
 
@@ -162,7 +162,7 @@
                 data-wb-mode="file"
                 data-i18n="wb_tab_file"
               >
-                תיקון קובץ .srt
+                תיקון קובץ &#x2066;.srt&#x2069;
               </button>
               <button
                 type="button"
@@ -276,7 +276,7 @@
 
             <div class="sb-unicode-box">
               <span class="sb-unicode-title" data-i18n="sb_unicode_label">מבנה תווים סמויים (Unicode Memory View):</span>
-              <code id="sb-unicode-raw" class="sb-unicode-code" dir="ltr"></code>
+              <code id="sb-unicode-raw" class="sb-unicode-code" dir="rtl"></code>
             </div>
           </div>
         </div>
@@ -302,7 +302,7 @@
             </div>
             <h3 data-i18n="cap1_title">תיקון כיווניות (BiDi) וביטול היפוכי Subabi</h3>
             <p data-i18n="cap1_desc">
-              נגנים כמו Plex ו-Apple TV מציגים סימני פיסוק בסוף משפט עברי (<code>?</code>, <code>!</code>, <code>.</code>) בצד ימין של השורה. בנוסף, אלפי כתוביות ישנות ברשת עברו "היפוך ויזואלי" (<code>Subabi</code>) שהפך פיזית את הנקודות והסוגריים בקובץ. RightSub מזהה את קוטביות הקובץ, משחזר 18 תבניות היפוך ישנות, ועוטף כל שורה בתווי <code>RLM</code> (<code>\u200F</code>) לפי תקן <strong>Unicode UAX #9 Rule N1</strong>.
+              נגנים כמו Plex ו-Apple TV מציגים סימני פיסוק בסוף משפט עברי (<code>?</code>, <code>!</code>, <code>.</code>) בצד ימין של השורה. בנוסף, אלפי כתוביות ישנות ברשת עברו "היפוך ויזואלי" (<code>Subabi</code>) שהפך פיזית את הנקודות והסוגריים בקובץ. RightSub מזהה את קוטביות הקובץ, משחזר 18 תבניות היפוך ישנות, ועוטף כל שורה בתווי <code>RLM</code> (<code>\u200F</code>) לפי תקן <code>UAX #9 Rule N1</code> של יוניקוד.
             </p>
           </article>
 
@@ -313,7 +313,7 @@
             </div>
             <h3 data-i18n="cap2_title">הצלת קידוד Windows-1255, הומוגליפים והצלבת מספרים</h3>
             <p data-i18n="cap2_desc">
-              זיהוי אוטומטי ברמת הבייטים של קובצי <code>CP1255</code> / <code>ISO-8859-8</code> והמרתם ל-<code>UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code>דეייט</code> ← <code>דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code>84</code> ← <code>48</code>) בהצלבה מול כתובית באנגלית.
+              זיהוי אוטומטי ברמת הבייטים של קובצי <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> והמרתם ל-<code dir="ltr">UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code dir="rtl">&#x202E;דეייט&#x202C;</code> ← <code dir="rtl">דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code dir="ltr">84</code> ← <code dir="ltr">48</code>) בהצלבה מול כתובית באנגלית.
             </p>
           </article>
 
@@ -335,7 +335,7 @@
             </div>
             <h3 data-i18n="cap4_title">תרגום מאנגלית לעברית וחיבור MCP לסוכני AI</h3>
             <p data-i18n="cap4_desc">
-              כאשר אין כתוביות בעברית כלל, RightSub מחלצת כתוביות מובנות מ-<code>.mkv</code>/<code>.mp4</code> (או מתמללת שמע מקומית), בונה מילון דמויות ומגדר מ-TMDb (<code>את/היא</code> מול <code>אתה/הוא</code>), ומתרגמת בהתאמת שורות 1:1 דרך שרת ה-MCP המובנה (Claude, Cursor, Antigravity), Gemini או Ollama מקומי.
+              כאשר אין כתוביות בעברית כלל, RightSub מחלצת כתוביות מובנות מ-<code>.mkv</code>/<code>.mp4</code> (או מתמללת שמע מקומית), בונה מילון דמויות ומגדר מ-TMDb (<code dir="rtl">את/היא</code> מול <code dir="rtl">אתה/הוא</code>), ומתרגמת בהתאמת שורות 1:1 דרך שרת ה-MCP המובנה (Claude, Cursor, Antigravity), Gemini או Ollama מקומי.
             </p>
           </article>
         </div>
@@ -517,7 +517,7 @@
                 <button type="button" class="copy-btn" data-copy-target="cmd-mac-install" data-i18n="copy_btn">העתק</button>
               </div>
               <p class="step-note" data-i18n="mac_step1_note">
-                או ישירות מ-GitHub: <code>git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>
+                או התקנה ישירה מ-GitHub:<code class="step-note-cmd" dir="ltr">git clone https://github.com/omerninyo/RightSub.git &amp;&amp; cd RightSub &amp;&amp; ./install.sh</code>
               </p>
             </div>
 
@@ -525,10 +525,13 @@
               <div class="install-step-num" dir="ltr">STEP 02</div>
               <h3 data-i18n="mac_step2_title">הפעלת האשף האינטראקטיבי או תיקון אוטומטי</h3>
               <div class="code-box" dir="ltr">
-                <pre><code id="cmd-mac-wizard" data-i18n="cmd_mac_wizard">rightsub                        # תפריט אינטראקטיבי + גרירת קבצים
-rightsub auto ~/Movies/Season1  # תיקון/תרגום אוטומטי לתיקייה שלמה</code></pre>
+                <pre><code id="cmd-mac-wizard">rightsub
+rightsub auto ~/Movies/Season1</code></pre>
                 <button type="button" class="copy-btn" data-copy-target="cmd-mac-wizard" data-i18n="copy_btn">העתק</button>
               </div>
+              <p class="step-note" data-i18n="mac_step2_note">
+                <code dir="ltr">rightsub</code> פותח תפריט אינטראקטיבי עם גרירת קבצים; <code dir="ltr">rightsub auto</code> מתקן או מתרגם תיקייה שלמה.
+              </p>
             </div>
           </div>
         </div>
@@ -642,31 +645,31 @@ rightsub config --install-hooks</code></pre>
             <tbody>
               <tr>
                 <th scope="row" data-i18n="mat_row1_task">תיקון BiDi ופיסוק לפלקס, ביטול 18 תבניות Subabi, המרת CP1255, ניקוי פרסומות והומוגליפים</th>
-                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">Web Studio / rightsub fix-plex / rightsub auto</code></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><div class="cmd-pills"><code dir="ltr">Web Studio</code><code dir="ltr">rightsub fix-plex</code><code dir="ltr">rightsub auto</code></div></td>
                 <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-green" data-i18n="no_ai">לא (100% דטרמיניסטי)</span></td>
                 <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">0</strong></td>
               </tr>
               <tr>
-                <th scope="row" data-i18n="mat_row2_task">אימות והיפוך מספרים דו-לשוני (<code>84</code> ← <code>48</code>) ותיקון מונחי קאנון</th>
-                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">Web Studio (HE+EN) / rightsub polish</code></td>
+                <th scope="row" data-i18n="mat_row2_task">אימות והיפוך מספרים דו-לשוני (<code dir="ltr">84</code> ← <code dir="ltr">48</code>) ותיקון מונחי קאנון</th>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><div class="cmd-pills"><code dir="ltr">Web Studio (HE+EN)</code><code dir="ltr">rightsub polish</code></div></td>
                 <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-green" data-i18n="no_ai_stage0">לא (שלב 0 דטרמיניסטי)</span></td>
                 <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">0</strong></td>
               </tr>
               <tr>
                 <th scope="row" data-i18n="mat_row3_task">בקרת איכות (QA), תאימות זמנים 1:1, גילוי Cue Drift וזיהוי שגיאות מגדר בפנייה</th>
-                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">rightsub qa</code></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><div class="cmd-pills"><code dir="ltr">rightsub qa</code></div></td>
                 <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-green" data-i18n="no_ai_algo">לא (100% אלגוריתמי)</span></td>
                 <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">0</strong></td>
               </tr>
               <tr>
                 <th scope="row" data-i18n="mat_row4_task">ליטוש סמנטי של תרגום ישן/חובבני עם סקירה אינטראקטיבית שורה-אחר-שורה</th>
-                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">rightsub polish --interactive --gemini</code></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><div class="cmd-pills"><code dir="ltr">rightsub polish --interactive</code></div></td>
                 <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-amber" data-i18n="opt_ai">אופציונלי (למקרי קצה נדירים)</span></td>
                 <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">~15%</strong></td>
               </tr>
               <tr>
                 <th scope="row" data-i18n="mat_row5_task">תרגום סרט או סדרה חדשים מאנגלית לעברית מאפס (כולל TMDb ו-Translation Bible)</th>
-                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><code dir="ltr">rightsub auto / MCP Agent</code></td>
+                <td data-label="כלי / פקודה" data-label-i18n="mat_col_cmd"><div class="cmd-pills"><code dir="ltr">rightsub auto</code><code dir="ltr">MCP Agent</code></div></td>
                 <td data-label="דורש מפתח AI?" data-label-i18n="mat_col_ai"><span class="tag-pill tag-blue" data-i18n="req_ai">כן (או דרך סוכן ה-MCP)</span></td>
                 <td data-label="עלות טוקנים" data-label-i18n="mat_col_cost"><strong dir="ltr">100%</strong></td>
               </tr>
