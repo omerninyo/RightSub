@@ -29,11 +29,29 @@
       aria_scenarios: "בחירת תרחיש תצוגה בנגן",
       aria_platforms: "פלטפורמות התקנה",
       skip_link: "דלג לתוכן הראשי",
-      nav_studio: "התנסות חיה",
+      nav_studio: "התנסות",
+      nav_help: "עזרה",
       nav_capabilities: "יכולות",
       nav_simulator: "סימולטור",
-      nav_install: "התקנה ו-CLI",
+      nav_install: "התקנה",
       nav_architecture: "מתי AI?",
+      help_kicker: "INTERACTIVE SOLUTION FINDER",
+      help_title: "איך פותרים? שאלו בטקסט חופשי",
+      help_subtitle:
+        "תארו במילים שלכם את הבעיה בכתוביות — והמערכת תציג מיד את הפתרון המדויק, האם הוא דורש AI או רץ ב-0 טוקנים, ואת הפקודה המוכנה להעתקה:",
+      help_input_label: "חפשו פתרון בטקסט חופשי",
+      help_placeholder:
+        "למשל: איך אני מתקן כתוביות בתזמון לא נכון כשיש לי אותן נכונות באנגלית?",
+      help_clear_aria: "נקה חיפוש",
+      help_quick_label: "שאלות נפוצות:",
+      help_q_sync: "תזמון לא נכון מול אנגלית",
+      help_q_punct: "סימני שאלה קופצים לימין ב-Plex",
+      help_q_numbers: "מספרים הפוכים (84 במקום 48)",
+      help_q_mkv: "סרט MKV ללא כתוביות בעברית",
+      help_q_cp1255: "ג׳יבריש בקידוד Windows-1255",
+      help_q_torrent: "לא לשבור סידינג בטורנט",
+      help_BestMatch: "הפתרון המדויק לשאלה שלך",
+      help_RelatedMatch: "פתרון קשור נוסף",
       hero_kicker: "OPEN-SOURCE SUBTITLE ENGINEERING · UAX #9 RULE N1",
       hero_title: "תיקון כיווניות, קידוד ומאסטרינג לכתוביות עברית.",
       hero_lead:
@@ -183,10 +201,28 @@
       aria_platforms: "Installation Platforms",
       skip_link: "Skip to main content",
       nav_studio: "Studio",
+      nav_help: "Help",
       nav_capabilities: "Features",
       nav_simulator: "Simulator",
-      nav_install: "CLI & MCP",
+      nav_install: "Install",
       nav_architecture: "0-Token vs AI",
+      help_kicker: "INTERACTIVE SOLUTION FINDER",
+      help_title: "How Do I Fix...? Ask in Free Text",
+      help_subtitle:
+        "Describe your subtitle problem in plain words — RightSub will immediately show the exact solution, whether it uses 0 tokens or AI, and the ready-to-copy command:",
+      help_input_label: "Search solutions in free text",
+      help_placeholder:
+        "e.g., How do I fix out-of-sync Hebrew subtitles when I have the correct English ones?",
+      help_clear_aria: "Clear search",
+      help_quick_label: "Common questions:",
+      help_q_sync: "Wrong timing vs. English .srt",
+      help_q_punct: "Question marks jumping right in Plex",
+      help_q_numbers: "Reversed numbers (84 instead of 48)",
+      help_q_mkv: "MKV movie with no Hebrew subs",
+      help_q_cp1255: "Windows-1255 gibberish",
+      help_q_torrent: "Keep torrent seeding intact",
+      help_BestMatch: "Recommended Solution",
+      help_RelatedMatch: "Related Workflow",
       hero_kicker: "OPEN-SOURCE SUBTITLE ENGINEERING · UAX #9 RULE N1",
       hero_title: "Hebrew Subtitle BiDi Mastering, Encoding Rescue & AI Translation.",
       hero_lead:
@@ -510,13 +546,459 @@
       }
     });
 
+    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+      const key = el.getAttribute("data-i18n-placeholder");
+      if (dict[key]) {
+        el.setAttribute("placeholder", dict[key]);
+      }
+    });
+
+    const helpInput = document.getElementById("help-search-input");
+    if (helpInput) {
+      const curVal = helpInput.value.trim();
+      for (const qKey of Object.keys(HELP_QUICK_QUERIES)) {
+        const pair = HELP_QUICK_QUERIES[qKey];
+        if (curVal === pair.he || curVal === pair.en) {
+          helpInput.value = currentLang === "he" ? pair.he : pair.en;
+          break;
+        }
+      }
+    }
+
     renderScenario(currentScenario);
     updateLiveSandbox();
+    updateHelpSearch();
     updateDaemonBadgeText();
 
     if (lastInputState) {
       reprocessLastInput();
     }
+  }
+
+  const HELP_QUICK_QUERIES = {
+    sync: {
+      he: "איך אני מתקן כתוביות בתזמון לא נכון כשיש לי אותן נכונות באנגלית?",
+      en: "How do I fix out-of-sync Hebrew subtitles when I have the correct English ones?",
+    },
+    punct: {
+      he: "סימני שאלה ונקודות קופצים לימין ב-Plex וב-Apple TV",
+      en: "Question marks and periods jump to the right side in Plex and Apple TV",
+    },
+    numbers: {
+      he: "איך מתקנים מספרים הפוכים כמו 84 במקום 48 כשיש כתובית באנגלית?",
+      en: "How do I un-flip reversed 2-digit numbers like 84 instead of 48 using an English subtitle?",
+    },
+    mkv: {
+      he: "יש לי סרט MKV או MP4 בלי כתוביות בעברית בכלל, איך מתרגמים?",
+      en: "I have an MKV or MP4 movie with no Hebrew subtitles at all, how do I translate it?",
+    },
+    cp1255: {
+      he: "הכתוביות מופיעות כג׳יבריש או סימני שאלה (קידוד Windows-1255)",
+      en: "Subtitles show up as gibberish or mojibake (Windows-1255 encoding)",
+    },
+    torrent: {
+      he: "איך מתקנים כתוביות בתיקיית טורנט בלי לשבור סידינג ב-qBittorrent?",
+      en: "How do I fix subtitles in a torrent folder without breaking qBittorrent seeding?",
+    },
+  };
+
+  const HELP_KB = [
+    {
+      id: "sync",
+      keywords: [
+        "תזמון",
+        "בתזמון",
+        "סנכרון",
+        "סינכרון",
+        "לסנכרן",
+        "מסונכרנות",
+        "מסונכרן",
+        "מאחרות",
+        "מאחר",
+        "מקדימות",
+        "מקדים",
+        "דיליי",
+        "זמן",
+        "זמנים",
+        "לא מתאים",
+        "נכונות באנגלית",
+        "sync",
+        "timing",
+        "out of sync",
+        "delay",
+        "offset",
+        "ffsubsync",
+        "alass",
+        "fps",
+        "framerate",
+      ],
+      phrases: [
+        "תזמון לא נכון",
+        "נכונות באנגלית",
+        "לא מסונכרן",
+        "out of sync",
+        "wrong timing",
+        "correct english",
+      ],
+      badgeClass: "tag-green",
+      badgeHe: "100% דטרמיניסטי · 0 טוקנים",
+      badgeEn: "100% Deterministic · 0 Tokens",
+      titleHe: "סנכרון זמנים אוטומטי מול כתובית באנגלית או ערוץ שמע (SubSync)",
+      titleEn: "Automatic Timing Sync Against Reference English .srt or Video Audio",
+      descHe:
+        'כאשר יש לך כתובית באנגלית בתזמון מדויק (או את קובץ הווידאו עצמו) וכתובית בעברית שמאחרת, מקדימה או שייכת לגרסת שחרור אחרת (Web-DL מול BluRay), הפקודה <code dir="ltr">rightsub sync</code> (או <code dir="ltr">rightsub auto</code>) מיישרת אוטומטית את חותמות הזמן של העברית לאנגלית באמצעות <code dir="ltr">ffsubsync</code> / <code dir="ltr">alass</code> — ללא צורך ב-AI וב-0 טוקנים.',
+      descEn:
+        'When you have a correctly timed English <code>.srt</code> (or the video file itself) and an out-of-sync Hebrew <code>.srt</code> from a different release (e.g., Web-DL vs. BluRay), <code>rightsub sync</code> (or <code>rightsub auto</code>) automatically aligns the Hebrew timestamps to the English reference using <code>ffsubsync</code> / <code>alass</code> with zero AI tokens.',
+      cmd: "rightsub sync --ref Movie.en.srt --sub Movie.he.srt -o Movie.synced.he.srt\nrightsub auto /path/to/Movie_Folder",
+      ctaHref: "#install",
+      ctaHe: "למדריך התקנת ה-CLI",
+      ctaEn: "View CLI Installation",
+    },
+    {
+      id: "punct",
+      keywords: [
+        "שאלה",
+        "סימן שאלה",
+        "סימני שאלה",
+        "נקודה",
+        "נקודות",
+        "פיסוק",
+        "קופץ",
+        "קופצים",
+        "ימין",
+        "סאבאבי",
+        "הפוך",
+        "הפוכים",
+        "סוגריים",
+        "מקף",
+        "פלקס",
+        "אינפיוז",
+        "אפל",
+        "כיווניות",
+        "plex",
+        "infuse",
+        "apple tv",
+        "subabi",
+        "question mark",
+        "period",
+        "punctuation",
+        "bidi",
+        "rlm",
+        "right side",
+      ],
+      phrases: [
+        "סימני שאלה",
+        "קופצים לימין",
+        "היפוך ויזואלי",
+        "question marks",
+        "jumping right",
+      ],
+      badgeClass: "tag-green",
+      badgeHe: "100% דטרמיניסטי · זמין ישירות בדפדפן",
+      badgeEn: "100% Deterministic · Instant in Browser",
+      titleHe: "תיקון פיסוק קופץ (UAX #9 Rule N1) וביטול היפוכי Subabi",
+      titleEn: "Fix Jumping Punctuation (UAX #9 Rule N1) & Legacy Subabi Flips",
+      descHe:
+        'ניתן לתקן את הקובץ <strong>מיד כאן בעמוד הבית</strong> (ללא התקנה) על ידי גרירת קובץ ה-<code dir="ltr">.srt</code> לתיבת התיקון למעלה, או להריץ בטרמינל <code dir="ltr">rightsub fix-plex</code>. המנוע מזהה אם הקובץ עבר היפוך Subabi ישן, משחזר 18 תבניות פיסוק וסוגריים, ועוטף כל שורה בתווי <code dir="ltr">RLM</code> (<code dir="ltr">\\u200F</code>).',
+      descEn:
+        'Fix the file <strong>directly in your browser above</strong> (zero install) by dropping your <code>.srt</code> into the Studio dropzone, or run <code>rightsub fix-plex</code> in the terminal. RightSub detects legacy Subabi polarity, reverses 18 flip patterns, and locks punctuation with <code>RLM</code> (<code>\\u200F</code>) marks.',
+      cmd: "rightsub fix-plex Movie.he.srt\nrightsub auto /path/to/Season_Folder",
+      ctaHref: "#studio",
+      ctaHe: "קפוץ לתיקון קובץ בדפדפן ↑",
+      ctaEn: "Jump to Browser Studio ↑",
+    },
+    {
+      id: "numbers",
+      keywords: [
+        "מספר",
+        "מספרים",
+        "84",
+        "48",
+        "19",
+        "91",
+        "דו-ספרתי",
+        "דו ספרתיים",
+        "הפוכים",
+        "שעות",
+        "שנים",
+        "אנגלית",
+        "numbers",
+        "reversed",
+        "digits",
+        "flipped",
+        "two-digit",
+      ],
+      phrases: [
+        "מספרים הפוכים",
+        "84 במקום 48",
+        "reversed numbers",
+        "2-digit numbers",
+      ],
+      badgeClass: "tag-green",
+      badgeHe: "100% דטרמיניסטי · דפדפן או CLI",
+      badgeEn: "100% Deterministic · Browser or CLI",
+      titleHe: "תיקון מספרים דו-ספרתיים הפוכים (84 ← 48) בהצלבה מול אנגלית",
+      titleEn: "Un-Flip Reversed 2-Digit Numbers (84 → 48) via English Reference",
+      descHe:
+        'כלי היפוך ישנים הפכו מספרים דו-ספרתיים בכתוביות עברית (למשל <code dir="ltr">84</code> במקום <code dir="ltr">48</code>). גררו <strong>יחד</strong> את שני הקבצים (<code dir="ltr">Movie.srt</code> בעברית + <code dir="ltr">Movie.en.srt</code> באנגלית) לתיבת התיקון למעלה בעמוד זה — המנוע יצליב לפי חותמת זמן ויהפוך חזרה רק מספרים שאומתו מול האנגלית ב-0 טוקנים.',
+      descEn:
+        'Legacy visual flippers reversed 2-digit numbers in Hebrew subtitles (e.g., <code>84</code> instead of <code>48</code>). Drag <strong>both</strong> files together (Hebrew <code>Movie.srt</code> + English <code>Movie.en.srt</code>) into the Browser Studio above — RightSub cross-checks timestamps and un-flips verified numbers with 0 tokens.',
+      cmd: "rightsub polish --he Movie.he.srt --en Movie.en.srt --stage0-only",
+      ctaHref: "#studio",
+      ctaHe: "גרור זוג קבצים (HE + EN) בדפדפן ↑",
+      ctaEn: "Drop HE + EN Pair in Studio ↑",
+    },
+    {
+      id: "mkv",
+      keywords: [
+        "אין כתוביות",
+        "בלי כתוביות",
+        "ללא כתוביות",
+        "לתרגם",
+        "תרגום",
+        "מאנגלית לעברית",
+        "מובנות",
+        "לחלץ",
+        "חילוץ",
+        "שמע",
+        "אודיו",
+        "תמלול",
+        "וויספר",
+        "mkv",
+        "mp4",
+        "avi",
+        "translate",
+        "translation",
+        "extract",
+        "whisper",
+        "embedded",
+        "no hebrew",
+        "from scratch",
+      ],
+      phrases: [
+        "ללא כתוביות בעברית",
+        "בלי כתוביות בעברית",
+        "אין כתוביות",
+        "no hebrew subtitles",
+        "translate from english",
+      ],
+      badgeClass: "tag-blue",
+      badgeHe: "דורש סוכן AI / MCP / Gemini / Ollama",
+      badgeEn: "Uses AI Agent / MCP / Gemini / Ollama",
+      titleHe: "חילוץ ותרגום סרט או סדרה מאנגלית לעברית מאפס (SubSwarm)",
+      titleEn: "Extract & Translate MKV/MP4 Movies or Seasons from English to Hebrew",
+      descHe:
+        'כאשר לקובץ וידאו (<code dir="ltr">.mkv</code> / <code dir="ltr">.mp4</code>) אין כתוביות בעברית כלל, הריצו <code dir="ltr">rightsub auto</code> או בקשו מסוכן ה-AI שלכם דרך שרת ה-MCP. המערכת תחלץ כתוביות אנגלית מובנות מהווידאו (או תתמלל שמע עם Whisper), תבנה מילון דמויות ומגדר מ-TMDb (<code dir="rtl">את/היא</code> מול <code dir="rtl">אתה/הוא</code>), ותייצר קובץ <code dir="ltr">.he.srt</code> מתוקן לפלקס.',
+      descEn:
+        'When an <code>.mkv</code> or <code>.mp4</code> file has no Hebrew subtitles, run <code>rightsub auto</code> or instruct your AI agent via the built-in MCP server. RightSub extracts embedded English tracks (or transcribes audio via Whisper), builds a TMDb character gender bible, and outputs a mastered <code>.he.srt</code>.',
+      cmd: "rightsub auto /path/to/Movie.mkv\nrightsub mcp --install   # לחיבור לסוכן AI (Claude / Cursor / Antigravity)",
+      ctaHref: "#install",
+      ctaHe: "הוראות התקנת CLI ו-MCP",
+      ctaEn: "CLI & MCP Setup Guide",
+    },
+    {
+      id: "cp1255",
+      keywords: [
+        "ג'יבריש",
+        "ג׳יבריש",
+        "גיבריש",
+        "קידוד",
+        "אותיות מוזרות",
+        "ריבועים",
+        "1255",
+        "cp1255",
+        "windows-1255",
+        "iso-8859-8",
+        "utf-8",
+        "utf8",
+        "encoding",
+        "gibberish",
+        "mojibake",
+      ],
+      phrases: [
+        "קידוד windows-1255",
+        "מופיע כג׳יבריש",
+        "windows-1255 gibberish",
+      ],
+      badgeClass: "tag-green",
+      badgeHe: "100% דטרמיניסטי · זמין ישירות בדפדפן",
+      badgeEn: "100% Deterministic · Instant in Browser",
+      titleHe: "הצלת קידוד עברי ישן (Windows-1255 / ISO-8859-8) והמרה ל-UTF-8",
+      titleEn: "Rescue Legacy Windows-1255 / ISO-8859-8 Encoding to UTF-8",
+      descHe:
+        'כתוביות ישנות בעברית נשמרו בקידוד <code dir="ltr">Windows-1255</code> ומופיעות כג׳יבריש בנגנים מודרניים. גררו את הקובץ לתיבת התיקון בדפדפן למעלה — המנוע מזהה את הקידוד ברמת הבייטים הגולמיים, ממיר אותו ל-<code dir="ltr">UTF-8</code> תקני ומתקן כיווניות ב-0 טוקנים.',
+      descEn:
+        'Legacy Hebrew subtitles saved in <code>Windows-1255</code> appear as gibberish on modern players. Drop the file into the Browser Studio above — RightSub detects the byte-level encoding, converts it to clean <code>UTF-8</code>, and applies BiDi mastering with 0 tokens.',
+      cmd: "rightsub fix-plex Movie.srt",
+      ctaHref: "#studio",
+      ctaHe: "המר קובץ בדפדפן עכשיו ↑",
+      ctaEn: "Convert File in Browser ↑",
+    },
+    {
+      id: "torrent",
+      keywords: [
+        "טורנט",
+        "סידינג",
+        "סיד",
+        "שיתוף",
+        "להרוס",
+        "לשבור",
+        "מקורי",
+        "ביטורנט",
+        "קיו-ביטורנט",
+        "טרנסמישן",
+        "torrent",
+        "seed",
+        "seeding",
+        "qbittorrent",
+        "transmission",
+        "seed-safe",
+        "subs",
+      ],
+      phrases: [
+        "בלי לשבור סידינג",
+        "הגנת טורנט",
+        "seed-safe",
+        "torrent seeding",
+      ],
+      badgeClass: "tag-green",
+      badgeHe: "100% דטרמיניסטי · הגנת Seed-Safe",
+      badgeEn: "100% Deterministic · Seed-Safe Mode",
+      titleHe: "תיקון כתוביות בתיקיות טורנט ללא פגיעה ב-Seeding (Seed-Safe)",
+      titleEn: "Master Subtitles in Torrent Folders Without Breaking Seeding (Seed-Safe)",
+      descHe:
+        'במצב <code dir="ltr">--seed-safe</code> (ברירת המחדל באוטומציית הטורנטים), RightSub סורקת את תוכן הקבצים (כולל <code dir="ltr">Movie.srt</code> או תיקיית <code dir="ltr">Subs/</code>), מזהה עברית אוטומטית, משאירה את הקובץ המקורי בדיסק ללא שום שינוי של אף בייט, ושומרת קובץ <code dir="ltr">Movie.he.srt</code> חדש לצד הווידאו.',
+      descEn:
+        'In <code>--seed-safe</code> mode, RightSub inspects file contents (including plain <code>Movie.srt</code> or <code>Subs/</code> folders), detects Hebrew automatically, leaves the original torrent file 100% untouched on disk, and writes a new <code>Movie.he.srt</code> alongside the video.',
+      cmd: "rightsub auto /path/to/Torrent_Folder --seed-safe\nrightsub config --install-hooks   # יצירת Hooks ל-qBittorrent / Transmission",
+      ctaHref: "#install",
+      ctaHe: "הגדרת Hooks לטורנטים",
+      ctaEn: "Torrent Hooks Setup",
+    },
+    {
+      id: "polish",
+      keywords: [
+        "מגדר",
+        "זכר",
+        "נקבה",
+        "אתה",
+        "את",
+        "תרגום מכונה",
+        "גוגל טרנסלייט",
+        "שגיאות",
+        "הגהה",
+        "ליטוש",
+        "בקרת איכות",
+        "בדיקת איכות",
+        "דובר",
+        "פרסומות",
+        "חרשים",
+        "gender",
+        "polish",
+        "qa",
+        "proofread",
+        "sdh",
+        "ads",
+      ],
+      phrases: [
+        "שגיאות מגדר",
+        "זכר ונקבה",
+        "תרגום ישן",
+        "gender errors",
+      ],
+      badgeClass: "tag-amber",
+      badgeHe: "שלב 0 דטרמיניסטי + AI אופציונלי",
+      badgeEn: "Stage-0 Deterministic + Optional AI",
+      titleHe: "בקרת איכות (QA), תיקון שגיאות מגדר (זכר/נקבה) וניקוי פרסומות/SDH",
+      titleEn: "Red Team QA Audit, Gender Agreement Fixes & Ad/SDH Stripping",
+      descHe:
+        'הפקודה <code dir="ltr">rightsub qa</code> מריצה ביקורת אלגוריתמית ב-0 טוקנים המאתרת פערי תזמון (Cue Drift), תווים זרים ושגיאות פנייה במגדר מול מילון הדמויות מ-TMDb. לליטוש סמנטי עם סקירה אינטראקטיבית של כל שורה לפני שמירה, הריצו <code dir="ltr">rightsub polish --interactive</code>.',
+      descEn:
+        '<code>rightsub qa</code> runs a 0-token algorithmic audit detecting Cue Drift, foreign homoglyphs, and character gender mismatches against TMDb. For interactive line-by-line proofreading, run <code>rightsub polish --interactive</code>.',
+      cmd: "rightsub qa Movie.he.srt --en Movie.en.srt\nrightsub polish --he Movie.he.srt --en Movie.en.srt --interactive",
+      ctaHref: "#architecture",
+      ctaHe: "לטבלת 0 טוקנים מול AI",
+      ctaEn: "View 0-Token vs. AI Matrix",
+    },
+  ];
+
+  function scoreHelpEntry(entry, rawQuery) {
+    const q = String(rawQuery || "")
+      .toLowerCase()
+      .replace(/[?!"'״׳,.:;()[\]]/g, " ")
+      .trim();
+    if (!q) return entry.id === "sync" ? 10 : 0;
+
+    let score = 0;
+    for (const phrase of entry.phrases) {
+      if (q.includes(phrase.toLowerCase())) {
+        score += 18;
+      }
+    }
+
+    const words = q.split(/\s+/).filter(Boolean);
+    for (const kw of entry.keywords) {
+      const kwLower = kw.toLowerCase();
+      if (q.includes(kwLower)) {
+        score += 8;
+      }
+      for (const w of words) {
+        // Strip common 1-letter Hebrew prefixes (ב, ל, מ, ה, ו, כ, ש)
+        const stripped = w.length > 3 && /^[בלמהוכש]/.test(w) ? w.slice(1) : w;
+        if (w === kwLower || stripped === kwLower) {
+          score += 6;
+        }
+      }
+    }
+    return score;
+  }
+
+  function updateHelpSearch() {
+    const inputEl = document.getElementById("help-search-input");
+    const resultsEl = document.getElementById("help-results-area");
+    if (!inputEl || !resultsEl) return;
+
+    const query = inputEl.value.trim();
+    const scored = HELP_KB.map((entry) => ({
+      entry,
+      score: scoreHelpEntry(entry, query),
+    })).sort((a, b) => b.score - a.score);
+
+    const topMatches =
+      scored[0].score > 0
+        ? scored.filter((x, i) => i === 0 || (i === 1 && x.score >= scored[0].score * 0.55 && x.score >= 12))
+        : [scored[0]];
+
+    const dict = I18N[currentLang];
+    resultsEl.innerHTML = topMatches
+      .map(({ entry }, idx) => {
+        const isPrimary = idx === 0;
+        const title = currentLang === "he" ? entry.titleHe : entry.titleEn;
+        const badge = currentLang === "he" ? entry.badgeHe : entry.badgeEn;
+        const desc = currentLang === "he" ? entry.descHe : entry.descEn;
+        const cta = currentLang === "he" ? entry.ctaHe : entry.ctaEn;
+        const cmdId = `help-cmd-${entry.id}`;
+
+        return `
+          <article class="help-card ${isPrimary ? "" : "help-card-secondary"}">
+            <div class="help-card-header">
+              <h3 class="help-card-title">${escapeHtml(title)}</h3>
+              <span class="tag-pill ${entry.badgeClass}">${escapeHtml(badge)}</span>
+            </div>
+            <p class="help-card-desc">${desc}</p>
+            <div class="code-box" dir="ltr">
+              <pre><code id="${cmdId}">${escapeHtml(entry.cmd)}</code></pre>
+              <button type="button" class="copy-btn" data-copy-target="${cmdId}">${escapeHtml(
+          dict.copy_btn
+        )}</button>
+            </div>
+            <div class="help-card-actions">
+              <a href="${entry.ctaHref}" class="btn btn-subtle">${escapeHtml(cta)}</a>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
   }
 
   function simulateBrokenSingleLine(rawLine) {
@@ -954,7 +1436,7 @@
     if (sbInput) {
       sbInput.addEventListener("input", function () {
         const val = sbInput.value;
-        document.querySelectorAll(".chip-btn").forEach((c) => {
+        document.querySelectorAll(".preset-chips .chip-btn").forEach((c) => {
           const key = c.getAttribute("data-sb-preset");
           const isMatch = SANDBOX_PRESETS[key] === val;
           c.classList.toggle("active", isMatch);
@@ -964,9 +1446,9 @@
       });
     }
 
-    document.querySelectorAll(".chip-btn").forEach((chip) => {
+    document.querySelectorAll(".preset-chips .chip-btn").forEach((chip) => {
       chip.addEventListener("click", function () {
-        document.querySelectorAll(".chip-btn").forEach((c) => {
+        document.querySelectorAll(".preset-chips .chip-btn").forEach((c) => {
           c.classList.remove("active");
           c.setAttribute("aria-pressed", "false");
         });
@@ -977,6 +1459,44 @@
           sbInput.value = SANDBOX_PRESETS[key];
           updateLiveSandbox();
         }
+      });
+    });
+
+    // Free-text Help Search & Quick Chips
+    const helpInput = document.getElementById("help-search-input");
+    const helpClear = document.getElementById("help-clear-btn");
+    if (helpInput) {
+      helpInput.addEventListener("input", function () {
+        const val = helpInput.value.trim();
+        document.querySelectorAll(".help-quick-chips [data-help-q]").forEach((c) => {
+          const qKey = c.getAttribute("data-help-q");
+          const pair = HELP_QUICK_QUERIES[qKey];
+          c.classList.toggle("active", Boolean(pair && (val === pair.he || val === pair.en)));
+        });
+        updateHelpSearch();
+      });
+    }
+    if (helpClear && helpInput) {
+      helpClear.addEventListener("click", function () {
+        helpInput.value = "";
+        document.querySelectorAll(".help-quick-chips [data-help-q]").forEach((c) => {
+          c.classList.remove("active");
+        });
+        updateHelpSearch();
+        helpInput.focus();
+      });
+    }
+    document.querySelectorAll(".help-quick-chips [data-help-q]").forEach((chip) => {
+      chip.addEventListener("click", function () {
+        const qKey = this.getAttribute("data-help-q");
+        const pair = HELP_QUICK_QUERIES[qKey];
+        if (!pair || !helpInput) return;
+        document.querySelectorAll(".help-quick-chips [data-help-q]").forEach((c) => {
+          c.classList.remove("active");
+        });
+        this.classList.add("active");
+        helpInput.value = currentLang === "he" ? pair.he : pair.en;
+        updateHelpSearch();
       });
     });
 
@@ -1065,24 +1585,24 @@
     });
     bindTablistKeyboard(".platform-tabs", ".tab-btn");
 
-    // Copy buttons
-    document.querySelectorAll(".copy-btn").forEach((btn) => {
-      btn.addEventListener("click", async function () {
-        const targetId = this.getAttribute("data-copy-target");
-        const codeEl = document.getElementById(targetId);
-        if (!codeEl) return;
-        try {
-          const cleanCode = codeEl.textContent
-            .replace(/[\u2066-\u2069]/g, "")
-            .trim();
-          await navigator.clipboard.writeText(cleanCode);
-          const dict = I18N[currentLang];
-          this.textContent = dict.copied_btn;
-          setTimeout(() => {
-            this.textContent = I18N[currentLang].copy_btn;
-          }, 1800);
-        } catch (_) {}
-      });
+    // Delegated Copy buttons (supports both static and dynamically rendered help cards)
+    document.addEventListener("click", async function (e) {
+      const btn = e.target.closest(".copy-btn");
+      if (!btn) return;
+      const targetId = btn.getAttribute("data-copy-target");
+      const codeEl = document.getElementById(targetId);
+      if (!codeEl) return;
+      try {
+        const cleanCode = codeEl.textContent
+          .replace(/[\u2066-\u2069]/g, "")
+          .trim();
+        await navigator.clipboard.writeText(cleanCode);
+        const dict = I18N[currentLang];
+        btn.textContent = dict.copied_btn;
+        setTimeout(() => {
+          btn.textContent = I18N[currentLang].copy_btn;
+        }, 1800);
+      } catch (_) {}
     });
   });
 })();
