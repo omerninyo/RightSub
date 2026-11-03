@@ -20,17 +20,20 @@ README_EN = BASE_DIR / "README.md"
 README_HE = BASE_DIR / "README.he.md"
 
 def get_pytest_test_count():
-    """Runs pytest --collect-only and returns total collected tests."""
+    """Runs pytest --collect-only and returns total collected tests (unit + dataset)."""
     pytest_bin = shutil.which("pytest") or "pytest"
+    targets = ["tests"]
+    if (BASE_DIR / "case_study_archive").exists():
+        targets.append("case_study_archive")
     res = subprocess.run(
-        [pytest_bin, "--collect-only", "-q"],
+        [pytest_bin] + targets + ["--collect-only", "-q"],
         capture_output=True,
         text=True,
         cwd=BASE_DIR
     )
     if res.returncode != 0:
         res = subprocess.run(
-            [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+            [sys.executable, "-m", "pytest"] + targets + ["--collect-only", "-q"],
             capture_output=True,
             text=True,
             cwd=BASE_DIR

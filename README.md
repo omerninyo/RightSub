@@ -14,13 +14,13 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![Platform: Windows & macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-193%2F193%20Passing-success.svg)]()
-[![Web App: 100% Local Browser Fixer](https://img.shields.io/badge/Web%20App-Client--Side%20SubRefine-teal.svg)](https://omerninyo.github.io/RightSub/)
+[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-194%2F194%20Passing-success.svg)]()
+[![Web App: 100% Local Browser Fixer](https://img.shields.io/badge/Web%20App-Client--Side%20SubRefine-teal.svg)](https://rightsub.ninyo.co/)
 [![Benchmark: 101/101 Episodes](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **Subtitles Done Right — from Instant Browser & 1-Click Plex BiDi Repair to Autonomous Multi-Agent AI Translation.**
 >
-> 🌐 **New in `v1.5.0` — Official Web App & Instant Browser `.srt` Master:** Fix broken Hebrew `.srt` files directly in your browser with **0 installation and 100% client-side privacy** via **[omerninyo.github.io/RightSub](https://omerninyo.github.io/RightSub/)** (or locally at `http://localhost:8775/ui` when running `rightsub serve`).
+> 🌐 **New in `v1.5.0` — Official Web App & Instant Browser `.srt` Master:** Fix broken Hebrew `.srt` files directly in your browser with **0 installation and 100% client-side privacy** via **[rightsub.ninyo.co](https://rightsub.ninyo.co/)** (or locally at `http://localhost:8775/ui` when running `rightsub serve`). Includes a live single-line BiDi sandbox and free-text natural-language Troubleshooting & Solution Finder (`#help`).
 
 **RightSub** is a high-performance CLI suite and Python framework designed to repair, clean, synchronize, translate, and format subtitles for **ANY movie or television series** across **Windows** and **macOS**.
 
@@ -392,7 +392,7 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (193 automated tests: 168 unit tests + 25 dataset integration tests):
+RightSub comes with a comprehensive automated test suite (194 automated tests: 169 unit tests + 25 dataset integration tests):
 ```bash
 pytest -v
 ```

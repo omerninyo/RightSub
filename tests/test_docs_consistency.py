@@ -141,6 +141,33 @@ def test_version_single_source_of_truth_and_milestone_gate():
         f"does not match rightsub.py ('{rightsub_version}')."
     )
 
+    # Verify Homebrew Formula version matches rightsub.py
+    formula_path = REPO_ROOT / "Formula" / "rightsub.rb"
+    if formula_path.exists():
+        formula_content = formula_path.read_text(encoding="utf-8")
+        formula_match = re.search(r'^\s*version\s+"([^"]+)"', formula_content, flags=re.MULTILINE)
+        assert formula_match, "Could not find version \"...\" in Formula/rightsub.rb"
+        assert formula_match.group(1) == rightsub_version, (
+            f"Formula/rightsub.rb version ('{formula_match.group(1)}') "
+            f"does not match rightsub.py ('{rightsub_version}')."
+        )
+
+    # Verify site/index.html version badge matches rightsub.py
+    site_index_path = REPO_ROOT / "site" / "index.html"
+    if site_index_path.exists():
+        site_content = site_index_path.read_text(encoding="utf-8")
+        assert f">v{rightsub_version}<" in site_content, (
+            f"site/index.html does not display current version v{rightsub_version}"
+        )
+
+    # Verify install.bat version matches rightsub.py
+    install_bat_path = REPO_ROOT / "install.bat"
+    if install_bat_path.exists():
+        bat_content = install_bat_path.read_text(encoding="utf-8")
+        assert f"v{rightsub_version}" in bat_content, (
+            f"install.bat does not reference current version v{rightsub_version}"
+        )
+
     # Milestone Gate: if version ends with .0 (e.g. 1.4.0), ensure its section in ROADMAP.md has no unchecked '- [ ]' items
     if rightsub_version.endswith(".0"):
         roadmap_content = (REPO_ROOT / "ROADMAP.md").read_text(encoding="utf-8")

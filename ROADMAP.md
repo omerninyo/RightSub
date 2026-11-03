@@ -42,6 +42,8 @@ flowchart LR
   - Automatically detects and registers `rightsub` into **Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf**, and **Claude Code** with absolute Python/script paths, full `PATH` environment injection, `.bak` backups, and zero corruption of existing servers.
 - [x] **Natural Language Media Control & Batch Orchestration**:
   - Enables any connected AI agent to inspect folders, repair Plex BiDi with Seed-Safe torrent protection, extract tracks, translate batches, and run Red Team QA directly from chat.
+- [x] **Official Bilingual Web App, Live BiDi Sandbox & Natural-Language Help Finder (`site/` & `rightsub serve`)** ([#5](https://github.com/omerninyo/RightSub/issues/5)):
+  - 100% client-side JavaScript port of the `SubRefine` engine ([`rightsub.ninyo.co`](https://rightsub.ninyo.co/) and locally at `http://localhost:8775/ui` via `rightsub serve`), featuring byte-level `CP1255` detection, 18-pattern `Subabi` un-flipping, bilingual `HE + EN` number cross-checking, live single-line BiDi sandbox, Plex/Apple TV visual simulator, and an interactive free-text Troubleshooting & Solution Finder (`#help`).
 
 ### 🌟 [v1.4.0](https://github.com/omerninyo/RightSub/releases/tag/v1.4.0) — Interactive Terminal Experience (TUI), Hooks Wizard & Containers
 > **Released:** October 2026  

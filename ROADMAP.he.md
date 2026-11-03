@@ -44,6 +44,8 @@ flowchart LR
   - מזהה ורושם אוטומטית את השרת ב-**Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf** ו-**Claude Code** עם נתיבים מוחלטים, הזרקת `PATH` מלאה, גיבוי `.bak`, ושימור של 100% מהשרתים הקיימים.
 - [x] **שליטה במדיה בשפה טבעית**:
   - מאפשר לכל סוכן AI לסרוק תיקיות, לתקן BiDi לפלקס עם הגנת טורנט (`Seed-Safe`), לחלץ כתוביות, לתרגם מנות ולהריץ ביקורת QA ישירות מתוך הצ'אט.
+- [x] **אפליקציית Web דו-לשונית, מעבדת BiDi חיה ומנוע חיפוש פתרונות בשפה חופשית (`site/` ו-`rightsub serve`)** ([#5](https://github.com/omerninyo/RightSub/issues/5)):
+  - מימוש JavaScript מלא בצד הלקוח של מנוע `SubRefine` ([`rightsub.ninyo.co`](https://rightsub.ninyo.co/) ומקומית בכתובת `http://localhost:8775/ui` דרך `rightsub serve`), הכולל פענוח `CP1255`, היפוך 18 תבניות `Subabi`, הצלבת מספרים דו-לשונית (`HE + EN`), מעבדת שורה חיה, סימולטור מסך Plex / Apple TV, ומנוע חיפוש עזרה בשפה חופשית (`#help`).
 
 ### 🌟 [גרסה 1.4.0](https://github.com/omerninyo/RightSub/releases/tag/v1.4.0) — ממשק טרמינל אינטראקטיבי (TUI), אשף התקנת Hooks וקונטיינרים
 > **תאריך שחרור:** אוקטובר 2026  

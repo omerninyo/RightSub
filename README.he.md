@@ -16,13 +16,13 @@
 [![גרסת פייתון: 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![פלטפורמה: Windows ו-macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![מאומת ל-Plex ו-Infuse](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-193%2F193%20Passing-success.svg)]()
-[![אפליקציית Web: תיקון מיידי בדפדפן](https://img.shields.io/badge/Web%20App-Client--Side%20SubRefine-teal.svg)](https://omerninyo.github.io/RightSub/)
+[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-194%2F194%20Passing-success.svg)]()
+[![אפליקציית Web: תיקון מיידי בדפדפן](https://img.shields.io/badge/Web%20App-Client--Side%20SubRefine-teal.svg)](https://rightsub.ninyo.co/)
 [![בנצ׳מרק: 101/101 פרקים](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **כתוביות כמו שצריך — מתיקון מיידי בדפדפן וב-Plex ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**
 >
-> 🌐 **חדש ב-`v1.5.0` — אתר רשמי ואפליקציית Web לתיקון מיידי בדפדפן:** תקנו קובצי `.srt` בעברית ישירות מתוך הדפדפן ב-**0 התקנה ו-100% פרטיות מקומית** דרך **[omerninyo.github.io/RightSub](https://omerninyo.github.io/RightSub/)** (או מקומית בכתובת `http://localhost:8775/ui` בעת הרצת `rightsub serve`).
+> 🌐 **חדש ב-`v1.5.0` — אתר רשמי ואפליקציית Web לתיקון מיידי בדפדפן:** תקנו קובצי `.srt` בעברית ישירות מתוך הדפדפן ב-**0 התקנה ו-100% פרטיות מקומית** דרך **[rightsub.ninyo.co](https://rightsub.ninyo.co/)** (או מקומית בכתובת `http://localhost:8775/ui` בעת הרצת `rightsub serve`). כולל מעבדת שורה חיה ומנוע חיפוש פתרונות בשפה חופשית (`#help`).
 
 **RightSub** היא סוויטת כלי CLI וספריית פייתון ברמת Production, שתוכננה עבור **Windows** ועבור **macOS** במטרה לתקן, להשביח, לנקות, לסנכרן ולתרגם כתוביות עבור **כל סרט וכל סדרת טלוויזיה**.
 
@@ -395,7 +395,7 @@ RightSub נבחנה ואומתה על גבי מערך נתונים הממודל 
 
 ## 🧪 בדיקות יחידה ואימות אוטומטי
 
-RightSub מגיעה עם סוויטת בדיקות מקיפה של 193 בדיקות אוטומטיות (168 בדיקות יחידה + 25 בדיקות אינטגרציה על מערך הפרקים):
+RightSub מגיעה עם סוויטת בדיקות מקיפה של 194 בדיקות אוטומטיות (169 בדיקות יחידה + 25 בדיקות אינטגרציה על מערך הפרקים):
 ```bash
 pytest -v
 ```

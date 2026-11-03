@@ -171,7 +171,7 @@
       opt_ai: "אופציונלי (למקרי קצה נדירים)",
       req_ai: "כן (או דרך סוכן ה-MCP)",
       footer_copy:
-        "<strong>RightSub v1.5.0</strong> · קוד פתוח ברישיון MIT · 193 בדיקות אוטומטיות · עיבוד מקומי ב-100% ללא העלאת קבצים.",
+        "<strong>RightSub v1.5.0</strong> · קוד פתוח ברישיון MIT · 194 בדיקות אוטומטיות · עיבוד מקומי ב-100% ללא העלאת קבצים.",
       stat_cues: "כתוביות נסרקו",
       stat_fixed: "שורות תוקנו",
       stat_ads: "פרסומות הוסרו",
@@ -342,7 +342,7 @@
       opt_ai: "Optional (Rare Edge Cases)",
       req_ai: "Yes (or via MCP Agent)",
       footer_copy:
-        "<strong>RightSub v1.5.0</strong> · MIT Open Source · 193 Automated Tests · 100% Local Processing.",
+        "<strong>RightSub v1.5.0</strong> · MIT Open Source · 194 Automated Tests · 100% Local Processing.",
       stat_cues: "Cues Scanned",
       stat_fixed: "Lines Repaired",
       stat_ads: "Ads Stripped",
