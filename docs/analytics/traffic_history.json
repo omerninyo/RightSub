@@ -235,6 +235,10 @@
     "2026-11-07": {
       "count": 0,
       "uniques": 0
+    },
+    "2026-11-08": {
+      "count": 5,
+      "uniques": 3
     }
   },
   "clones": {
@@ -473,6 +477,10 @@
     "2026-11-07": {
       "count": 10,
       "uniques": 7
+    },
+    "2026-11-08": {
+      "count": 17,
+      "uniques": 9
     }
   },
   "referrers": {
@@ -482,10 +490,15 @@
       "last_seen": "2026-10-05"
     },
     "github.com": {
-      "count": 7,
+      "count": 8,
       "uniques": 5,
-      "last_seen": "2026-11-09"
+      "last_seen": "2026-11-10"
+    },
+    "perplexity.ai": {
+      "count": 1,
+      "uniques": 1,
+      "last_seen": "2026-11-10"
     }
   },
-  "last_updated": "2026-11-09 03:09:51 UTC"
+  "last_updated": "2026-11-10 04:51:44 UTC"
 }
