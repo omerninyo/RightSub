@@ -1,6 +1,6 @@
 # 📊 RightSub — Historical Traffic & Analytics Report
 
-> **Last Updated**: `2026-11-20 04:29:46 UTC`  
+> **Last Updated**: `2026-11-21 04:23:50 UTC`  
 > *This report archives continuous visitor and clone statistics, overcoming GitHub's standard 14-day limit.*
 
 ## 📈 Lifetime Cumulative Totals
@@ -8,20 +8,21 @@
 | Metric | Total Count | Total Uniques |
 | :--- | :---: | :---: |
 | **Page Views** | **194** | **73** |
-| **Git Clones** | **1,330** | **706** |
+| **Git Clones** | **1,336** | **711** |
 
 ## 🌐 Top Referring Sites & Networks
 
 | Referring Source | Total Views | Unique Visitors | Last Active |
 | :--- | :---: | :---: | :---: |
-| `github.com` | 9 | 6 | 2026-11-20 |
+| `github.com` | 9 | 6 | 2026-11-21 |
 | `org.telegram.plus` | 5 | 2 | 2026-10-05 |
-| `perplexity.ai` | 1 | 1 | 2026-11-20 |
+| `perplexity.ai` | 1 | 1 | 2026-11-21 |
 
 ## 📅 Daily Activity Breakdown
 
 | Date | Page Views | Unique Visitors | Git Clones | Unique Cloners |
 | :---: | :---: | :---: | :---: | :---: |
+| 2026-11-19 | 0 | 0 | 6 | 5 |
 | 2026-11-18 | 5 | 2 | 2 | 2 |
 | 2026-11-17 | 2 | 1 | 3 | 3 |
 | 2026-11-16 | 0 | 0 | 1 | 1 |
