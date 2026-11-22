@@ -1,4 +1,4 @@
-/* styles.css — RightSub v1.5.0 Flat Architectural Design System
+/* styles.css — RightSub v1.5.1 Flat Architectural Design System
    -------------------------------------------------------------
    - Flat, geometric 1px structural borders (zero AI neon gradients or heavy shadows)
    - Dual theme: Crisp Editorial Light Mode & Pure Matte Zinc Dark Mode (WCAG AA 4.5:1+ verified)
@@ -15,7 +15,7 @@
   --bg-subtle: #18181c;
   --bg-code: #060608;
   --border-line: #27272a;
-  --border-strong: #3f3f46;
+  --border-strong: #52525b;
   --text-main: #fafafa;
   --text-body: #d4d4d8;
   --text-muted: #a1a1aa;
@@ -43,7 +43,7 @@
   --bg-subtle: #f4f4f5;
   --bg-code: #18181b;
   --border-line: #e4e4e7;
-  --border-strong: #d4d4d8;
+  --border-strong: #71717a;
   --text-main: #09090b;
   --text-body: #3f3f46;
   --text-muted: #52525b;
@@ -772,6 +772,17 @@ html[dir="ltr"] .download-filename {
   text-align: start;
 }
 
+.download-submeta-error {
+  color: var(--danger-text);
+}
+
+.results-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+}
+
 .diff-header-row h3 {
   font-size: 0.9rem;
   font-weight: 600;
@@ -982,6 +993,7 @@ html[dir="ltr"] .download-filename {
 
 .help-input-wrap:focus-within {
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-tint);
 }
 
 .help-search-icon {
@@ -1011,13 +1023,30 @@ html[dir="ltr"] .download-filename {
   color: var(--text-muted);
   border: 1px solid var(--border-line);
   border-radius: 0.25rem;
-  min-width: 2rem;
-  min-height: 2rem;
-  font-size: 0.8rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  font-size: 0.85rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.help-clear-btn[hidden] {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .help-clear-btn {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
+.help-fallback-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .help-clear-btn:hover {
@@ -1214,7 +1243,8 @@ html[dir="ltr"] .download-filename {
 }
 
 @media (max-width: 32rem) {
-  .scenario-bar {
+  .scenario-bar,
+  .platform-tabs {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1518,8 +1548,11 @@ html[dir="ltr"] .code-box-prompt pre code {
 .data-table thead th {
   background: var(--bg-subtle);
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 600;
+}
+
+html[dir="ltr"] .data-table thead th {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -1622,6 +1655,11 @@ html[dir="ltr"] .code-box-prompt pre code {
     align-items: center;
     justify-items: start;
     gap: 0.5rem;
+  }
+
+  .matrix-table .cmd-pills code {
+    white-space: normal;
+    word-break: break-word;
   }
 
   .matrix-table tbody td::before {

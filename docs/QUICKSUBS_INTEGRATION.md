@@ -1,5 +1,11 @@
 # On-Device Transcription & Audio Alignment (`quicksubs` Integration)
 
+<p align="left">
+  <b>Language / שפה:</b>
+  <b>English</b> |
+  <a href="QUICKSUBS_INTEGRATION.he.md"><b>עברית</b></a>
+</p>
+
 RightSub integrates with **`quicksubs`**, a high-performance on-device transcription CLI tool developed by **Matt Birchler**.
 
 - **Author**: Matt Birchler

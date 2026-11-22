@@ -1,16 +1,31 @@
 /**
- * app.js — RightSub v1.5.0 Interactive Web UI & Live Sandbox Controller
+ * app.js — RightSub v1.5.1 Interactive Web UI & Live Sandbox Controller
  * ----------------------------------------------------------------------
  * Powers:
- * 1. Instant Client-Side `.srt` Drag & Drop Mastering (single file, batch, or HE+EN bilingual pair).
+ * 1. Instant Client-Side `.srt` Drag & Drop Mastering (single file, batch + ZIP export, or HE+EN pair).
  * 2. Live Single-Line & Multi-Line Subtitle Sandbox (works effortlessly on mobile & desktop).
  * 3. Plex / Infuse / Apple TV Before & After Visual Screen Simulator.
  * 4. Platform Installation Tabs, WAI-ARIA Roving Tablist Keyboard Navigation & 1-Click Clipboard Copy.
  * 5. Complete Bilingual RTL (Hebrew) <-> LTR (English) & Flat Light/Dark Theme Switcher.
- * 6. Live Health Probe when served by `rightsub serve` (`GET /health`).
+ * 6. Live Health Probe when served locally by `rightsub serve` (`GET /health`).
  */
 (function () {
   "use strict";
+
+  function safeGetStorage(key, fallback) {
+    try {
+      const val = window.localStorage.getItem(key);
+      return val !== null ? val : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function safeSetStorage(key, val) {
+    try {
+      window.localStorage.setItem(key, val);
+    } catch (_) {}
+  }
 
   const I18N = {
     he: {
@@ -26,6 +41,8 @@
       aria_gh: "מאגר קוד המקור ב-GitHub",
       aria_workbench: "סביבת התנסות SubRefine",
       aria_wb_tabs: "מצב התנסות",
+      aria_presets: "דוגמאות מוכנות",
+      aria_help_chips: "שאלות נפוצות",
       aria_scenarios: "בחירת תרחיש תצוגה בנגן",
       aria_platforms: "פלטפורמות התקנה",
       skip_link: "דלג לתוכן הראשי",
@@ -52,6 +69,7 @@
       help_q_torrent: "לא לשבור סידינג בטורנט",
       help_BestMatch: "הפתרון המדויק לשאלה שלך",
       help_RelatedMatch: "פתרון קשור נוסף",
+      help_fallback_note: "לא נמצאה התאמה מדויקת לשאילתה — מוצג הפתרון הפופולרי ביותר:",
       hero_kicker: "OPEN-SOURCE SUBTITLE ENGINEERING · UAX #9 RULE N1",
       hero_title: "תיקון כיווניות, קידוד ומאסטרינג לכתוביות עברית.",
       hero_lead:
@@ -100,7 +118,7 @@
         'נגנים כמו Plex ו-Apple TV מציגים סימני פיסוק בסוף משפט עברי (<code>?</code>, <code>!</code>, <code>.</code>) בצד ימין של השורה. בנוסף, אלפי כתוביות ישנות ברשת עברו "היפוך ויזואלי" (<code>Subabi</code>) שהפך פיזית את הנקודות והסוגריים בקובץ. RightSub מזהה את קוטביות הקובץ, משחזר 18 תבניות היפוך ישנות, ועוטף כל שורה בתווי <code>RLM</code> (<code>\\u200F</code>) לפי תקן <code>UAX #9 Rule N1</code> של יוניקוד.',
       cap2_title: "הצלת קידוד Windows-1255, הומוגליפים והצלבת מספרים",
       cap2_desc:
-        'זיהוי אוטומטי ברמת הבייטים של קובצי <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> והמרתם ל-<code dir="ltr">UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code dir="rtl">\u202Eד\u10D4ייט\u202C</code> ← <code dir="rtl">דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code dir="ltr">84</code> ← <code dir="ltr">48</code>) בהצלבה מול כתובית באנגלית.',
+        'זיהוי אוטומטי ברמת הבייטים של קובצי <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> והמרתם ל-<code dir="ltr">UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code dir="rtl">ד\u10D4ייט</code> ← <code dir="rtl">דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code dir="ltr">84</code> ← <code dir="ltr">48</code>) בהצלבה מול כתובית באנגלית.',
       cap3_title: "זיהוי עברית לפי תוכן ושמירת <code>.he.srt</code> נפרד",
       cap3_desc:
         "הורדתם סרט עם קובץ <code>Movie.srt</code> רגיל (ללא סיומת <code>.he.srt</code>) או תיקיית <code>Subs/</code>? RightSub סורקת את תוכן הקובץ, מזהה שמדובר בעברית, משאירה את קובץ ה-<code>.srt</code> המקורי ללא שום שינוי בדיסק כדי לא לשבור שיתוף טורנט ב-qBittorrent/Transmission, ושומרת קובץ <code>Movie.he.srt</code> מתוקן לצד הווידאו.",
@@ -171,7 +189,7 @@
       opt_ai: "אופציונלי (למקרי קצה נדירים)",
       req_ai: "כן (או דרך סוכן ה-MCP)",
       footer_copy:
-        "<strong>RightSub v1.5.0</strong> · קוד פתוח ברישיון MIT · 194 בדיקות אוטומטיות · עיבוד מקומי ב-100% ללא העלאת קבצים.",
+        "<strong>RightSub v1.5.1</strong> · קוד פתוח ברישיון MIT · 212 בדיקות אוטומטיות · עיבוד מקומי ב-100% ללא העלאת קבצים.",
       stat_cues: "כתוביות נסרקו",
       stat_fixed: "שורות תוקנו",
       stat_ads: "פרסומות הוסרו",
@@ -180,7 +198,11 @@
       lines_mastered: "שורות תוקנו",
       foreign_protected:
         "קובץ זה זוהה ככתובית באנגלית/שפה זרה (מוגן משינוי).",
+      err_oversize: "הקובץ חורג ממגבלת הדפדפן (15MB) ונדחה.",
+      err_empty_or_invalid: "הקובץ ריק, בינארי או אינו בפורמט SRT תקני.",
       download_btn: "הורד קובץ \u2066.he.srt\u2069",
+      download_all_zip: "הורד הכל (.zip)",
+      clear_results: "נקה רשימה",
       video_warn:
         "זהו קובץ וידאו. לחילוץ ותרגום של קובצי MKV/MP4 על הדיסק המקומי, הריצו בטרמינל: rightsub auto",
     },
@@ -197,6 +219,8 @@
       aria_gh: "GitHub Source Repository",
       aria_workbench: "SubRefine Interactive Studio",
       aria_wb_tabs: "Studio Mode",
+      aria_presets: "Presets",
+      aria_help_chips: "Common questions",
       aria_scenarios: "Select Player Defect Scenario",
       aria_platforms: "Installation Platforms",
       skip_link: "Skip to main content",
@@ -223,6 +247,7 @@
       help_q_torrent: "Keep torrent seeding intact",
       help_BestMatch: "Recommended Solution",
       help_RelatedMatch: "Related Workflow",
+      help_fallback_note: "No exact match found for your query — showing top solutions:",
       hero_kicker: "OPEN-SOURCE SUBTITLE ENGINEERING · UAX #9 RULE N1",
       hero_title: "Hebrew Subtitle BiDi Mastering, Encoding Rescue & AI Translation.",
       hero_lead:
@@ -271,7 +296,7 @@
         "Players like Plex and Apple TV render trailing punctuation (<code>?</code>, <code>!</code>, <code>.</code>) on the right side of Hebrew lines. Furthermore, thousands of older Hebrew subtitles were processed by visual-flipping tools (<code>Subabi</code>) that physically reversed periods and parentheses. RightSub detects file polarity, reverses 18 legacy flip patterns, and wraps lines in <strong>Unicode UAX #9 Rule N1</strong> <code>RLM</code> (<code>\\u200F</code>) marks.",
       cap2_title: "Windows-1255 Rescue, Homoglyphs & Bilingual Numbers",
       cap2_desc:
-        'Byte-level detection of legacy <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> files converted cleanly to <code dir="ltr">UTF-8</code>. Normalizes lookalike foreign characters from 7 scripts (such as Georgian in <code dir="rtl">\u202Eד\u10D4ייט\u202C</code> → <code dir="rtl">דייט</code>), strips credit watermarks, and un-flips reversed 2-digit numbers (<code dir="ltr">84</code> → <code dir="ltr">48</code>) verified against companion English cues.',
+        'Byte-level detection of legacy <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> files converted cleanly to <code dir="ltr">UTF-8</code>. Normalizes lookalike foreign characters from 7 scripts (such as Georgian in <code dir="rtl">ד\u10D4ייט</code> → <code dir="rtl">דייט</code>), strips credit watermarks, and un-flips reversed 2-digit numbers (<code dir="ltr">84</code> → <code dir="ltr">48</code>) verified against companion English cues.',
       cap3_title: "Content-Based Hebrew Detection & Seed-Safe <code>.he.srt</code>",
       cap3_desc:
         "Downloaded a release with a plain <code>Movie.srt</code> or <code>Subs/</code> folder? RightSub inspects the file content, detects Hebrew automatically, leaves the source <code>.srt</code> 100% untouched on disk so qBittorrent/Transmission seeding never breaks, and outputs <code>Movie.he.srt</code> alongside the video.",
@@ -342,7 +367,7 @@
       opt_ai: "Optional (Rare Edge Cases)",
       req_ai: "Yes (or via MCP Agent)",
       footer_copy:
-        "<strong>RightSub v1.5.0</strong> · MIT Open Source · 194 Automated Tests · 100% Local Processing.",
+        "<strong>RightSub v1.5.1</strong> · MIT Open Source · 212 Automated Tests · 100% Local Processing.",
       stat_cues: "Cues Scanned",
       stat_fixed: "Lines Repaired",
       stat_ads: "Ads Stripped",
@@ -351,7 +376,11 @@
       lines_mastered: "lines mastered",
       foreign_protected:
         "Foreign/English subtitle detected (protected from modification).",
+      err_oversize: "File exceeds the 15 MB browser limit and was skipped.",
+      err_empty_or_invalid: "File is empty, binary, or not a valid SRT subtitle.",
       download_btn: "Download .he.srt",
+      download_all_zip: "Download All (.zip)",
+      clear_results: "Clear",
       video_warn:
         "Video container detected. To extract and master MKV/MP4 files on disk, run locally: rightsub auto",
     },
@@ -463,8 +492,8 @@
     "",
   ].join("\n");
 
-  let currentLang = localStorage.getItem("rightsub_lang") || "he";
-  let currentTheme = localStorage.getItem("rightsub_theme") || "dark";
+  let currentLang = safeGetStorage("rightsub_lang", "he");
+  let currentTheme = safeGetStorage("rightsub_theme", "dark");
   let currentScenario = "punct";
   let activeBlobUrls = [];
   let lastInputState = null;
@@ -472,7 +501,7 @@
 
   function applyTheme(theme) {
     currentTheme = theme === "light" ? "light" : "dark";
-    localStorage.setItem("rightsub_theme", currentTheme);
+    safeSetStorage("rightsub_theme", currentTheme);
     document.documentElement.setAttribute("data-theme", currentTheme);
 
     const themeBtn = document.getElementById("theme-toggle");
@@ -501,7 +530,7 @@
 
   function applyLanguage(lang) {
     currentLang = lang in I18N ? lang : "he";
-    localStorage.setItem("rightsub_lang", currentLang);
+    safeSetStorage("rightsub_lang", currentLang);
     const dict = I18N[currentLang];
 
     document.documentElement.lang = currentLang;
@@ -643,13 +672,16 @@
       badgeClass: "tag-green",
       badgeHe: "100% דטרמיניסטי · 0 טוקנים",
       badgeEn: "100% Deterministic · 0 Tokens",
-      titleHe: "סנכרון זמנים אוטומטי מול כתובית באנגלית או ערוץ שמע (SubSync)",
-      titleEn: "Automatic Timing Sync Against Reference English .srt or Video Audio",
+      titleHe: "סנכרון זמנים והתאמת FPS מול כתובית באנגלית או ערוץ שמע",
+      titleEn: "Timing Alignment & FPS Conversion Against English .srt or Video Audio",
       descHe:
-        'כאשר יש לך כתובית באנגלית בתזמון מדויק (או את קובץ הווידאו עצמו) וכתובית בעברית שמאחרת, מקדימה או שייכת לגרסת שחרור אחרת (Web-DL מול BluRay), הפקודה <code dir="ltr">rightsub sync</code> (או <code dir="ltr">rightsub auto</code>) מיישרת אוטומטית את חותמות הזמן של העברית לאנגלית באמצעות <code dir="ltr">ffsubsync</code> / <code dir="ltr">alass</code> — ללא צורך ב-AI וב-0 טוקנים.',
+        'כאשר יש לך כתובית באנגלית בתזמון מדויק (או את קובץ הווידאו עצמו) וכתובית בעברית שמאחרת, מקדימה או שייכת לקצב פריימים שונה (25 מול 23.976 FPS), הפקודות <code dir="ltr">rightsub audio-sync</code> (מול רפרנס אנגלית או תמלול שמע דרך <code dir="ltr">quicksubs</code>) ו-<code dir="ltr">rightsub adjust-fps</code> מיישרות את חותמות הזמן ב-0 טוקנים.',
       descEn:
-        'When you have a correctly timed English <code>.srt</code> (or the video file itself) and an out-of-sync Hebrew <code>.srt</code> from a different release (e.g., Web-DL vs. BluRay), <code>rightsub sync</code> (or <code>rightsub auto</code>) automatically aligns the Hebrew timestamps to the English reference using <code>ffsubsync</code> / <code>alass</code> with zero AI tokens.',
-      cmd: "rightsub sync --ref Movie.en.srt --sub Movie.he.srt -o Movie.synced.he.srt\nrightsub auto /path/to/Movie_Folder",
+        'When you have an accurate English <code>.srt</code> reference (or the video audio via <code>quicksubs</code>) and an out-of-sync Hebrew <code>.srt</code> with constant offset or framerate drift (25 vs. 23.976 FPS), run <code>rightsub audio-sync</code> or <code>rightsub adjust-fps</code> with 0 AI tokens.',
+      cmdHe:
+        "rightsub audio-sync Movie.he.srt --reference-srt Movie.en.srt -o Movie.synced.he.srt\nrightsub adjust-fps Movie.he.srt -o Movie.synced.he.srt --fps-from 25.0 --fps-to 23.976",
+      cmdEn:
+        "rightsub audio-sync Movie.he.srt --reference-srt Movie.en.srt -o Movie.synced.he.srt\nrightsub adjust-fps Movie.he.srt -o Movie.synced.he.srt --fps-from 25.0 --fps-to 23.976",
       ctaHref: "#install",
       ctaHe: "למדריך התקנת ה-CLI",
       ctaEn: "View CLI Installation",
@@ -702,7 +734,8 @@
         'ניתן לתקן את הקובץ <strong>מיד כאן בעמוד הבית</strong> (ללא התקנה) על ידי גרירת קובץ ה-<code dir="ltr">.srt</code> לתיבת התיקון למעלה, או להריץ בטרמינל <code dir="ltr">rightsub fix-plex</code>. המנוע מזהה אם הקובץ עבר היפוך Subabi ישן, משחזר 18 תבניות פיסוק וסוגריים, ועוטף כל שורה בתווי <code dir="ltr">RLM</code> (<code dir="ltr">\\u200F</code>).',
       descEn:
         'Fix the file <strong>directly in your browser above</strong> (zero install) by dropping your <code>.srt</code> into the Studio dropzone, or run <code>rightsub fix-plex</code> in the terminal. RightSub detects legacy Subabi polarity, reverses 18 flip patterns, and locks punctuation with <code>RLM</code> (<code>\\u200F</code>) marks.',
-      cmd: "rightsub fix-plex Movie.he.srt\nrightsub auto /path/to/Season_Folder",
+      cmdHe: "rightsub fix-plex Movie.he.srt --in-place\nrightsub auto /path/to/Season_Folder",
+      cmdEn: "rightsub fix-plex Movie.he.srt --in-place\nrightsub auto /path/to/Season_Folder",
       ctaHref: "#studio",
       ctaHe: "קפוץ לתיקון קובץ בדפדפן ↑",
       ctaEn: "Jump to Browser Studio ↑",
@@ -743,7 +776,10 @@
         'כלי היפוך ישנים הפכו מספרים דו-ספרתיים בכתוביות עברית (למשל <code dir="ltr">84</code> במקום <code dir="ltr">48</code>). גררו <strong>יחד</strong> את שני הקבצים (<code dir="ltr">Movie.srt</code> בעברית + <code dir="ltr">Movie.en.srt</code> באנגלית) לתיבת התיקון למעלה בעמוד זה — המנוע יצליב לפי חותמת זמן ויהפוך חזרה רק מספרים שאומתו מול האנגלית ב-0 טוקנים.',
       descEn:
         'Legacy visual flippers reversed 2-digit numbers in Hebrew subtitles (e.g., <code>84</code> instead of <code>48</code>). Drag <strong>both</strong> files together (Hebrew <code>Movie.srt</code> + English <code>Movie.en.srt</code>) into the Browser Studio above — RightSub cross-checks timestamps and un-flips verified numbers with 0 tokens.',
-      cmd: "rightsub polish --he Movie.he.srt --en Movie.en.srt --stage0-only",
+      cmdHe:
+        "rightsub fix-plex Movie.he.srt --en Movie.en.srt --in-place\nrightsub polish Movie.he.srt --en Movie.en.srt --offline-canon-only",
+      cmdEn:
+        "rightsub fix-plex Movie.he.srt --en Movie.en.srt --in-place\nrightsub polish Movie.he.srt --en Movie.en.srt --offline-canon-only",
       ctaHref: "#studio",
       ctaHe: "גרור זוג קבצים (HE + EN) בדפדפן ↑",
       ctaEn: "Drop HE + EN Pair in Studio ↑",
@@ -791,7 +827,10 @@
         'כאשר לקובץ וידאו (<code dir="ltr">.mkv</code> / <code dir="ltr">.mp4</code>) אין כתוביות בעברית כלל, הריצו <code dir="ltr">rightsub auto</code> או בקשו מסוכן ה-AI שלכם דרך שרת ה-MCP. המערכת תחלץ כתוביות אנגלית מובנות מהווידאו (או תתמלל שמע עם Whisper), תבנה מילון דמויות ומגדר מ-TMDb (<code dir="rtl">את/היא</code> מול <code dir="rtl">אתה/הוא</code>), ותייצר קובץ <code dir="ltr">.he.srt</code> מתוקן לפלקס.',
       descEn:
         'When an <code>.mkv</code> or <code>.mp4</code> file has no Hebrew subtitles, run <code>rightsub auto</code> or instruct your AI agent via the built-in MCP server. RightSub extracts embedded English tracks (or transcribes audio via Whisper), builds a TMDb character gender bible, and outputs a mastered <code>.he.srt</code>.',
-      cmd: "rightsub auto /path/to/Movie.mkv\nrightsub mcp --install   # לחיבור לסוכן AI (Claude / Cursor / Antigravity)",
+      cmdHe:
+        "rightsub auto /path/to/Movie.mkv\nrightsub mcp --install   # לחיבור לסוכן AI (Claude / Cursor / Antigravity)",
+      cmdEn:
+        "rightsub auto /path/to/Movie.mkv\nrightsub mcp --install   # Connect AI agent (Claude / Cursor / Antigravity)",
       ctaHref: "#install",
       ctaHe: "הוראות התקנת CLI ו-MCP",
       ctaEn: "CLI & MCP Setup Guide",
@@ -867,10 +906,13 @@
       titleHe: "תיקון כתוביות בתיקיות טורנט ללא פגיעה ב-Seeding (Seed-Safe)",
       titleEn: "Master Subtitles in Torrent Folders Without Breaking Seeding (Seed-Safe)",
       descHe:
-        'במצב <code dir="ltr">--seed-safe</code> (ברירת המחדל באוטומציית הטורנטים), RightSub סורקת את תוכן הקבצים (כולל <code dir="ltr">Movie.srt</code> או תיקיית <code dir="ltr">Subs/</code>), מזהה עברית אוטומטית, משאירה את הקובץ המקורי בדיסק ללא שום שינוי של אף בייט, ושומרת קובץ <code dir="ltr">Movie.he.srt</code> חדש לצד הווידאו.',
+        'כברירת מחדל במצבי <code dir="ltr">auto</code> ו-<code dir="ltr">serve</code> (הגנת Seed-Safe פעילה תמיד אלא אם מוסיפים <code dir="ltr">--replace-original</code>), RightSub סורקת את תוכן הקבצים (כולל <code dir="ltr">Movie.srt</code> או תיקיית <code dir="ltr">Subs/</code>), מזהה עברית אוטומטית, משאירה את הקובץ המקורי בדיסק ללא שום שינוי של אף בייט, ושומרת קובץ <code dir="ltr">Movie.he.srt</code> חדש לצד הווידאו.',
       descEn:
-        'In <code>--seed-safe</code> mode, RightSub inspects file contents (including plain <code>Movie.srt</code> or <code>Subs/</code> folders), detects Hebrew automatically, leaves the original torrent file 100% untouched on disk, and writes a new <code>Movie.he.srt</code> alongside the video.',
-      cmd: "rightsub auto /path/to/Torrent_Folder --seed-safe\nrightsub config --install-hooks   # יצירת Hooks ל-qBittorrent / Transmission",
+        'By default in <code>auto</code> and <code>serve</code> (Seed-Safe unless <code>--replace-original</code> is passed), RightSub inspects file contents (including plain <code>Movie.srt</code> or <code>Subs/</code> folders), detects Hebrew automatically, leaves the original torrent file 100% untouched on disk, and writes a new <code>Movie.he.srt</code> alongside the video.',
+      cmdHe:
+        "rightsub auto /path/to/Torrent_Folder\nrightsub config --install-hooks   # יצירת Hooks ל-qBittorrent / Transmission",
+      cmdEn:
+        "rightsub auto /path/to/Torrent_Folder\nrightsub config --install-hooks   # Generate qBittorrent / Transmission hooks",
       ctaHref: "#install",
       ctaHe: "הגדרת Hooks לטורנטים",
       ctaEn: "Torrent Hooks Setup",
@@ -879,10 +921,10 @@
       id: "polish",
       keywords: [
         "מגדר",
+        "מגדרי",
         "זכר",
         "נקבה",
-        "אתה",
-        "את",
+        "פנייה",
         "תרגום מכונה",
         "גוגל טרנסלייט",
         "שגיאות",
@@ -903,6 +945,7 @@
       phrases: [
         "שגיאות מגדר",
         "זכר ונקבה",
+        "אתה/את",
         "תרגום ישן",
         "gender errors",
       ],
@@ -915,38 +958,119 @@
         'הפקודה <code dir="ltr">rightsub qa</code> מריצה ביקורת אלגוריתמית ב-0 טוקנים המאתרת פערי תזמון (Cue Drift), תווים זרים ושגיאות פנייה במגדר מול מילון הדמויות מ-TMDb. לליטוש סמנטי עם סקירה אינטראקטיבית של כל שורה לפני שמירה, הריצו <code dir="ltr">rightsub polish --interactive</code>.',
       descEn:
         '<code>rightsub qa</code> runs a 0-token algorithmic audit detecting Cue Drift, foreign homoglyphs, and character gender mismatches against TMDb. For interactive line-by-line proofreading, run <code>rightsub polish --interactive</code>.',
-      cmd: "rightsub qa Movie.he.srt --en Movie.en.srt\nrightsub polish --he Movie.he.srt --en Movie.en.srt --interactive",
+      cmdHe: "rightsub qa Movie.en.srt Movie.he.srt\nrightsub polish Movie.he.srt --en Movie.en.srt --interactive",
+      cmdEn: "rightsub qa Movie.en.srt Movie.he.srt\nrightsub polish Movie.he.srt --en Movie.en.srt --interactive",
       ctaHref: "#architecture",
       ctaHe: "לטבלת 0 טוקנים מול AI",
       ctaEn: "View 0-Token vs. AI Matrix",
+    },
+    {
+      id: "mcp",
+      keywords: [
+        "סוכן",
+        "סוכנים",
+        "קלוד",
+        "קרסר",
+        "וינדסרף",
+        "אנטיגרביטי",
+        "חיבור",
+        "mcp",
+        "claude",
+        "cursor",
+        "windsurf",
+        "antigravity",
+        "agent",
+        "agents",
+      ],
+      phrases: [
+        "שרת mcp",
+        "סוכני ai",
+        "mcp server",
+        "claude desktop",
+      ],
+      badgeClass: "tag-blue",
+      badgeHe: "שרת MCP מובנה (8 כלים)",
+      badgeEn: "Native MCP Server (8 Tools)",
+      titleHe: "חיבור RightSub ישירות לסוכני AI (Antigravity, Claude, Cursor)",
+      titleEn: "Connect RightSub Directly to AI Coding Agents (MCP Server)",
+      descHe:
+        'פקודה אחת מתקינה את שרת ה-MCP המקומי של RightSub (8 כלים מובנים לבדיקת מדיה, תיקון BiDi, חילוץ, תרגום ו-QA) בתוך Antigravity, Claude Desktop, Cursor ו-Windsurf.',
+      descEn:
+        'A single command registers RightSub’s local MCP server (8 built-in tools for inspection, BiDi fixing, extraction, translation, and QA) in Antigravity, Claude Desktop, Cursor, and Windsurf.',
+      cmdHe: "rightsub mcp --install\nrightsub mcp --status",
+      cmdEn: "rightsub mcp --install\nrightsub mcp --status",
+      ctaHref: "#install",
+      ctaHe: "להוראות חיבור MCP",
+      ctaEn: "View MCP Setup",
+    },
+    {
+      id: "webhook",
+      keywords: [
+        "סונאר",
+        "ראדאר",
+        "באזאר",
+        "דוקר",
+        "וובהוק",
+        "שירות",
+        "רקע",
+        "אוטומציה",
+        "sonarr",
+        "radarr",
+        "bazarr",
+        "docker",
+        "webhook",
+        "serve",
+        "daemon",
+        "arr",
+      ],
+      phrases: [
+        "שרת webhook",
+        "דוקר",
+        "docker compose",
+        "sonarr radarr",
+      ],
+      badgeClass: "tag-green",
+      badgeHe: "אוטומציית רקע · 0 טוקנים",
+      badgeEn: "Background Automation · 0 Tokens",
+      titleHe: "הפעלת שרת Webhook ודוקר ל-Sonarr, Radarr ו-Bazarr",
+      titleEn: "Run Webhook Daemon & Docker Server for Sonarr, Radarr & Bazarr",
+      descHe:
+        'הפקודה <code dir="ltr">rightsub serve</code> מפעילה שרת HTTP מקומי המתקן אוטומטית כל כתובית עברית שיורדת ב-Sonarr/Radarr/Bazarr במצב Seed-Safe, וגם מגישה ממשק Web UI מקומי ב-<code dir="ltr">/ui</code>.',
+      descEn:
+        '<code>rightsub serve</code> starts a lightweight local Webhook daemon that automatically fixes incoming Hebrew subtitles from Sonarr/Radarr/Bazarr in Seed-Safe mode and serves the local Web UI at <code>/ui</code>.',
+      cmdHe: "rightsub serve --port 8775 --path-map \"/data/media:/media\"\nrightsub setup",
+      cmdEn: "rightsub serve --port 8775 --path-map \"/data/media:/media\"\nrightsub setup",
+      ctaHref: "#install",
+      ctaHe: "להגדרת Docker ו-*arr",
+      ctaEn: "View Docker & *arr Setup",
     },
   ];
 
   function scoreHelpEntry(entry, rawQuery) {
     const q = String(rawQuery || "")
       .toLowerCase()
-      .replace(/[?!"'״׳,.:;()[\]]/g, " ")
+      .replace(/[?!"'״׳,.:;()[\]\-–—־/]/g, " ")
       .trim();
     if (!q) return entry.id === "sync" ? 10 : 0;
 
     let score = 0;
     for (const phrase of entry.phrases) {
-      if (q.includes(phrase.toLowerCase())) {
+      const pLower = phrase.toLowerCase().replace(/[\-–—־/]/g, " ");
+      if (q.includes(pLower)) {
         score += 18;
       }
     }
 
     const words = q.split(/\s+/).filter(Boolean);
     for (const kw of entry.keywords) {
-      const kwLower = kw.toLowerCase();
-      if (q.includes(kwLower)) {
+      const kwLower = kw.toLowerCase().replace(/[\-–—־/]/g, " ");
+      if (kwLower.length >= 4 && q.includes(kwLower)) {
         score += 8;
       }
       for (const w of words) {
-        // Strip common 1-letter Hebrew prefixes (ב, ל, מ, ה, ו, כ, ש)
         const stripped = w.length > 3 && /^[בלמהוכש]/.test(w) ? w.slice(1) : w;
         if (w === kwLower || stripped === kwLower) {
-          score += 6;
+          score += kwLower.length >= 4 ? 6 : 7;
         }
       }
     }
@@ -956,30 +1080,41 @@
   function updateHelpSearch() {
     const inputEl = document.getElementById("help-search-input");
     const resultsEl = document.getElementById("help-results-area");
+    const clearBtn = document.getElementById("help-clear-btn");
     if (!inputEl || !resultsEl) return;
 
     const query = inputEl.value.trim();
+    if (clearBtn) {
+      clearBtn.hidden = query.length === 0;
+    }
     const scored = HELP_KB.map((entry) => ({
       entry,
       score: scoreHelpEntry(entry, query),
     })).sort((a, b) => b.score - a.score);
 
+    const noExactMatch = query.length > 0 && scored[0].score === 0;
     const topMatches =
       scored[0].score > 0
         ? scored.filter((x, i) => i === 0 || (i === 1 && x.score >= scored[0].score * 0.55 && x.score >= 12))
         : [scored[0]];
 
     const dict = I18N[currentLang];
-    resultsEl.innerHTML = topMatches
-      .map(({ entry }, idx) => {
-        const isPrimary = idx === 0;
-        const title = currentLang === "he" ? entry.titleHe : entry.titleEn;
-        const badge = currentLang === "he" ? entry.badgeHe : entry.badgeEn;
-        const desc = currentLang === "he" ? entry.descHe : entry.descEn;
-        const cta = currentLang === "he" ? entry.ctaHe : entry.ctaEn;
-        const cmdId = `help-cmd-${entry.id}`;
+    const fallbackBanner = noExactMatch
+      ? `<p class="help-fallback-note">${escapeHtml(dict.help_fallback_note)}</p>`
+      : "";
+    resultsEl.innerHTML =
+      fallbackBanner +
+      topMatches
+        .map(({ entry }, idx) => {
+          const isPrimary = idx === 0;
+          const title = currentLang === "he" ? entry.titleHe : entry.titleEn;
+          const badge = currentLang === "he" ? entry.badgeHe : entry.badgeEn;
+          const desc = currentLang === "he" ? entry.descHe : entry.descEn;
+          const cta = currentLang === "he" ? entry.ctaHe : entry.ctaEn;
+          const cmdText = (currentLang === "he" ? entry.cmdHe : entry.cmdEn) || entry.cmd || "";
+          const cmdId = `help-cmd-${entry.id}`;
 
-        return `
+          return `
           <article class="help-card ${isPrimary ? "" : "help-card-secondary"}">
             <div class="help-card-header">
               <h3 class="help-card-title">${escapeHtml(title)}</h3>
@@ -987,22 +1122,26 @@
             </div>
             <p class="help-card-desc">${desc}</p>
             <div class="code-box" dir="ltr">
-              <pre><code id="${cmdId}">${escapeHtml(entry.cmd)}</code></pre>
+              <pre><code id="${cmdId}">${escapeHtml(cmdText)}</code></pre>
               <button type="button" class="copy-btn" data-copy-target="${cmdId}">${escapeHtml(
-          dict.copy_btn
-        )}</button>
+            dict.copy_btn
+          )}</button>
             </div>
             <div class="help-card-actions">
               <a href="${entry.ctaHref}" class="btn btn-subtle">${escapeHtml(cta)}</a>
             </div>
           </article>
         `;
-      })
-      .join("");
+        })
+        .join("");
   }
 
   function simulateBrokenSingleLine(rawLine) {
-    const clean = String(rawLine || "")
+    const rawStr = String(rawLine || "");
+    if (rawStr.includes("\u200F")) {
+      return rawStr.replace(/<[^>]+>|\{\\[^}]+\}/g, "").replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "").trim();
+    }
+    const clean = rawStr
       .replace(/<[^>]+>|\{\\[^}]+\}/g, "")
       .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "")
       .trim();
@@ -1031,6 +1170,23 @@
       .join("\n");
   }
 
+  function stripSrtHeaderLinesForSandbox(rawText) {
+    const lines = String(rawText || "").split(/\r?\n/);
+    const kept = [];
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].trim();
+      if (!t) continue;
+      if (/^\d{2}:\d{2}:\d{2}[,\.]\d{1,3}\s*-->\s*\d{2}:\d{2}:\d{2}[,\.]\d{1,3}/.test(t)) {
+        continue;
+      }
+      if (/^\d+$/.test(t) && i + 1 < lines.length && /-->/.test(lines[i + 1])) {
+        continue;
+      }
+      kept.push(t);
+    }
+    return kept;
+  }
+
   function updateLiveSandbox() {
     if (!window.RightSubRefine) return;
     const inputEl = document.getElementById("sandbox-input");
@@ -1039,10 +1195,7 @@
     const unicodeEl = document.getElementById("sb-unicode-raw");
     if (!inputEl || !beforeEl || !afterEl || !unicodeEl) return;
 
-    const rawLines = (inputEl.value || "")
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
+    const rawLines = stripSrtHeaderLinesForSandbox(inputEl.value || "");
     const cleanRaw = rawLines.join("\n");
 
     const wrappedSrt = `1\n00:00:01,000 --> 00:00:04,000\n${cleanRaw}\n`;
@@ -1096,6 +1249,115 @@
     activeBlobUrls = [];
   }
 
+  const CRC32_TABLE = (function () {
+    const t = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let k = 0; k < 8; k++) {
+        c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      }
+      t[i] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32Bytes(u8) {
+    let c = 0xffffffff;
+    for (let i = 0; i < u8.length; i++) {
+      c = CRC32_TABLE[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
+    }
+    return (c ^ 0xffffffff) >>> 0;
+  }
+
+  function buildUncompressedZipBlob(entries) {
+    const encoder = new TextEncoder();
+    const parts = [];
+    const centralDir = [];
+    let offset = 0;
+
+    for (const entry of entries) {
+      const nameBytes = encoder.encode(entry.name);
+      const dataBytes = encoder.encode(entry.content);
+      const crc = crc32Bytes(dataBytes);
+      const len = dataBytes.length;
+
+      const lfh = new Uint8Array(30 + nameBytes.length);
+      const dv = new DataView(lfh.buffer);
+      dv.setUint32(0, 0x04034b50, true);
+      dv.setUint16(4, 20, true);
+      dv.setUint16(6, 0x0800, true);
+      dv.setUint16(8, 0, true);
+      dv.setUint16(10, 0, true);
+      dv.setUint16(12, 0, true);
+      dv.setUint32(14, crc, true);
+      dv.setUint32(18, len, true);
+      dv.setUint32(22, len, true);
+      dv.setUint16(26, nameBytes.length, true);
+      dv.setUint16(28, 0, true);
+      lfh.set(nameBytes, 30);
+
+      const cdh = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(cdh.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0x0800, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, 0, true);
+      cv.setUint16(14, 0, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, len, true);
+      cv.setUint32(24, len, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      cdh.set(nameBytes, 46);
+
+      parts.push(lfh, dataBytes);
+      centralDir.push(cdh);
+      offset += lfh.length + dataBytes.length;
+    }
+
+    let cdSize = 0;
+    for (const c of centralDir) {
+      parts.push(c);
+      cdSize += c.length;
+    }
+
+    const eocd = new Uint8Array(22);
+    const ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, entries.length, true);
+    ev.setUint16(10, entries.length, true);
+    ev.setUint32(12, cdSize, true);
+    ev.setUint32(16, offset, true);
+    ev.setUint16(20, 0, true);
+    parts.push(eocd);
+
+    return new Blob(parts, { type: "application/zip" });
+  }
+
+  function clearResults() {
+    revokeActiveBlobs();
+    lastInputState = null;
+    const resultsContainer = document.getElementById("fixer-results");
+    const downloadsList = document.getElementById("downloads-list");
+    const statsGrid = document.getElementById("stats-grid");
+    const diffTbody = document.getElementById("diff-tbody");
+    const diffWrapper = document.getElementById("diff-preview-wrapper");
+    if (downloadsList) downloadsList.innerHTML = "";
+    if (statsGrid) statsGrid.innerHTML = "";
+    if (diffTbody) diffTbody.innerHTML = "";
+    if (diffWrapper) diffWrapper.hidden = true;
+    if (resultsContainer) resultsContainer.hidden = true;
+  }
+
   function renderResults(processedFiles) {
     const dict = I18N[currentLang];
     const resultsContainer = document.getElementById("fixer-results");
@@ -1113,6 +1375,7 @@
     let totalAds = 0;
     let totalNums = 0;
     const allDiffs = [];
+    const zipEntries = [];
 
     downloadsList.innerHTML = "";
 
@@ -1123,7 +1386,7 @@
         errDiv.className = "download-item";
         errDiv.innerHTML = `<div class="download-meta"><span class="download-filename">${escapeHtml(
           item.name
-        )}</span><span class="download-submeta" style="color:var(--danger-text)">${escapeHtml(
+        )}</span><span class="download-submeta download-submeta-error">${escapeHtml(
           errMsg
         )}</span></div>`;
         downloadsList.appendChild(errDiv);
@@ -1134,6 +1397,11 @@
       totalFixed += item.stats.modifiedLines;
       totalAds += item.stats.adsRemoved;
       totalNums += item.stats.numbersUnflipped;
+
+      zipEntries.push({
+        name: item.outName,
+        content: item.stats.resultText,
+      });
 
       const candidates = item.stats.sampleDiffs.some((d) => d.visualChange)
         ? item.stats.sampleDiffs.filter((d) => d.visualChange)
@@ -1168,6 +1436,32 @@
       )}" class="btn btn-solid">${escapeHtml(dict.download_btn)}</a>
       `;
       downloadsList.appendChild(row);
+    }
+
+    if (processedFiles.length > 0) {
+      const actionsBar = document.createElement("div");
+      actionsBar.className = "results-actions-bar";
+
+      if (zipEntries.length >= 2) {
+        const zipBlob = buildUncompressedZipBlob(zipEntries);
+        const zipUrl = URL.createObjectURL(zipBlob);
+        activeBlobUrls.push(zipUrl);
+        const zipBtn = document.createElement("a");
+        zipBtn.href = zipUrl;
+        zipBtn.download = "rightsub-mastered.zip";
+        zipBtn.className = "btn btn-solid";
+        zipBtn.textContent = dict.download_all_zip;
+        actionsBar.appendChild(zipBtn);
+      }
+
+      const clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.className = "btn btn-subtle";
+      clearBtn.textContent = dict.clear_results;
+      clearBtn.addEventListener("click", clearResults);
+      actionsBar.appendChild(clearBtn);
+
+      downloadsList.appendChild(actionsBar);
     }
 
     statsGrid.innerHTML = `
@@ -1219,9 +1513,11 @@
     resultsContainer.hidden = false;
   }
 
+  const MAX_SRT_FILE_BYTES = 15 * 1024 * 1024;
+
   function getBaseStem(filename) {
     return String(filename || "")
-      .replace(/\.(he|heb|en|eng|hi|sdh)\.srt$/i, "")
+      .replace(/(?:\.(?:polished|original|fixed|synced|plex_fixed))*(?:\.(?:he|heb|hebrew|en|eng|english|hi|sdh|forced|cc))*\.srt$/i, "")
       .replace(/\.srt$/i, "")
       .toLowerCase();
   }
@@ -1233,8 +1529,13 @@
     const cleanSpeakers =
       document.getElementById("opt-clean-speakers")?.checked ?? false;
 
-    const enFiles = decodedFiles.filter((f) => !f.isVideo && !f.isHebrew);
-    const hasHebrewFiles = decodedFiles.some((f) => !f.isVideo && f.isHebrew);
+    const enFiles = decodedFiles.filter(
+      (f) => !f.isVideo && !f.isOversize && !f.isInvalid && !f.isHebrew
+    );
+    const hebrewFilesCount = decodedFiles.filter(
+      (f) => !f.isVideo && !f.isOversize && !f.isInvalid && f.isHebrew
+    ).length;
+    const hasHebrewFiles = hebrewFilesCount > 0;
 
     const processed = [];
     for (const f of decodedFiles) {
@@ -1242,6 +1543,20 @@
         processed.push({
           name: f.name,
           error: `${dict.video_warn} "${f.name}"`,
+        });
+        continue;
+      }
+      if (f.isOversize) {
+        processed.push({
+          name: f.name,
+          errorKey: "err_oversize",
+        });
+        continue;
+      }
+      if (f.isInvalid) {
+        processed.push({
+          name: f.name,
+          errorKey: "err_empty_or_invalid",
         });
         continue;
       }
@@ -1257,8 +1572,9 @@
       }
 
       const stem = getBaseStem(f.name);
-      const matchedEn =
-        enFiles.find((ef) => getBaseStem(ef.name) === stem) || enFiles[0] || null;
+      const exactEn = enFiles.find((ef) => getBaseStem(ef.name) === stem) || null;
+      const singlePairEn = hebrewFilesCount === 1 && enFiles.length === 1 ? enFiles[0] : null;
+      const matchedEn = exactEn || singlePairEn;
 
       const stats = window.RightSubRefine.processSrtContent(f.text, {
         cleanAds,
@@ -1290,8 +1606,43 @@
         });
         continue;
       }
+      if (file.size > MAX_SRT_FILE_BYTES) {
+        decodedFiles.push({
+          name: file.name,
+          isOversize: true,
+        });
+        continue;
+      }
       const buffer = await file.arrayBuffer();
+      const u8 = new Uint8Array(buffer);
+      const hasUtf16Bom =
+        (u8.length >= 2 && u8[0] === 0xff && u8[1] === 0xfe) ||
+        (u8.length >= 2 && u8[0] === 0xfe && u8[1] === 0xff);
+      let hasNullByte = false;
+      if (!hasUtf16Bom) {
+        const probeLen = Math.min(u8.length, 4096);
+        for (let i = 0; i < probeLen; i++) {
+          if (u8[i] === 0) {
+            hasNullByte = true;
+            break;
+          }
+        }
+      }
+      if (u8.length === 0 || hasNullByte) {
+        decodedFiles.push({
+          name: file.name,
+          isInvalid: true,
+        });
+        continue;
+      }
       const { text, encoding } = window.RightSubRefine.decodeSrtBuffer(buffer);
+      if (!text.trim() || !/\d{2}:\d{2}:\d{2}[,\.]\d{1,3}\s*-->/.test(text)) {
+        decodedFiles.push({
+          name: file.name,
+          isInvalid: true,
+        });
+        continue;
+      }
       const hebCheck = window.RightSubRefine.detectHebrew(text);
       decodedFiles.push({
         name: file.name,
@@ -1347,6 +1698,15 @@
 
   async function checkLocalDaemonHealth() {
     try {
+      const proto = window.location?.protocol || "";
+      const host = (window.location?.hostname || "").toLowerCase();
+      if (
+        proto === "file:" ||
+        host === "rightsub.ninyo.co" ||
+        host.endsWith(".github.io")
+      ) {
+        return;
+      }
       const resp = await fetch("/health", { cache: "no-store" });
       if (!resp.ok) return;
       const data = await resp.json();
@@ -1471,7 +1831,9 @@
         document.querySelectorAll(".help-quick-chips [data-help-q]").forEach((c) => {
           const qKey = c.getAttribute("data-help-q");
           const pair = HELP_QUICK_QUERIES[qKey];
-          c.classList.toggle("active", Boolean(pair && (val === pair.he || val === pair.en)));
+          const isMatch = Boolean(pair && (val === pair.he || val === pair.en));
+          c.classList.toggle("active", isMatch);
+          c.setAttribute("aria-pressed", isMatch ? "true" : "false");
         });
         updateHelpSearch();
       });
@@ -1481,6 +1843,7 @@
         helpInput.value = "";
         document.querySelectorAll(".help-quick-chips [data-help-q]").forEach((c) => {
           c.classList.remove("active");
+          c.setAttribute("aria-pressed", "false");
         });
         updateHelpSearch();
         helpInput.focus();
@@ -1493,8 +1856,10 @@
         if (!pair || !helpInput) return;
         document.querySelectorAll(".help-quick-chips [data-help-q]").forEach((c) => {
           c.classList.remove("active");
+          c.setAttribute("aria-pressed", "false");
         });
         this.classList.add("active");
+        this.setAttribute("aria-pressed", "true");
         helpInput.value = currentLang === "he" ? pair.he : pair.en;
         updateHelpSearch();
       });
@@ -1510,6 +1875,12 @@
 
     const dropzone = document.getElementById("dropzone");
     const fileInput = document.getElementById("file-input");
+    window.addEventListener("dragover", (e) => e.preventDefault());
+    window.addEventListener("drop", (e) => {
+      if (!dropzone || !dropzone.contains(e.target)) {
+        e.preventDefault();
+      }
+    });
     if (dropzone && fileInput) {
       dropzone.addEventListener("click", () => fileInput.click());
       dropzone.addEventListener("keydown", (e) => {
@@ -1527,8 +1898,10 @@
         e.preventDefault();
         dropzone.classList.add("dragover");
       });
-      dropzone.addEventListener("dragleave", () => {
-        dropzone.classList.remove("dragover");
+      dropzone.addEventListener("dragleave", (e) => {
+        if (!e.relatedTarget || !dropzone.contains(e.relatedTarget)) {
+          dropzone.classList.remove("dragover");
+        }
       });
       dropzone.addEventListener("drop", (e) => {
         e.preventDefault();

@@ -5,7 +5,7 @@
 <p align="right">
   <b>שפה / Language:</b>
   <b>עברית</b> |
-  <a href="BIDI_AND_PLEX_GUIDE.md"><b>English</b></a>
+  <a href="BiDi-and-Plex-Guide"><b>English</b></a>
 </p>
 
 ---

@@ -60,21 +60,41 @@ def clean_srt_tags(srt_path):
     if not os.path.exists(srt_path):
         return
     try:
-        with open(srt_path, "r", encoding="utf-8", errors="replace") as f:
-            text = f.read()
+        try:
+            import importlib
+            fix_mod = importlib.import_module("07_fix_plex_punctuation")
+            text, _ = fix_mod.read_file_with_auto_encoding(Path(srt_path))
+        except Exception:
+            with open(srt_path, "r", encoding="utf-8-sig", errors="replace") as f:
+                text = f.read()
 
+        # Normalize CRLF/CR line endings
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
         # Remove <font ...> and </font>
         text = re.sub(r'</?font[^>]*>', '', text, flags=re.IGNORECASE)
         # Remove <c ...> and </c>
         text = re.sub(r'</?c[^>]*>', '', text, flags=re.IGNORECASE)
-        # Remove ASS position/style tags e.g. {\an8}, {\pos(x,y)}, {\b1}
-        text = re.sub(r'\{[^\}]+\}', '', text)
+        # Remove ASS position/style tags only (e.g. {\an8}, {\pos(x,y)}, {\b1}), preserving literal {dialogue} braces
+        text = re.sub(r'\{\\[^}]*\}', '', text)
         # Normalize redundant empty lines (keep standard SRT 2 newlines between cues)
-        text = re.sub(r'\r\n', '\n', text)
         text = re.sub(r'\n{3,}', '\n\n', text)
 
-        with open(srt_path, "w", encoding="utf-8") as f:
-            f.write(text.strip() + "\n\n")
+        dest = Path(srt_path)
+        tmp_dest = dest.with_name(f".{dest.name}.tmp.{os.getpid()}")
+        try:
+            with open(tmp_dest, "w", encoding="utf-8") as f:
+                f.write(text.strip() + "\n")
+            os.replace(tmp_dest, dest)
+        finally:
+            if tmp_dest.exists():
+                try:
+                    tmp_dest.unlink()
+                except Exception:
+                    pass
+        try:
+            os.utime(dest, None)
+        except Exception:
+            pass
     except Exception as e:
         print(f"    [!] Warning: Failed to sanitize tags in {srt_path}: {e}")
 
@@ -97,30 +117,53 @@ def convert_to_srt(source_sub_path, target_srt_path):
     return False
 
 def discover_external_subtitles(video_path, lang="eng"):
-    """Check if external subtitles already exist for this video."""
+    """Check if external subtitles matching the requested language already exist for this video."""
+    video_path = Path(video_path)
     parent = video_path.parent
     stem = video_path.stem
+    lang_low = (lang or "eng").lower()
 
-    direct_candidates = [
-        parent / f"{stem}.{lang}.srt",
-        parent / f"{stem}.en.srt",
-        parent / f"{stem}.srt",
-        parent / f"{stem}.{lang}.vtt",
-        parent / f"{stem}.en.vtt",
-        parent / f"{stem}.vtt",
-        parent / f"{stem}.ass",
-    ]
+    if lang_low in ("heb", "he", "hebrew", "iw"):
+        suffixes = [".he.srt", ".heb.srt", ".hebrew.srt", ".he.vtt", ".heb.vtt", ".he.ass"]
+        want_hebrew = True
+    elif lang_low in ("eng", "en", "english"):
+        suffixes = [".eng.srt", ".en.srt", ".english.srt", ".eng.vtt", ".en.vtt", ".en.ass"]
+        want_hebrew = False
+    else:
+        suffixes = [f".{lang_low}.srt", f".{lang_low}.vtt", f".{lang_low}.ass"]
+        want_hebrew = None
 
-    for cand in direct_candidates:
+    for sfx in suffixes:
+        cand = parent / f"{stem}{sfx}"
         if cand.exists() and cand.stat().st_size > 0:
             return cand
+
+    for sfx in [".srt", ".vtt", ".ass"]:
+        cand = parent / f"{stem}{sfx}"
+        if cand.exists() and cand.stat().st_size > 0:
+            if want_hebrew is None:
+                return cand
+            try:
+                import importlib
+                fix_mod = importlib.import_module("07_fix_plex_punctuation")
+                sample, _ = fix_mod.read_file_with_auto_encoding(cand)
+                is_heb, _, _ = fix_mod.detect_hebrew(sample)
+            except Exception:
+                raw = cand.read_text(encoding="utf-8-sig", errors="replace")
+                he_cnt = sum(1 for c in raw if '\u0590' <= c <= '\u05FF')
+                en_cnt = sum(1 for c in raw if ('a' <= c <= 'z') or ('A' <= c <= 'Z'))
+                is_heb = he_cnt >= 5 and (he_cnt >= en_cnt * 0.15)
+            if is_heb == want_hebrew:
+                return cand
     return None
 
 def extract_from_video(video_path, output_srt=None, track_index=None, lang="eng", force=False, fallback_transcribe=False, engine="apple"):
     """Extract embedded subtitle track from a video container or fallback to quicksubs STT."""
     video_path = Path(video_path)
     if not output_srt:
-        output_srt = video_path.parent / f"{video_path.stem}.en.srt"
+        lang_low = (lang or "eng").lower()
+        default_sfx = ".he.srt" if lang_low in ("heb", "he", "hebrew", "iw") else (".en.srt" if lang_low in ("eng", "en", "english") else f".{lang_low}.srt")
+        output_srt = video_path.parent / f"{video_path.stem}{default_sfx}"
     else:
         output_srt = Path(output_srt)
 
@@ -181,12 +224,27 @@ def extract_from_video(video_path, output_srt=None, track_index=None, lang="eng"
                 return _attempt_quicksubs_transcription(video_path, output_srt, engine)
             return False, "bitmap_only"
 
-        lang_prefixes = ["eng", "en"] if lang in ["eng", "en"] else [lang.lower()]
+        lang_low = (lang or "eng").lower()
+        if lang_low in ("eng", "en", "english"):
+            lang_prefixes = ["eng", "en"]
+        elif lang_low in ("heb", "he", "hebrew", "iw"):
+            lang_prefixes = ["heb", "he", "iw"]
+        else:
+            lang_prefixes = [lang_low]
+
         matching_lang_streams = [
             s for s in text_streams
             if any(s.get("tags", {}).get("language", "").lower().startswith(prefix) for prefix in lang_prefixes)
         ]
-        candidate_pool = matching_lang_streams if matching_lang_streams else text_streams
+        if matching_lang_streams:
+            candidate_pool = matching_lang_streams
+        elif lang_low in ("eng", "en", "english"):
+            candidate_pool = [
+                s for s in text_streams
+                if (s.get("tags", {}).get("language", "") or "").strip().lower() in ("", "und", "unk")
+            ]
+        else:
+            candidate_pool = []
 
         def _stream_score(s):
             disp = s.get("disposition", {}) or {}
@@ -201,8 +259,9 @@ def extract_from_video(video_path, output_srt=None, track_index=None, lang="eng"
                 score += 5
             return score
 
-        best_stream = max(candidate_pool, key=_stream_score)
-        selected_index = best_stream["index"]
+        if candidate_pool:
+            best_stream = max(candidate_pool, key=_stream_score)
+            selected_index = best_stream["index"]
 
     if selected_index is None:
         print(f"    [-] No matching subtitle stream for language '{lang}' in {video_path.name}")
@@ -255,6 +314,10 @@ def _attempt_quicksubs_transcription(video_path, output_srt, engine):
                 import shutil
                 shutil.move(str(out_f), str(output_srt))
             clean_srt_tags(output_srt)
+            try:
+                os.utime(output_srt, None)
+            except Exception:
+                pass
             print(f"    [✓] Generated SRT from audio via quicksubs -> {output_srt.name}")
             return True, "transcribed"
         else:
@@ -321,6 +384,8 @@ def process_target(target_path, output=None, track_index=None, lang="eng", force
         print(f"  Transcribed (STT):  {stats.get('transcribed', 0)}")
         print(f"  Failed / No Subs:   {stats.get('failed', 0)}")
         print("=" * 60)
+        ok_total = stats["extracted"] + stats["exists"] + stats["external_found"] + stats["external_converted"] + stats["transcribed"]
+        sys.exit(0 if stats["failed"] == 0 or ok_total > 0 else 1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -336,9 +401,11 @@ if __name__ == "__main__":
         "--transcribe", action="store_true",
         help="Fallback to quicksubs On-Device STT if no subtitles are found (Matt Birchler: github.com/mattbirchler/quicksubs)"
     )
+    import platform as _platform
+    default_engine = "apple" if _platform.system() == "Darwin" else "whisper"
     parser.add_argument(
-        "-e", "--engine", choices=["apple", "whisper", "parakeet"], default="apple",
-        help="Speech engine for quicksubs transcription (default: apple)"
+        "-e", "--engine", choices=["apple", "whisper", "parakeet"], default=default_engine,
+        help=f"Speech engine for quicksubs transcription (default: {default_engine})"
     )
     args = parser.parse_args()
 

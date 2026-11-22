@@ -30,6 +30,7 @@ import sys
 import json
 import shutil
 import argparse
+import urllib.parse
 from pathlib import Path
 from typing import Optional, Dict, Any, Callable
 
@@ -49,30 +50,44 @@ for _p in (str(SCRIPT_DIR), str(REPO_ROOT)):
 try:
     from rightsub import __version__ as VERSION
 except Exception:
-    VERSION = "1.5.0"
+    VERSION = "1.5.1"
 
 
 def normalize_dragged_path(raw_input: str) -> Path:
     """
     Normalizes a file or directory path pasted or dragged from macOS Finder,
-    Windows Explorer, or PowerShell into the terminal.
+    Linux terminals (file:// URIs), Windows Explorer, or PowerShell into the terminal.
     """
     if not raw_input:
         return Path("")
 
-    s = raw_input.strip()
+    s = raw_input.lstrip().rstrip("\r\n\t")
+    while s.endswith(" ") and not s.endswith("\\ "):
+        s = s[:-1]
 
     # 1. Strip PowerShell leading call operator: & 'C:\path\file.mkv' or & "C:\path\file.mkv"
     if s.startswith("& ") or s.startswith("&\t"):
         s = s[1:].strip()
 
-    # 2. Strip matching outer single or double quotes
+    # 2. Strip matching outer single or double quotes (and PowerShell doubled apostrophes '')
     if len(s) >= 2 and ((s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'")):
-        s = s[1:-1].strip()
+        quote_char = s[0]
+        s = s[1:-1]
+        if quote_char == "'":
+            s = s.replace("''", "'")
+        s = s.strip()
 
-    # 3. On POSIX (macOS / Linux), Finder escapes spaces and special chars with backslashes (\ , \(, \), \[, \], \', \&)
+    # 3. Convert file:///... URIs (VS Code / Linux desktops)
+    if s.lower().startswith("file://"):
+        parsed = urllib.parse.urlparse(s)
+        uri_path = urllib.parse.unquote(parsed.path)
+        if sys.platform == "win32" and re.match(r'^/[A-Za-z]:', uri_path):
+            uri_path = uri_path[1:]
+        s = uri_path
+
+    # 4. On POSIX (macOS / Linux), Finder escapes spaces and shell metacharacters with backslashes
     if sys.platform != "win32" and "\\" in s:
-        unescaped = re.sub(r'\\([ \(\)\[\]\{\}\'\"\&\!\$\#\,\;])', r'\1', s)
+        unescaped = re.sub(r'\\([ \(\)\[\]\{\}\'\"\&\!\$\#\,\;\?\*\~\`\|\=\\])', r'\1', s)
         cand = Path(unescaped).expanduser()
         if cand.exists() or not Path(s).expanduser().exists():
             s = unescaped
@@ -186,16 +201,17 @@ def prompt_target_path(input_fn: Callable[[str], str] = input) -> Optional[Path]
     print("\n[?] Drag & drop a video, subtitle (.srt), or folder here")
     print("    (or press [B] to browse folders, [Enter] for current directory, [Q] to cancel):")
     try:
-        raw = input_fn("  > ").strip()
+        raw = input_fn("  > ")
     except (EOFError, KeyboardInterrupt):
         print()
         return None
 
-    if raw.lower() == "q":
+    raw_trimmed = raw.strip()
+    if raw_trimmed.lower() == "q":
         return None
-    if raw.lower() == "b":
+    if raw_trimmed.lower() == "b":
         return interactive_file_browser(Path.cwd(), input_fn=input_fn)
-    if not raw:
+    if not raw_trimmed:
         return interactive_file_browser(Path.cwd(), input_fn=input_fn)
 
     target = normalize_dragged_path(raw)
@@ -312,31 +328,46 @@ def run_interactive_hub(input_fn: Callable[[str], str] = input) -> int:
             if not target:
                 continue
             try:
-                ai_ans = input_fn("Mode: [1] 0-Token Deterministic Canon & Number Pass (Recommended)  [2] Include Cloud/Local AI Polish [1/2]: ").strip()
+                ai_ans = input_fn("Mode: [1] 0-Token Deterministic Canon & Number Pass (Recommended)  [2] Cloud Gemini AI Polish  [3] Local Ollama AI Polish [1/2/3]: ").strip()
             except (EOFError, KeyboardInterrupt):
                 print()
                 continue
-            offline_only = (ai_ans != "2")
-            p_args = argparse.Namespace(
-                target=str(target),
-                en_path=None,
-                tmdb_id=None,
-                title=None,
-                bible=None,
-                ollama=False,
-                gemini=(ai_ans == "2"),
-                model=None,
-                api_key=None,
-                batch_size=60,
-                offline_canon_only=offline_only,
-                diff_only=False,
-                dry_run=False,
-                in_place=True,
-                interactive=True,
-                output=None,
-                diff_report=None
-            )
-            m19.polish_target(str(target), None, p_args)
+            offline_only = ai_ans not in ("2", "3")
+            use_gemini = (ai_ans == "2")
+            use_ollama = (ai_ans == "3")
+            targets_to_polish = []
+            if target.is_dir():
+                info = inspect_target_summary(target)
+                targets_to_polish = info["hebrew_srts"] or info["videos"]
+                if not targets_to_polish:
+                    print(f"[-] No Hebrew subtitles or videos found in directory: {target}")
+                    continue
+            else:
+                targets_to_polish = [target]
+
+            for item_path in targets_to_polish:
+                p_args = argparse.Namespace(
+                    target=str(item_path),
+                    en_path=None,
+                    tmdb_id=None,
+                    title=None,
+                    bible=None,
+                    ollama=use_ollama,
+                    gemini=use_gemini,
+                    model=None,
+                    api_key=None,
+                    gemini_key=None,
+                    tmdb_key=None,
+                    batch_size=60,
+                    offline_canon_only=offline_only,
+                    diff_only=False,
+                    dry_run=False,
+                    in_place=True,
+                    interactive=True,
+                    output=None,
+                    diff_report=None
+                )
+                m19.polish_target(str(item_path), None, p_args)
 
         elif choice == "4":
             s_args = argparse.Namespace(

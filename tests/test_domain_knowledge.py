@@ -63,6 +63,22 @@ class TestDomainKnowledge:
         assert prof_lotr.franchise == "lord of the rings"
         assert "fantasy" in prof_lotr.active_domains
 
+        prof_bl = dk.classify_media_domain(title="Boston Legal S01E04")
+        assert prof_bl.franchise == "boston legal"
+        assert "legal" in prof_bl.active_domains
+        assert any(c["name"] == "Lori Colson" and c["gender"] == "Female" for c in prof_bl.get_characters())
+
+        # Verify legal & surname bilingual rules and 2-speaker dash restoration
+        cues_bl = [
+            {"index": 1, "en": "From that Shore guy, Sally.", "he": "מהשור הזה, סאלי."},
+            {"index": 2, "en": "If you need a second chair, it'd be nice.", "he": "אם את צריכה כיסא שני, היה נחמד."},
+            {"index": 3, "en": "- I'm going to talk to the partners.\n- Talk.", "he": "אני מתכוון לדבר עם השותפים.\n- דבר."}
+        ]
+        mods_bl = polish_module.run_deterministic_canon_pass(cues_bl, domain_profile=prof_bl)
+        assert mods_bl[1]["polished_he"] == "מהבחור הזה שור, סאלי."
+        assert mods_bl[2]["polished_he"] == "אם את צריכה פרקליטת משנה, היה נחמד."
+        assert mods_bl[3]["polished_he"] == "- אני מתכוון לדבר עם השותפים.\n- דבר."
+
     def test_classify_from_overview_keywords(self):
         overview = "The crew of a deep space starship encounters a hostile alien species in high planetary orbit."
         prof = dk.classify_media_domain(title="Nameless 2024", overview=overview)

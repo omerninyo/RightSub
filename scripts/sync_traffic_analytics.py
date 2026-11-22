@@ -15,7 +15,7 @@ import sys
 import json
 import urllib.request
 import urllib.error
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -102,7 +102,7 @@ def merge_traffic_data(history, views_data, clones_data, referrers_data):
                 history["clones"][day]["uniques"] = max(history["clones"][day]["uniques"], uniques)
 
     # 3. Merge referrers
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if referrers_data and isinstance(referrers_data, list):
         for ref in referrers_data:
             name = ref.get("referrer", "Unknown")
@@ -119,7 +119,7 @@ def merge_traffic_data(history, views_data, clones_data, referrers_data):
                 history["referrers"][name]["uniques"] = max(history["referrers"][name]["uniques"], uniques)
                 history["referrers"][name]["last_seen"] = today_str
 
-    history["last_updated"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    history["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     return history
 
 
@@ -190,18 +190,40 @@ def main():
     clones_data = fetch_api("clones", token, repo)
     referrers_data = fetch_api("popular/referrers", token, repo)
 
+    if views_data is None and clones_data is None and referrers_data is None:
+        print("[-] Error: All GitHub traffic API calls failed; aborting without overwriting archive.", file=sys.stderr)
+        sys.exit(1)
+
     history = load_history()
     updated_history = merge_traffic_data(history, views_data, clones_data, referrers_data)
 
-    # Save JSON database
-    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(updated_history, f, indent=2, ensure_ascii=False)
+    # Save JSON database atomically
+    tmp_hist = HISTORY_FILE.with_name(f".{HISTORY_FILE.name}.tmp.{os.getpid()}")
+    try:
+        with open(tmp_hist, "w", encoding="utf-8") as f:
+            json.dump(updated_history, f, indent=2, ensure_ascii=False)
+        os.replace(tmp_hist, HISTORY_FILE)
+    finally:
+        if tmp_hist.exists():
+            try:
+                tmp_hist.unlink()
+            except Exception:
+                pass
     print(f"[✓] Saved cumulative history: {HISTORY_FILE}")
 
-    # Save Markdown report
+    # Save Markdown report atomically
     report_content = generate_report(updated_history)
-    with open(REPORT_FILE, "w", encoding="utf-8") as f:
-        f.write(report_content)
+    tmp_rep = REPORT_FILE.with_name(f".{REPORT_FILE.name}.tmp.{os.getpid()}")
+    try:
+        with open(tmp_rep, "w", encoding="utf-8") as f:
+            f.write(report_content)
+        os.replace(tmp_rep, REPORT_FILE)
+    finally:
+        if tmp_rep.exists():
+            try:
+                tmp_rep.unlink()
+            except Exception:
+                pass
     print(f"[✓] Generated traffic report: {REPORT_FILE}")
 
 

@@ -26,6 +26,8 @@ import sys
 import json
 import time
 import re
+import hmac
+import socket
 import posixpath
 import threading
 import argparse
@@ -50,7 +52,7 @@ for _p in (str(SCRIPT_DIR), str(REPO_ROOT)):
 try:
     from rightsub import __version__ as SERVER_VERSION
 except Exception:
-    SERVER_VERSION = "1.5.0"
+    SERVER_VERSION = "1.5.1"
 
 DEFAULT_PORT = 8775
 DEFAULT_HOST = "0.0.0.0"
@@ -73,6 +75,7 @@ START_TIME = time.time()
 _METRICS_LOCK = threading.Lock()
 _FILE_LOCKS_GUARD = threading.Lock()
 _FILE_LOCKS: Dict[str, threading.Lock] = {}
+_REQUEST_SEMAPHORE = threading.BoundedSemaphore(32)
 
 METRICS = {
     "events_count": 0,
@@ -87,7 +90,9 @@ def _get_file_lock(file_path: Path) -> threading.Lock:
     with _FILE_LOCKS_GUARD:
         if key not in _FILE_LOCKS:
             if len(_FILE_LOCKS) > 2048:
-                _FILE_LOCKS.clear()
+                unlocked = [k for k, lk in _FILE_LOCKS.items() if not lk.locked()]
+                for k in unlocked:
+                    _FILE_LOCKS.pop(k, None)
             _FILE_LOCKS[key] = threading.Lock()
         return _FILE_LOCKS[key]
 
@@ -187,13 +192,15 @@ def translate_path(raw_path: str, path_map: List[Tuple[str, str]]) -> Path:
 
 def is_hebrew_content_sample(file_path: Path) -> bool:
     """
-    Quickly samples an SRT file to verify whether it contains Hebrew dialogue.
-    Distinguishes UTF-8, UTF-16, and Windows-1255 Hebrew from Western European Windows-1252.
+    Quickly samples the first 64KB of an SRT file to verify whether it contains Hebrew dialogue.
+    Distinguishes UTF-8, UTF-16, and Windows-1255 Hebrew from Western European Windows-1252,
+    safely handling multi-byte UTF-8 characters split across the 64KB slice boundary.
     """
     if not file_path.is_file():
         return False
     try:
-        raw = file_path.read_bytes()[:65536]
+        with open(file_path, "rb") as f:
+            raw = f.read(65536)
         if not raw:
             return False
         # 1. Check UTF-16 BOM
@@ -203,13 +210,17 @@ def is_hebrew_content_sample(file_path: Path) -> bool:
                 return sum(1 for c in text16 if '\u0590' <= c <= '\u05FF') >= 5
             except Exception:
                 pass
-        # 2. Check UTF-8 / UTF-8-SIG
+        # 2. Check UTF-8 / UTF-8-SIG (salvage prefix if 64KB boundary sliced a multi-byte char)
         try:
             text = raw.decode("utf-8-sig")
-            he_chars = sum(1 for c in text if '\u0590' <= c <= '\u05FF')
-            return he_chars >= 5
-        except UnicodeDecodeError:
-            pass
+            return sum(1 for c in text if '\u0590' <= c <= '\u05FF') >= 5
+        except UnicodeDecodeError as e:
+            if len(raw) == 65536 and e.reason == "unexpected end of data" and e.start > 0:
+                try:
+                    text = raw[:e.start].decode("utf-8-sig")
+                    return sum(1 for c in text if '\u0590' <= c <= '\u05FF') >= 5
+                except UnicodeDecodeError:
+                    pass
         # 3. Check Windows-1255 / CP1255 (require consecutive 0xE0..0xFA Hebrew word bytes)
         cp1255_he_bytes = sum(1 for b in raw if 0xE0 <= b <= 0xFA)
         consecutive_hebrew_words = len(re.findall(rb'[\xE0-\xFA]{2,}', raw))
@@ -265,8 +276,8 @@ def discover_hebrew_subtitles_for_video(video_path: Path) -> List[Path]:
 
 def master_subtitle_file(
     file_path: Path,
-    in_place: bool = True,
-    seed_safe: bool = False,
+    in_place: bool = False,
+    seed_safe: bool = True,
     clean_ads: bool = True,
     backup: bool = False,
     dry_run: bool = False
@@ -274,7 +285,8 @@ def master_subtitle_file(
     """
     Applies SubRefine mastering (RLM, BiDi, CP1255 fix, ad cleaning) to a subtitle file.
     Thread-safe via per-file lock and atomic metrics updates.
-    Returns status dictionary.
+    Enforces Seed-Safe sidecar (.he.srt) creation on generic/torrent .srt files,
+    while safely mastering existing .he.srt sidecars in-place without .plex_fixed.srt sprawl.
     """
     if not file_path.is_file():
         return {
@@ -282,26 +294,45 @@ def master_subtitle_file(
             "status": "not_found",
             "message": "File not found on disk"
         }
-    
+
+    if file_path.suffix.lower() != ".srt":
+        return {
+            "file": str(file_path),
+            "status": "unsupported_type",
+            "message": f"Direct SubRefine mastering supports .srt files (got {file_path.suffix})"
+        }
+
     if process_file is None:
         return {
             "file": str(file_path),
             "status": "error",
             "message": "SubRefine mastering engine (07_fix_plex_punctuation) not available"
         }
-    
-    # Seed-safe check: If seed_safe is enabled and the target is e.g. "movie.srt" (not ".he.srt")
+
+    # Seed-safe logic:
+    # - Existing `.he.srt` sidecars are already Seed-Safe copies -> master them directly in-place.
+    # - Generic `.srt` / `.heb.srt` / `.hebrew.srt` files stay untouched when seed_safe=True; write `<stem>.he.srt`.
     actual_in_place = in_place
     output_path = None
     name_lower = file_path.name.lower()
-    
-    if seed_safe and not (name_lower.endswith(".he.srt") or name_lower.endswith(".heb.srt")):
-        # Generate companion .he.srt instead of overwriting torrent file
-        stem = file_path.stem
-        output_path = file_path.parent / f"{stem}.he.srt"
+
+    if name_lower.endswith(".he.srt"):
+        actual_in_place = True
+        output_path = None
+    elif seed_safe:
+        base_stem = re.sub(r'(?i)\.(?:heb|hebrew)$', '', file_path.stem)
+        target_dir = file_path.parent
+        if target_dir.name.lower() in ("subs", "subtitles") and target_dir.parent.is_dir():
+            parent_videos = [v for v in target_dir.parent.iterdir() if v.is_file() and v.suffix.lower() in VIDEO_EXTENSIONS]
+            if len(parent_videos) == 1:
+                base_stem = parent_videos[0].stem
+                target_dir = target_dir.parent
+        output_path = target_dir / f"{base_stem}.he.srt"
         actual_in_place = False
-    
-    file_lock = _get_file_lock(file_path)
+
+    target_dest = file_path if actual_in_place else (output_path or file_path)
+    lock_target = target_dest if target_dest != file_path else file_path
+    file_lock = _get_file_lock(lock_target)
     with file_lock:
         try:
             subs, mods, ads, status = process_file(
@@ -313,23 +344,22 @@ def master_subtitle_file(
                 clean_ads=clean_ads,
                 force=False
             )
-            
+
             # Accelerate media server detection via timestamp touch
-            target_dest = file_path if actual_in_place else (output_path or file_path)
             if not dry_run and target_dest.exists():
                 try:
                     os.utime(target_dest, None)
                 except Exception:
                     pass
-                    
+
             if status in ("processed", "dry_run"):
                 with _METRICS_LOCK:
                     METRICS["processed_count"] += 1
-                
+
             detailed_status = status
             if status == "processed":
                 detailed_status = "already compliant" if mods == 0 and ads == 0 else "fixed"
-                
+
             return {
                 "file": str(target_dest),
                 "status": detailed_status,
@@ -369,15 +399,15 @@ def process_target_path(
     if target_path.is_file() and target_path.suffix.lower() in SUBTITLE_EXTENSIONS:
         res = master_subtitle_file(
             target_path,
-            in_place=options.get("in_place", True),
-            seed_safe=options.get("seed_safe", False),
+            in_place=options.get("in_place", False),
+            seed_safe=options.get("seed_safe", True),
             clean_ads=options.get("clean_ads", True),
             backup=options.get("backup", False),
             dry_run=options.get("dry_run", False)
         )
         results.append(res)
         return results
-    
+
     # 2. Target is a video file
     if target_path.is_file() and target_path.suffix.lower() in VIDEO_EXTENSIONS:
         companions = discover_hebrew_subtitles_for_video(target_path)
@@ -388,19 +418,19 @@ def process_target_path(
                 "message": f"No companion Hebrew subtitles found for video {target_path.name}"
             })
             return results
-        
+
         for comp in companions:
             res = master_subtitle_file(
                 comp,
-                in_place=options.get("in_place", True),
-                seed_safe=options.get("seed_safe", False),
+                in_place=options.get("in_place", False),
+                seed_safe=options.get("seed_safe", True),
                 clean_ads=options.get("clean_ads", True),
                 backup=options.get("backup", False),
                 dry_run=options.get("dry_run", False)
             )
             results.append(res)
         return results
-    
+
     # 3. Target is a directory
     if target_path.is_dir():
         for srt_path in target_path.rglob("*.srt"):
@@ -408,8 +438,8 @@ def process_target_path(
                 if is_hebrew_content_sample(srt_path):
                     res = master_subtitle_file(
                         srt_path,
-                        in_place=options.get("in_place", True),
-                        seed_safe=options.get("seed_safe", False),
+                        in_place=options.get("in_place", False),
+                        seed_safe=options.get("seed_safe", True),
                         clean_ads=options.get("clean_ads", True),
                         backup=options.get("backup", False),
                         dry_run=options.get("dry_run", False)
@@ -422,7 +452,7 @@ def process_target_path(
                 "message": "No Hebrew subtitles found in directory"
             })
         return results
-    
+
     results.append({
         "target": str(target_path),
         "status": "unsupported_type",
@@ -435,52 +465,131 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
     """
     HTTP Request Handler for RightSub Webhook Daemon.
     Routes:
-      GET  /health, GET /
+      GET  /health, GET /, GET /ui
       POST /webhook/sonarr
       POST /webhook/radarr
       POST /webhook/bazarr
       POST /webhook/generic, POST /process
     """
-    
+
+    timeout = 15
+
     # Config injected from server instance
     server_options: Dict[str, Any] = {}
     path_map: List[Tuple[str, str]] = []
-    
+
     def log_message(self, format, *args):
         # Clean formatted logging with timestamp
         sys.stderr.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] [Webhook] {format % args}\n")
-    
+
     def _send_json(self, status_code: int, data: Dict[str, Any]):
         response_bytes = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(response_bytes)))
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Powered-By", f"RightSub/{SERVER_VERSION}")
         self.end_headers()
         self.wfile.write(response_bytes)
-        
+
+    def _is_authorized(self) -> bool:
+        expected = (self.server_options.get("api_key") or "").strip()
+        if not expected:
+            return True
+        provided = (self.headers.get("X-Api-Key") or "").strip()
+        if not provided:
+            auth_hdr = (self.headers.get("Authorization") or "").strip()
+            if auth_hdr.lower().startswith("bearer "):
+                provided = auth_hdr[7:].strip()
+        return bool(provided and hmac.compare_digest(provided, expected))
+
+    def _is_path_allowed(self, local_target: Path) -> bool:
+        allowed_roots = self.server_options.get("allowed_roots") or []
+        if not allowed_roots:
+            return True
+        try:
+            resolved = local_target.expanduser().resolve()
+            for root_str in allowed_roots:
+                rr = Path(root_str).expanduser().resolve()
+                if resolved == rr or rr in resolved.parents:
+                    return True
+        except Exception:
+            return False
+        return False
+
+    def _read_chunked_body(self) -> Tuple[Optional[bytes], int]:
+        chunks = []
+        total = 0
+        while True:
+            size_line = self.rfile.readline(128)
+            if not size_line:
+                return None, 400
+            try:
+                chunk_size = int(size_line.strip().split(b";", 1)[0], 16)
+            except ValueError:
+                return None, 400
+            if chunk_size < 0:
+                return None, 400
+            if chunk_size == 0:
+                # Consume trailing CRLF / trailer headers
+                while True:
+                    trailer = self.rfile.readline(256)
+                    if not trailer or trailer in (b"\r\n", b"\n"):
+                        break
+                break
+            total += chunk_size
+            if total > MAX_PAYLOAD_BYTES:
+                return None, 413
+            chunk_data = self.rfile.read(chunk_size)
+            if len(chunk_data) != chunk_size:
+                return None, 400
+            chunks.append(chunk_data)
+            # Consume chunk-terminating CRLF
+            crlf = self.rfile.readline(4)
+            if crlf not in (b"\r\n", b"\n"):
+                return None, 400
+        return b"".join(chunks), 200
+
     def _read_json_payload(self) -> Tuple[Optional[Dict[str, Any]], int]:
+        te = (self.headers.get("Transfer-Encoding") or "").lower()
+        is_chunked = "chunked" in te
         raw_cl = self.headers.get("Content-Length", "0")
-        try:
-            content_length = int(raw_cl)
-        except (ValueError, TypeError):
-            self.log_message("Invalid Content-Length header: %s", str(raw_cl))
-            return None, 400
+        content_length = 0
+        if not is_chunked:
+            try:
+                content_length = int(raw_cl)
+            except (ValueError, TypeError):
+                self.log_message("Invalid Content-Length header: %s", str(raw_cl))
+                return None, 400
 
-        if content_length < 0:
-            return None, 400
-        if content_length == 0:
-            return {}, 200
-        if content_length > MAX_PAYLOAD_BYTES:
-            self.log_message("Rejected oversized payload (%d bytes > %d max)", content_length, MAX_PAYLOAD_BYTES)
-            return None, 413
+            if content_length < 0:
+                return None, 400
+            if content_length == 0:
+                return {}, 200
+            if content_length > MAX_PAYLOAD_BYTES:
+                self.log_message("Rejected oversized payload (%d bytes > %d max)", content_length, MAX_PAYLOAD_BYTES)
+                return None, 413
+
+        ctype = (self.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+        if ctype != "application/json":
+            return None, 415
 
         try:
-            body = self.rfile.read(content_length).decode("utf-8")
+            if is_chunked:
+                raw_bytes, status_c = self._read_chunked_body()
+                if raw_bytes is None:
+                    return None, status_c
+                if not raw_bytes.strip():
+                    return {}, 200
+                body = raw_bytes.decode("utf-8")
+            else:
+                body = self.rfile.read(content_length).decode("utf-8")
             parsed = json.loads(body)
             if not isinstance(parsed, dict):
                 return None, 400
             return parsed, 200
+        except socket.timeout:
+            return None, 408
         except Exception as e:
             self.log_message("Failed to parse JSON body: %s", str(e))
             return None, 400
@@ -496,6 +605,7 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(raw_bytes)))
         self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Powered-By", f"RightSub/{SERVER_VERSION}")
         self.end_headers()
         self.wfile.write(raw_bytes)
@@ -504,13 +614,17 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
         url_path = self.path.split("?")[0].rstrip("/")
         accept_header = self.headers.get("Accept", "")
 
-        # Serve static Web UI assets when requested explicitly or when a browser visits "/"
+        # Serve static Web UI assets for both /ui and /ui/ paths
         static_routes = {
             "/ui": ("index.html", "text/html; charset=utf-8"),
             "/index.html": ("index.html", "text/html; charset=utf-8"),
+            "/ui/index.html": ("index.html", "text/html; charset=utf-8"),
             "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+            "/ui/styles.css": ("styles.css", "text/css; charset=utf-8"),
             "/subrefine.js": ("subrefine.js", "application/javascript; charset=utf-8"),
+            "/ui/subrefine.js": ("subrefine.js", "application/javascript; charset=utf-8"),
             "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+            "/ui/app.js": ("app.js", "application/javascript; charset=utf-8"),
         }
         if url_path in static_routes:
             fname, ctype = static_routes[url_path]
@@ -548,31 +662,45 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         url_path = self.path.split("?")[0].rstrip("/")
-        with _METRICS_LOCK:
-            METRICS["events_count"] += 1
-        
-        payload, err_code = self._read_json_payload()
-        if payload is None:
-            if err_code == 413:
-                self._send_json(413, {"error": f"Payload Too Large (max {MAX_PAYLOAD_BYTES} bytes)"})
-            else:
-                self._send_json(400, {"error": "Invalid or malformed JSON payload"})
+        if not _REQUEST_SEMAPHORE.acquire(timeout=5):
+            self._send_json(503, {"error": "Server busy"})
             return
-            
-        if url_path == "/webhook/sonarr":
-            self.handle_sonarr(payload)
-        elif url_path == "/webhook/radarr":
-            self.handle_radarr(payload)
-        elif url_path == "/webhook/bazarr":
-            self.handle_bazarr(payload)
-        elif url_path in ("/webhook/generic", "/process"):
-            self.handle_generic(payload)
-        else:
-            self._send_json(404, {
-                "error": "Not Found",
-                "path": self.path,
-                "available_endpoints": ["/webhook/sonarr", "/webhook/radarr", "/webhook/bazarr", "/webhook/generic"]
-            })
+        try:
+            if not self._is_authorized():
+                self._send_json(401, {"error": "Unauthorized: valid X-Api-Key or Bearer token required"})
+                return
+
+            with _METRICS_LOCK:
+                METRICS["events_count"] += 1
+
+            payload, err_code = self._read_json_payload()
+            if payload is None:
+                if err_code == 413:
+                    self._send_json(413, {"error": f"Payload Too Large (max {MAX_PAYLOAD_BYTES} bytes)"})
+                elif err_code == 415:
+                    self._send_json(415, {"error": "Unsupported Media Type: Content-Type must be application/json"})
+                elif err_code == 408:
+                    self._send_json(408, {"error": "Request Timeout reading body"})
+                else:
+                    self._send_json(400, {"error": "Invalid or malformed JSON payload"})
+                return
+
+            if url_path == "/webhook/sonarr":
+                self.handle_sonarr(payload)
+            elif url_path == "/webhook/radarr":
+                self.handle_radarr(payload)
+            elif url_path == "/webhook/bazarr":
+                self.handle_bazarr(payload)
+            elif url_path in ("/webhook/generic", "/process"):
+                self.handle_generic(payload)
+            else:
+                self._send_json(404, {
+                    "error": "Not Found",
+                    "path": self.path,
+                    "available_endpoints": ["/webhook/sonarr", "/webhook/radarr", "/webhook/bazarr", "/webhook/generic"]
+                })
+        finally:
+            _REQUEST_SEMAPHORE.release()
 
     def handle_sonarr(self, payload: Dict[str, Any]):
         """
@@ -618,6 +746,9 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
         results = []
         for raw_target in targets:
             local_target = translate_path(raw_target, self.path_map)
+            if not self._is_path_allowed(local_target):
+                self._send_json(403, {"error": f"Forbidden: path outside ALLOWED_MEDIA_ROOTS: {local_target}"})
+                return
             self.log_message("Sonarr [%s] Translated '%s' -> '%s'", event_type, raw_target, local_target)
             res = process_target_path(local_target, self.server_options)
             results.extend(res)
@@ -672,6 +803,9 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
         results = []
         for raw_target in targets:
             local_target = translate_path(raw_target, self.path_map)
+            if not self._is_path_allowed(local_target):
+                self._send_json(403, {"error": f"Forbidden: path outside ALLOWED_MEDIA_ROOTS: {local_target}"})
+                return
             self.log_message("Radarr [%s] Translated '%s' -> '%s'", event_type, raw_target, local_target)
             res = process_target_path(local_target, self.server_options)
             results.extend(res)
@@ -728,13 +862,16 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
             return
             
         local_target = translate_path(sub_path, self.path_map)
+        if not self._is_path_allowed(local_target):
+            self._send_json(403, {"error": f"Forbidden: path outside ALLOWED_MEDIA_ROOTS: {local_target}"})
+            return
         self.log_message("Bazarr [%s] Translated '%s' -> '%s'", event_type, sub_path, local_target)
-        
+
         # For Bazarr, the file itself is the downloaded subtitle: master directly
         res = master_subtitle_file(
             local_target,
-            in_place=self.server_options.get("in_place", True),
-            seed_safe=self.server_options.get("seed_safe", False),
+            in_place=self.server_options.get("in_place", False),
+            seed_safe=self.server_options.get("seed_safe", True),
             clean_ads=self.server_options.get("clean_ads", True),
             backup=self.server_options.get("backup", False),
             dry_run=self.server_options.get("dry_run", False)
@@ -760,9 +897,12 @@ class WebhookRequestHandler(BaseHTTPRequestHandler):
             return
             
         local_target = translate_path(raw_path, self.path_map)
+        if not self._is_path_allowed(local_target):
+            self._send_json(403, {"error": f"Forbidden: path outside ALLOWED_MEDIA_ROOTS: {local_target}"})
+            return
         self.log_message("Generic: Translated '%s' -> '%s'", raw_path, local_target)
         results = process_target_path(local_target, self.server_options)
-        
+
         self._send_json(200, {
             "status": "ok",
             "processed_items": len(results),
@@ -774,33 +914,37 @@ def run_server(
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
     path_map_str: Optional[str] = None,
-    in_place: bool = True,
-    seed_safe: bool = False,
+    in_place: bool = False,
+    seed_safe: bool = True,
     clean_ads: bool = True,
     backup: bool = False,
-    dry_run: bool = False
+    dry_run: bool = False,
+    api_key: Optional[str] = None,
+    allowed_roots: Optional[List[str]] = None
 ):
     """
     Initializes and starts the RightSub Webhook HTTP Server.
     """
     path_map = parse_path_map(path_map_str)
-    
+
     server_options = {
         "in_place": in_place,
         "seed_safe": seed_safe,
         "clean_ads": clean_ads,
         "backup": backup,
         "dry_run": dry_run,
+        "api_key": (api_key or "").strip(),
+        "allowed_roots": [r.strip() for r in (allowed_roots or []) if r and r.strip()],
     }
-    
+
     # Configure handler class
     WebhookRequestHandler.server_options = server_options
     WebhookRequestHandler.path_map = path_map
-    
+
     server_address = (host, port)
     httpd = ThreadingHTTPServer(server_address, WebhookRequestHandler)
     httpd.daemon_threads = True
-    
+
     print("==================================================================")
     print(f"  RightSub Webhook Daemon v{SERVER_VERSION}")
     print(f"  Listening on:   http://{host}:{port}")
@@ -808,13 +952,15 @@ def run_server(
     for from_p, to_p in path_map:
         print(f"    • '{from_p}' -> '{to_p}'")
     print(f"  SubRefine Mode: {'In-Place' if in_place and not seed_safe else 'Seed-Safe (.he.srt sidecars)'}")
+    print(f"  Auth Guard:     {'Enabled (API Key)' if server_options['api_key'] else 'Disabled (set RIGHTSUB_API_KEY / --api-key to enable)'}")
+    print(f"  Allowed Roots:  {server_options['allowed_roots'] or 'Unrestricted'}")
     print(f"  Ad Cleaner:     {'Active' if clean_ads else 'Disabled'}")
     print(f"  Backup (.bak):  {'Enabled' if backup else 'Disabled'}")
     print(f"  Dry-Run Mode:   {'YES (No modifications)' if dry_run else 'NO (Live modifications)'}")
     print("==================================================================")
     print("Endpoints ready for Sonarr, Radarr, and Bazarr webhooks.")
     print("Press Ctrl+C to terminate.")
-    
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -831,26 +977,35 @@ def main():
     env_port = int(os.environ.get("RIGHTSUB_PORT", DEFAULT_PORT))
     env_host = os.environ.get("RIGHTSUB_HOST", DEFAULT_HOST)
     env_path_map = os.environ.get("PATH_MAP", "")
-    
+    env_api_key = os.environ.get("RIGHTSUB_API_KEY", "")
+    env_allowed_roots = os.environ.get("ALLOWED_MEDIA_ROOTS", "")
+
     parser.add_argument("--host", "-H", default=env_host, help=f"Host/IP to bind to (default: {env_host})")
     parser.add_argument("--port", "-p", type=int, default=env_port, help=f"Port to listen on (default: {env_port})")
     parser.add_argument("--path-map", default=env_path_map, help="Container volume prefix mappings (e.g. /data/media:/media)")
-    parser.add_argument("--seed-safe", action="store_true", help="Never modify original torrent subtitle files; produce .he.srt sidecars")
+    parser.add_argument("--seed-safe", action="store_true", help="Keep original torrent files untouched and write .he.srt sidecars (default)")
+    parser.add_argument("--replace-original", "--no-seed-safe", dest="replace_original", action="store_true", help="Modify plain .srt files in-place instead of Seed-Safe duplication")
+    parser.add_argument("--api-key", default=env_api_key, help="Optional API key required via X-Api-Key or Bearer header on POST endpoints")
+    parser.add_argument("--allowed-roots", default=env_allowed_roots, help="Optional comma/semicolon list of allowed local root directories")
     parser.add_argument("--no-clean-ads", action="store_true", help="Do not strip promo spam and credits")
     parser.add_argument("--backup", action="store_true", help="Create .bak backups before in-place modifications")
     parser.add_argument("--dry-run", action="store_true", help="Log actions without modifying any files on disk")
-    
+
     args = parser.parse_args()
-    
+    seed_safe = not args.replace_original
+    roots_list = [r.strip() for r in re.split(r'[,;]', args.allowed_roots or "") if r.strip()]
+
     run_server(
         host=args.host,
         port=args.port,
         path_map_str=args.path_map,
-        in_place=not args.seed_safe,
-        seed_safe=args.seed_safe,
+        in_place=not seed_safe,
+        seed_safe=seed_safe,
         clean_ads=not args.no_clean_ads,
         backup=args.backup,
-        dry_run=args.dry_run
+        dry_run=args.dry_run,
+        api_key=args.api_key,
+        allowed_roots=roots_list
     )
 
 

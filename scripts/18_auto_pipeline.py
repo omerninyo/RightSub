@@ -30,6 +30,7 @@ Workflow Logic:
 """
 
 import os
+import re
 import sys
 import subprocess
 import shutil
@@ -50,9 +51,19 @@ VIDEO_EXTENSIONS = {".mp4", ".mkv", ".m4v", ".avi", ".ts", ".mov", ".webm"}
 SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass", ".ssa", ".sub"}
 
 def run_cmd(cmd):
-    """Runs a command and returns the returncode."""
+    """Runs a command, forwarding output when stdout/stderr are redirected, and returns returncode."""
     print(f"[*] Running: {' '.join(str(c) for c in cmd)}")
-    res = subprocess.run(cmd)
+    capture_streams = (sys.stdout is not sys.__stdout__) or (sys.stderr is not sys.__stderr__)
+    if capture_streams:
+        res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if res.stdout:
+            sys.stdout.write(res.stdout)
+            sys.stdout.flush()
+        if res.stderr:
+            sys.stderr.write(res.stderr)
+            sys.stderr.flush()
+        return res.returncode
+    res = subprocess.run(cmd, stdin=subprocess.DEVNULL)
     return res.returncode
 
 def read_srt_sample_auto_encoding(srt_path, max_bytes=65536):
@@ -69,7 +80,8 @@ def read_srt_sample_auto_encoding(srt_path, max_bytes=65536):
         # 1. UTF-16 BOM
         if raw.startswith(b'\xff\xfe') or raw.startswith(b'\xfe\xff'):
             try:
-                return raw.decode('utf-16', errors='replace')
+                trim_raw = raw[:len(raw) - (len(raw) % 2)] if len(raw) == max_bytes else raw
+                return trim_raw.decode('utf-16', errors='replace')
             except Exception:
                 pass
 
@@ -78,8 +90,12 @@ def read_srt_sample_auto_encoding(srt_path, max_bytes=65536):
         # Never re-decode valid UTF-8 as CP1255!
         try:
             return raw.decode('utf-8-sig')
-        except UnicodeDecodeError:
-            pass
+        except UnicodeDecodeError as e:
+            if len(raw) == max_bytes and e.start >= len(raw) - 4 and 'unexpected end of data' in str(e):
+                try:
+                    return raw[:e.start].decode('utf-8-sig')
+                except UnicodeDecodeError:
+                    pass
 
         # 3. Check CP1255 (Hebrew ANSI - bytes 0xE0..0xFA forming consecutive multi-byte Hebrew words)
         import re as _re
@@ -266,7 +282,8 @@ def handle_single_srt(srt_file, args):
                 cmd.append("--backup")
             if args.dry_run:
                 cmd.append("--dry-run")
-            run_cmd(cmd)
+            if run_cmd(cmd) != 0:
+                return False
             final_path = srt_path
         elif replace_orig:
             print(f"[i] Detected Hebrew subtitle. Applying Plex BiDi mastering and renaming (--replace-original)...")
@@ -277,7 +294,8 @@ def handle_single_srt(srt_file, args):
                 cmd.append("--backup")
             if args.dry_run:
                 cmd.append("--dry-run")
-            run_cmd(cmd)
+            if run_cmd(cmd) != 0:
+                return False
 
             if not target_path.exists() and not args.dry_run:
                 try:
@@ -302,7 +320,8 @@ def handle_single_srt(srt_file, args):
                 cmd = [sys.executable, str(fix_script), str(target_path), "--in-place"]
                 if not args.no_clean_ads:
                     cmd.append("--clean-ads")
-                run_cmd(cmd)
+                if run_cmd(cmd) != 0:
+                    return False
             else:
                 print(f"[i] [Dry-Run] Would copy {srt_path.name} -> {target_path.name} and apply Plex mastering.")
             final_path = target_path
@@ -312,9 +331,13 @@ def handle_single_srt(srt_file, args):
     else:
         print("[i] Detected English/source subtitle. Generating Translation Bible & Batches...")
         parent_dir = srt_path.parent
-        stem = srt_path.stem.replace(".en", "").replace(".eng", "")
+        stem = re.sub(r'\.(en|eng|english)$', '', srt_path.stem, flags=re.IGNORECASE)
         prompts_dir = parent_dir / f"prompts_{stem}"
         bible_path = parent_dir / "translation_bible.json"
+
+        if getattr(args, "dry_run", False):
+            print(f"[i] [Dry-Run] Would generate Bible and translation batches in {prompts_dir.name}/")
+            return True
 
         # 1. Bible generation
         bible_script = SCRIPT_DIR / "03_generate_bible.py"
@@ -326,7 +349,8 @@ def handle_single_srt(srt_file, args):
         except Exception:
             if os.environ.get("TMDB_API_KEY"):
                 cmd_bible.append("--tmdb")
-        run_cmd(cmd_bible)
+        if run_cmd(cmd_bible) != 0:
+            print("[!] Warning: Bible generation exited non-zero; continuing with available context.")
 
         # 2. Prompt builder
         prompt_script = SCRIPT_DIR / "09_prompt_builder.py"
@@ -337,7 +361,8 @@ def handle_single_srt(srt_file, args):
         ]
         if bible_path.exists():
             cmd_prompt.extend(["-b", str(bible_path)])
-        run_cmd(cmd_prompt)
+        if run_cmd(cmd_prompt) != 0:
+            return False
 
         # 3. Optional Ollama local translation
         if args.ollama:
@@ -357,11 +382,13 @@ def handle_single_srt(srt_file, args):
             ]
             if args.model:
                 cmd_ollama.extend(["-m", args.model])
-            run_cmd(cmd_ollama)
+            if run_cmd(cmd_ollama) != 0:
+                return False
             # Fix plex on the newly generated hebrew subtitle
             if out_he.exists():
                 fix_script = SCRIPT_DIR / "07_fix_plex_punctuation.py"
-                run_cmd([sys.executable, str(fix_script), str(out_he), "--in-place", "--clean-ads"])
+                if run_cmd([sys.executable, str(fix_script), str(out_he), "--in-place", "--clean-ads"]) != 0:
+                    return False
                 print(f"[✓] End-to-end local translation complete! Created: {out_he.name}")
         else:
             final_he = parent_dir / f"{stem}.he.srt"
@@ -424,20 +451,23 @@ def handle_single_video(video_file, args):
     # If no English subtitle exists on disk, attempt extraction or transcription
     if not companion_en or not companion_en.exists():
         target_en = parent_dir / f"{stem}.en.srt"
+        if getattr(args, "dry_run", False):
+            print(f"[i] [Dry-Run] Would extract or transcribe English subtitles for {video_path.name} -> {target_en.name}")
+            return True
         print(f"[i] No external English subtitle found. Attempting extraction from {video_path.name}...")
         extract_script = SCRIPT_DIR / "01_extract_subtitles.py"
-        res = subprocess.run([
+        rc = run_cmd([
             sys.executable, str(extract_script), str(video_path),
             "-o", str(target_en), "-l", "eng"
         ])
-        
-        if res.returncode == 0 and target_en.exists() and target_en.stat().st_size > 100:
+
+        if rc == 0 and target_en.exists() and target_en.stat().st_size > 100:
             print(f"[✓] Extracted embedded English subtitles to: {target_en.name}")
             companion_en = target_en
         else:
             print("[!] No embedded subtitles found. Falling back to quicksubs on-device audio transcription...")
             transcribe_script = SCRIPT_DIR / "00_transcribe_audio.py"
-            t_res = subprocess.run([
+            run_cmd([
                 sys.executable, str(transcribe_script), str(video_path),
                 "-o", str(parent_dir),
                 "-e", args.engine
@@ -491,6 +521,7 @@ def handle_directory(dir_path, args):
         ):
             discovered_he_srts.append(srt)
 
+    had_errors = False
     if discovered_he_srts:
         if replace_orig:
             print(f"[+] Found {len(discovered_he_srts)} Hebrew subtitle(s). Running automated Plex BiDi mastering (--replace-original)...")
@@ -501,7 +532,8 @@ def handle_directory(dir_path, args):
                 cmd.append("--backup")
             if args.dry_run:
                 cmd.append("--dry-run")
-            run_cmd(cmd)
+            if run_cmd(cmd) != 0:
+                had_errors = True
 
             # Standardize names
             for srt in discovered_he_srts:
@@ -554,7 +586,8 @@ def handle_directory(dir_path, args):
                     cmd.append("--clean-ads")
                 if args.dry_run:
                     cmd.append("--dry-run")
-                run_cmd(cmd)
+                if run_cmd(cmd) != 0:
+                    had_errors = True
 
         print(f"[✓] Successfully processed {len(discovered_he_srts)} Hebrew subtitle file(s)!")
 
@@ -584,13 +617,15 @@ def handle_directory(dir_path, args):
                             cmd = [sys.executable, str(fix_script), str(target_he), "--in-place"]
                             if not args.no_clean_ads:
                                 cmd.append("--clean-ads")
-                            run_cmd(cmd)
+                            if run_cmd(cmd) != 0:
+                                had_errors = True
                         except Exception:
-                            pass
+                            had_errors = True
             continue  # Already has Hebrew subtitle
 
         print(f"\n---> Video missing Hebrew subtitles: {vid.name}")
-        handle_single_video(vid, args)
+        if not handle_single_video(vid, args):
+            had_errors = True
         processed_vids += 1
 
     print("\n==================================================================")
@@ -599,7 +634,7 @@ def handle_directory(dir_path, args):
     print(f"  • Total video files scanned:  {len(video_files)}")
     print(f"  • New videos prepared:        {processed_vids}")
     print(f"==================================================================\n")
-    return True
+    return not had_errors
 
 def main():
     parser = argparse.ArgumentParser(
@@ -612,7 +647,7 @@ def main():
         action="store_true",
         help="In-place rename mode: replace and rename original non-standard subtitle files instead of duplicating (breaks torrent seeding)"
     )
-    parser.add_argument("--ollama", action="store_true", help="Perform 100% offline local translation using Ollama")
+    parser.add_argument("--ollama", action="store_true", help="Perform 100%% offline local translation using Ollama")
     parser.add_argument("--model", help="Ollama model name (default: llama3.2 / llama3:8b)")
     parser.add_argument("--engine", choices=["apple", "whisper", "parakeet"], default=default_engine, help="quicksubs speech engine")
     parser.add_argument("--no-clean-ads", action="store_true", help="Do not strip promo spam/credits")
@@ -621,8 +656,14 @@ def main():
 
     args = parser.parse_args()
 
-    target_str = args.target.strip().strip("'\"")
-    target_path = Path(target_str).resolve()
+    raw_target = args.target
+    if Path(raw_target).exists():
+        target_path = Path(raw_target).resolve()
+    else:
+        target_str = raw_target.strip()
+        if len(target_str) >= 2 and target_str[0] == target_str[-1] and target_str[0] in ("'", '"'):
+            target_str = target_str[1:-1]
+        target_path = Path(target_str).resolve()
     if not target_path.exists():
         print(f"[-] Target not found: {target_path}")
         sys.exit(1)

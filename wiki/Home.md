@@ -12,7 +12,7 @@
 
 ## ⚡ Quickstart in 30 Seconds
 
-Got an out-of-sync subtitle, reversed punctuation, or an English video you want in Hebrew? You have three effortless options in **RightSub v1.5.0**:
+Got an out-of-sync subtitle, reversed punctuation, or an English video you want in Hebrew? You have three effortless options in **RightSub v1.5.1**:
 
 1. **Interactive Mastering Wizard (Zero Flags):** Simply type `rightsub` with no arguments to open the guided interactive menu with Drag & Drop and a built-in file browser (`[B] Browse`).
 2. **One-Command Autonomous Runner (`rightsub auto`):**
@@ -34,7 +34,7 @@ Got an out-of-sync subtitle, reversed punctuation, or an English video you want 
 - 🎙️ **[On-Device STT & Audio Alignment](Quicksubs-Integration)**: Local speech-to-subtitle extraction via quicksubs.
 - 🎬 **[TMDb Metadata & Gender Resolution](TMDb-Integration)**: Deterministic character gender mapping and context priming.
 - 🔄 **[End-to-End Pipeline Workflow](Pipeline-Workflow)**: Step-by-step workflow from raw video file to deployed subtitles.
-- 🗺️ **[Product Roadmap](Roadmap)** & 🚀 **[What's New (`v1.5.0`)](Whats-New)**: Release history and milestone tracking.
+- 🗺️ **[Product Roadmap](Roadmap)** & 🚀 **[What's New (`v1.5.1`)](Whats-New)**: Release history and milestone tracking.
 - 🏆 **[Boston Legal Benchmark Case Study (Theoretical)](Boston-Legal-Case-Study)**: Algorithmic validation benchmark across 101 episodes and 78,000+ dialogue cues.
 
 ---
@@ -57,7 +57,7 @@ RightSub separates user-facing CLI operations from its two underlying algorithmi
 
 ---
 
-## 💻 CLI Commands Reference (`v1.5.0`)
+## 💻 CLI Commands Reference (`v1.5.1`)
 
 | Command | Engine | Description | Windows Example | macOS / Linux Example |
 | :--- | :---: | :--- | :--- | :--- |
@@ -69,7 +69,7 @@ RightSub separates user-facing CLI operations from its two underlying algorithmi
 | `serve` | **Daemon** | Container & Host Webhook Daemon for Sonarr, Radarr & Bazarr | `rightsub serve --port 8775` | `rightsub serve --port 8775` |
 | `translate-ollama` | **SubSwarm** | 100% offline local subtitle translation via Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
 | `fix-plex` | **SubRefine** | Fix BiDi, RLM, punctuation, CP1255 encoding & ads | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
-| `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
+| `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `rightsub adjust-fps in.srt --fps-from 25 --fps-to 23.976 -o out.srt` | `rightsub adjust-fps in.srt --fps-from 25 --fps-to 23.976 -o out.srt` |
 | `extract` | **SubRefine** | Extract subtitle tracks from MKV/MP4 using FFmpeg | `rightsub extract video.mp4 -o out.srt` | `rightsub extract video.mp4 -o out.srt` |
 | `transcribe` | **quicksubs** | On-device Speech-to-Subtitle transcription (Apple / Whisper) | `rightsub transcribe video.mp4` | `rightsub transcribe video.mp4` |
 | `audio-sync` | **quicksubs** | Subtitle retiming guided by authoritative audio | `rightsub audio-sync bad.srt -v vid.mp4 -o ok.srt` | `rightsub audio-sync bad.srt -v vid.mp4 -o ok.srt` |

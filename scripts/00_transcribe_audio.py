@@ -103,17 +103,30 @@ def transcribe_audio(
     else:
         out_dir_path = input_path.parent
 
+    proc_env = None
     if gemini_cleanup:
         cmd.append("--clean-up")
         if api_key:
-            cmd.extend(["--api-key", api_key])
+            proc_env = os.environ.copy()
+            proc_env["GEMINI_API_KEY"] = api_key
         if model:
             cmd.extend(["--model", model])
 
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        stdout = proc.stdout.strip()
-        stderr = proc.stderr.strip()
+        run_kwargs = {
+            "stdin": subprocess.DEVNULL,
+            "capture_output": True,
+            "text": True,
+            "check": False,
+            "timeout": 1800,
+        }
+        if proc_env is not None:
+            run_kwargs["env"] = proc_env
+        proc = subprocess.run(cmd, **run_kwargs)
+        stdout = (proc.stdout or "").strip()
+        stderr = (proc.stderr or "").strip()
+        if api_key and isinstance(api_key, str) and len(api_key) > 4:
+            stderr = stderr.replace(api_key, "[REDACTED]")
 
         metrics = None
         output_files = []
@@ -133,18 +146,27 @@ def transcribe_audio(
         # Fallback detection of expected output file
         expected_output = out_dir_path / f"{input_path.stem}.{format_type}"
         resolved_output = None
-        if output_files and os.path.exists(output_files[0]):
+        if output_files and os.path.isfile(output_files[0]) and os.path.getsize(output_files[0]) > 0:
             resolved_output = output_files[0]
-        elif expected_output.exists():
+        elif expected_output.is_file() and expected_output.stat().st_size > 0:
             resolved_output = str(expected_output)
 
-        if proc.returncode != 0 and not resolved_output:
+        if proc.returncode != 0:
             return {
                 "success": False,
                 "output_file": None,
                 "engine": engine,
                 "metrics": metrics,
                 "error": f"quicksubs exited with code {proc.returncode}. Stderr: {stderr}"
+            }
+
+        if not resolved_output:
+            return {
+                "success": False,
+                "output_file": None,
+                "engine": engine,
+                "metrics": metrics,
+                "error": "quicksubs completed without producing a non-empty output file."
             }
 
         return {
@@ -155,13 +177,24 @@ def transcribe_audio(
             "error": None
         }
 
-    except Exception as exc:
+    except subprocess.TimeoutExpired:
         return {
             "success": False,
             "output_file": None,
             "engine": engine,
             "metrics": None,
-            "error": str(exc)
+            "error": "quicksubs transcription timed out after 1800s."
+        }
+    except Exception as exc:
+        err_str = str(exc)
+        if api_key and isinstance(api_key, str) and len(api_key) > 4:
+            err_str = err_str.replace(api_key, "[REDACTED]")
+        return {
+            "success": False,
+            "output_file": None,
+            "engine": engine,
+            "metrics": None,
+            "error": err_str
         }
 
 def main():
@@ -170,11 +203,13 @@ def main():
     )
     parser.add_argument("input", help="Path to video or audio file")
     parser.add_argument("-o", "--output-dir", help="Output directory for subtitles")
+    import platform as _platform
+    default_engine = "apple" if _platform.system() == "Darwin" else "whisper"
     parser.add_argument(
         "-e", "--engine",
         choices=VALID_ENGINES,
-        default="apple",
-        help="Speech engine: apple (on-device Apple SpeechAnalyzer), whisper (OpenAI), or parakeet (NVIDIA)"
+        default=default_engine,
+        help=f"Speech engine: apple (macOS SpeechAnalyzer), whisper (OpenAI), or parakeet (NVIDIA). Default: {default_engine}"
     )
     parser.add_argument(
         "-f", "--format",
@@ -183,8 +218,8 @@ def main():
         help="Target subtitle/transcript format (default: srt)"
     )
     parser.add_argument("--clean-up", action="store_true", help="Perform Gemini AI cleanup pass on transcript")
-    parser.add_argument("--api-key", help="Google Gemini API key for --clean-up pass")
-    parser.add_argument("--model", help="Gemini model for --clean-up (e.g. gemini-2.5-flash)")
+    parser.add_argument("--api-key", help="Google Gemini API key for --clean-up pass (prefers GEMINI_API_KEY env)")
+    parser.add_argument("--model", help="Gemini model for --clean-up (e.g. gemini-3.8-flash)")
     parser.add_argument("-q", "--quiet", action="store_true", help="Quiet output")
 
     args = parser.parse_args()

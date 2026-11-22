@@ -16,9 +16,9 @@
 
 | שיטה | מערכת הפעלה | פקודת ההתקנה | מתי להשתמש? | דרישות קדם |
 | :--- | :--- | :--- | :--- | :---: |
-| **1. חבילת Homebrew Tap רשמית** | macOS / Linux | `brew tap omerninyo/tap && brew install rightsub` | **הכי מומלץ למשתמשי Mac** (בקבוק אוניברסלי בשנייה אחת) | Homebrew |
+| **1. חבילת Homebrew Tap רשמית** | macOS / Linux | `brew tap omerninyo/tap && brew install rightsub` | **הכי מומלץ למשתמשי Mac** (התקנה נקייה ללא תלויות חיצוניות) | Homebrew |
 | **2. סקריפט התקנה מהיר** | macOS / Linux | `./install.sh` | התקנה מקומית למפתחים (קישור גלובלי ב-`~/.local/bin`) | Python 3 |
-| **3. מתקין חלונות Batch** | Windows | `install.bat` | **הכי מומלץ למשתמשי Windows** (בודק Python, מתקין ספריות ומזריק ל-PATH אוטומטית) | Python 3 |
+| **3. מתקין חלונות Batch** | Windows | `install.bat` | **הכי מומלץ למשתמשי Windows** (בודק Python ומזריק ל-PATH אוטומטית) | Python 3 |
 | **4. חבילת Python מבודדת (`pipx`)** | חוצה-פלטפורמות | `pipx install .` | סביבת פייתון מבודדת ונקייה | pipx |
 | **5. אשף התקנה, Hooks ואבחון** | חוצה-פלטפורמות | `rightsub setup` / `rightsub doctor` | אשף הקמה ראשונית, יצירת Hooks ל-qBittorrent/Sonarr, שירות רקע ובדיקת בריאות | RightSub מותקן |
 | **6. מתקין שרת MCP לסוכני AI** | חוצה-פלטפורמות | `rightsub mcp --install` | רישום אוטומטי בלחיצה אחת ל-Antigravity, Claude Desktop, Cursor ו-Windsurf | RightSub מותקן |
@@ -56,7 +56,7 @@
 
 ## ⚡ שיטה 1: סקריפט התקנה מהיר ל-macOS ול-Linux (`install.sh`)
 
-סקריפט ההתקנה [install.sh](file:///Volumes/Other/Antigravity/RightSub/install.sh) בודק את קיום התלויות (`python3`, `ffmpeg`), מתקין את הספריות הנדרשות מ-`requirements.txt`, ומייצר קישור הרצה סימבולי גלובלי ב-`~/.local/bin/rightsub`.
+סקריפט ההתקנה [install.sh](../install.sh) בודק את קיום כלי המערכת (`python3`, `ffmpeg`), מגדיר הפעלה ללא תלויות חיצוניות (אפס חבילות `pip`), ומייצר קישור הרצה סימבולי גלובלי ב-`~/.local/bin/rightsub`.
 
 ### התקנה מקומית מתוך תיקיית המאגר:
 ```bash
@@ -94,7 +94,7 @@ rightsub --help
    ```cmd
    install.bat
    ```
-   המתקין בודק את `python` ו-`ffmpeg`, מתקין את הספריות מ-`requirements.txt`, **ורושם אוטומטית את תיקיית RightSub במשתנה ה-`PATH` של המשתמש** באמצעות PowerShell (ללא צורך בהרשאות Administrator).
+   המתקין בודק את `python` (או `py -3`) ואת `ffmpeg`, מגדיר את הפעלת ה-CLI ללא תלויות חיצוניות (אפס חבילות `pip`), **ורושם אוטומטית את תיקיית RightSub במשתנה ה-`PATH` של המשתמש** באמצעות PowerShell (ללא צורך בהרשאות Administrator).
 3. **בדיקה והפעלה מכל תיקייה:**
    פתחו חלון CMD או PowerShell חדש והריצו:
    ```cmd
@@ -112,7 +112,7 @@ rightsub --help
 ## 🍺 שיטה 3: חבילת Homebrew Tap רשמית (`brew install`)
 
 למשתמשי Mac המעוניינים בניהול חבילות סטנדרטי:
-ההגדרה שמורה בקובץ [Formula/rightsub.rb](file:///Volumes/Other/Antigravity/RightSub/Formula/rightsub.rb).
+ההגדרה שמורה בקובץ [Formula/rightsub.rb](../Formula/rightsub.rb).
 
 ```bash
 brew tap omerninyo/tap
@@ -125,7 +125,7 @@ brew install rightsub
 brew install omerninyo/tap/rightsub
 ```
 
-Homebrew מתקין אוטומטית את תלויות `ffmpeg` ו-`python`, יוצר סביבה מבודדת ב-`/opt/homebrew/Cellar/rightsub/`, ומקשר את הפקודה ל-`/opt/homebrew/bin/rightsub`.
+Homebrew מתקין אוטומטית את תלויות `ffmpeg` ו-`python@3.12`, מתקין את הקבצים ל-`libexec` ללא צורך בסביבת תלויות חיצונית, ומקשר את הפקודה ל-`/opt/homebrew/bin/rightsub`.
 
 ---
 
@@ -171,7 +171,7 @@ pipx install git+https://github.com/omerninyo/RightSub.git
 
 ---
 
-## 🧙 הפעלה ראשונית לאחר ההתקנה: אשף ההגדרות, ממשק אינטראקטיבי ושרת MCP (`v1.5.0`)
+## 🧙 הפעלה ראשונית לאחר ההתקנה: אשף ההגדרות, ממשק אינטראקטיבי ושרת MCP (`v1.5.1`)
 
 מיד לאחר התקנת RightSub, שלושה אשפים מובנים מאפשרים לכם להגדיר, להפעיל ולחבר את המערכת ללא צורך בזכירת דגלים:
 

@@ -1,4 +1,4 @@
-# End-to-End Subtitle Translation & Repair Workflow
+# End-to-End Subtitle Translation & Repair Workflow (RightSub)
 
 <p align="left">
   <b>Language / שפה:</b>

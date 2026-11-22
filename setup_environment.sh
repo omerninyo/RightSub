@@ -31,19 +31,13 @@ else
     echo "FFmpeg is already installed: $(ffmpeg -version | head -n 1)"
 fi
 
-echo "=== [3/4] Checking Python3 & Installing Dependencies ==="
+echo "=== [3/4] Checking Python3 (Zero External Dependencies) ==="
 if ! command -v python3 &> /dev/null; then
     echo "python3 not found. Please install Python 3.9+."
     exit 1
 fi
-
-pip_cmd="pip3"
-if ! command -v pip3 &> /dev/null; then
-    pip_cmd="python3 -m pip"
-fi
-
-echo "Installing required Python packages: srt, pysubs2, requests, regex..."
-$pip_cmd install --quiet --upgrade srt pysubs2 requests regex
+python3 -c 'import sys; assert sys.version_info >= (3, 9), "Python 3.9+ is required"'
+echo "Python standard library runtime verified (zero pip packages needed)."
 
 echo "=== [4/4] Setting Permissions ==="
 chmod +x "$SCRIPTS_DIR"/*.py 2>/dev/null || true

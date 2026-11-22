@@ -10,14 +10,14 @@ This skill equips Antigravity with a robust, modular framework for translating, 
 Master repository: `/Volumes/Other/Antigravity/RightSub`
 
 It features a unified CLI entrypoint (`rightsub` or `toolkit.py`) powered by two core engines:
-- **SubRefine Engine (100% Deterministic, 0 AI Tokens)**: Standalone Plex/Infuse 3-Stage Canonical Hebrew BiDi & Un-Flipping Engine (reversing 18 legacy visual-flipping patterns benchmarked across 20,299 files / 15.6M lines and wrapping lines with leading and trailing `\u200F` after punctuation per UAX #9 Rule N1), content-based Hebrew `.srt` discovery with Seed-Safe `.he.srt` output (preserving plain `.srt` files untouched for torrent seeding), language-verified legacy charset conversion (CP1255 -> UTF-8), homoglyph-conditional final-letter normalization, Georgian/Cyrillic homoglyph repair (`דეייט` -> `דייט`), deterministic bilingual number un-flipping (`cross_check_bilingual_numbers`, fixing `Subabi` `84` -> `48`), formatting tags protection, and SDH/multi-line ad stripping.
-- **SubSwarm Engine (AI-Assisted Translation & Rare-Case Semantic Polish)**: Quota-optimized translation pipeline generating Translation Bibles, splitting into ~210-line JSON chunks (saving 95% API quota with Gemini Flash-Lite), and merging with zero-discrepancy & 25-cue window `Cue Drift` anchor validation (`validate_anchor_alignment`). Also includes `rightsub polish` for rare edge cases where an existing subtitle is an old amateur draft or corrupted OCR/machine translation needing semantic gender or franchise canon fixes.
+- **SubRefine Engine (100% Deterministic, 0 AI Tokens)**: Standalone Plex/Infuse 3-Stage Canonical Hebrew BiDi & Un-Flipping Engine (reversing 18 legacy visual-flipping patterns benchmarked across 20,299 files / 15.6M lines with polarity gating protecting logical interrupted lines like `אתה מבין ש-` and `...מחוץ לבית החולים --`, and wrapping lines with leading and trailing `\u200F` after punctuation per UAX #9 Rule N1), content-based Hebrew `.srt` discovery with Seed-Safe `.he.srt` output (preserving plain `.srt` files untouched for torrent seeding), language-verified legacy charset conversion (CP1255 -> UTF-8), Hebrew/Arabic presentation-form NFKD decomposition and pre-normalization Arabic diacritic stripping (`אליّم` -> `אלים`), homoglyph-conditional final-letter normalization, Georgian/Cyrillic homoglyph repair (`דეייט` -> `דייט`), smart prefixed quote vs. acronym gershayim disambiguation (`ב"בוסטון ליגל"` vs. `עו״ד`), deterministic bilingual number un-flipping (`cross_check_bilingual_numbers`, fixing `Subabi` `84` -> `48`), formatting tags protection, and SDH/multi-line ad stripping.
+- **SubSwarm Engine (AI-Assisted Translation & Rare-Case Semantic Polish)**: Quota-optimized translation pipeline generating Translation Bibles, splitting into ~210-line JSON chunks (saving 95% API quota with Gemini Flash-Lite), enforcing Recap/Preview (`Previously on...` / `Next on...`) montage gender isolation and proper-noun surname disambiguation (`Shore` != `שור`), and merging with 3-layer alignment QA (`validate_anchor_alignment`: sliding-window ±1/±2 `Cue Drift`, untranslated dialogue/`♪` runs, and isolated non-sequitur detection). Also includes `rightsub polish` for rare edge cases where an existing subtitle is an old amateur draft or corrupted OCR/machine translation needing semantic gender or franchise canon fixes; manual/scripted surgical cue patches MUST always verify expected existing text before overwriting by index (never overwrite by blind cue number alone) and run bilingual QA (`./rightsub qa`) afterward.
 
 ## Quick CLI Reference (`./rightsub`)
 ```bash
 # 1. Standalone Plex Hebrew punctuation fix & SDH/ad cleaning:
 ./rightsub fix-plex <path_or_dir> --recursive --in-place --clean-ads --backup
-# (Use --dry-run to preview changes safely)
+# (Use --dry-run to preview changes safely, or --en "video.en.srt" to cross-check 2-digit numbers)
 
 # 2. Universal Discovery & Extraction (embedded-first priority across formats):
 ./rightsub extract <video_or_season_dir> [--lang eng] [--force]
@@ -29,16 +29,16 @@ It features a unified CLI entrypoint (`rightsub` or `toolkit.py`) powered by two
 ./rightsub split "video.en.srt" -o "work/batches/"
 
 # 5. Generate AI Translation Prompts for Subagents:
-./rightsub prompt-gen "work/batches/" -b translation_bible.json -t "Show Name" -o "work/prompts/"
+./rightsub prompt-gen "video.en.srt" -b translation_bible.json -t "Show Name" -o "work/prompts/"
 
 # 6. Merge translated JSON batches into final Hebrew SRT with RLM & QC:
 ./rightsub merge "video.en.srt" "work/translated/" -o "video.he.srt"
 
-# 7. Comprehensive Quality Assurance Audit:
-./rightsub qa "video.he.srt" -m "video.en.srt"
+# 7. Comprehensive Quality Assurance Audit (English master first, Hebrew second):
+./rightsub qa "video.en.srt" "video.he.srt"
 
 # 8. Adjust framerate or time offset:
-./rightsub adjust-fps "sub.srt" -o "synced.srt" --fps_from 25.0 --fps_to 23.976
+./rightsub adjust-fps "sub.srt" -o "synced.srt" --fps-from 25.0 --fps-to 23.976
 ```
 
 ## Full Season Batching & Autonomous Wave Strategy (SubSwarm)
@@ -48,12 +48,12 @@ When translating an entire season (20+ episodes, ~20,000 subtitles):
 3. **Pre-Split**: Split all episodes into ~210-cue batches (`./rightsub split`).
 4. **Autonomous Waves & Dynamic Minimum Baseline Model Governance**:
    - Execute in waves of 2-3 episodes (8-14 concurrent subagents).
-   - **MANDATORY MINIMUM BASELINE**: Subagents MUST be configured with **Gemini 3.5 Flash-Lite** (`Model: "flash_lite"`). This provides the optimal balance of ultra-low cost ($0.15/M input tokens), sub-second latency, high throughput, and zero unnecessary thinking overhead for structured subtitle translation.
+   - **MANDATORY MINIMUM BASELINE**: Subagents MUST be configured with a current lightweight **Gemini Flash / Flash-Lite** tier (e.g. `Model: "flash_lite"` or Gemini 3.8 Flash / 3.5 Flash-Lite). This provides the optimal balance of ultra-low cost, sub-second latency, high throughput, and zero unnecessary thinking overhead for structured subtitle translation.
    - **STRICT PROHIBITION OF LEGACY & EXPENSIVE TIERS**:
      - NEVER use or fall back to deprecated legacy models (Gemini 2.x/2.5).
      - NEVER default to expensive heavyweight thinking tiers for bulk batch translation.
-   - **FORWARD COMPATIBILITY & A/B BENCHMARKING (3.6+, 4.x)**:
-     Whenever Google introduces a newer lightweight generation (e.g. Gemini 3.6 Flash-Lite, Gemini 4.x), conduct an A/B benchmark on a sample episode comparing translation fidelity, turnaround time, and token cost against the existing baseline. If results prove superior or equal in quality at comparable efficiency, update the documentation and establish the newer generation as the new minimum baseline floor.
+   - **FORWARD COMPATIBILITY & A/B BENCHMARKING**:
+     Whenever Google introduces a newer lightweight generation, conduct an A/B benchmark on a sample episode comparing translation fidelity, turnaround time, and token cost against the existing baseline. If results prove superior or equal in quality at comparable efficiency, update the documentation and establish the newer generation as the new minimum baseline floor.
 5. **Unattended Execution**: Use `/goal translate all episodes of season X` to run autonomous back-to-back waves until 100% verified.
 
 ## Edge Cases & Red Team Guide

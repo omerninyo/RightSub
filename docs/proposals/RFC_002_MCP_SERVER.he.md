@@ -2,7 +2,13 @@
 
 # 🔌 מפרט ארכיטקטוני: שרת RightSub MCP (`rightsub mcp`)
 
-> **סטטוס:** ✅ **שוחרר בייצור (`v1.5.0`)** — מומש ב-[`scripts/23_mcp_server.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/23_mcp_server.py) וב-[`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). מאומת על ידי [`tests/test_mcp_server.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_mcp_server.py).
+> **סטטוס:** ✅ **שוחרר בייצור (`v1.5.0+` / `v1.5.1`)** — מומש ב-[`scripts/23_mcp_server.py`](../../scripts/23_mcp_server.py) וב-[`rightsub.py`](../../rightsub.py). מאומת על ידי [`tests/test_mcp_server.py`](../../tests/test_mcp_server.py).
+
+<p align="right">
+  <b>שפה / Language:</b>
+  <b>עברית</b> |
+  <a href="RFC_002_MCP_SERVER.md"><b>English</b></a>
+</p>
 
 מסמך זה מתעד את עקרונות התכנון, מבנה הכלים, מנגנוני ההגנה והמתקין האוטומטי של שרת ה-**MCP (Model Context Protocol)** המובנה ב-**RightSub** (`v1.5.0`). השרת מחבר את כלי הליבה של RightSub ישירות ליישומי וסוכני AI מובילים (**Google Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf** ו-**Claude Code**).
 
@@ -14,7 +20,7 @@
    - במקום לפתח ממשק גרפי (GUI) או ללמוד פקודות טרמינל, המשתמש מנהל שיחה טבעית בצ'אט: *"הורדתי סרט חדש, תבדוק אם יש לו כתוביות בעברית ותעזור לי לתרגם אם חסר"*.
 2. **פתרון מוחלט לכשל התרגום המקומי בעברית:**
    - מודלים מקומיים קטנים (Llama 3.2, Qwen 2.5) נכשלו לחלוטין בתרגום כתוביות לעברית עקב קריסת תפיסת מגדר, תחביר עילג ופירוק טוקנים לבייטים.
-   - במודל MCP, הסוכן בצ'אט מופעל על ידי מודלי ענן מובילים (כמו Claude 3.5 Sonnet או Gemini 2.0 Pro). הסוכן מקבל את מנות הכתוביות המובנות מ-RightSub, מתרגם אותן בעצמו באיכות שידור מקצועית, ומחזיר אותן למערכת למיזוג.
+   - במודל MCP, הסוכן בצ'אט מופעל על ידי מודלי ענן מובילים (כגון Claude Sonnet או Gemini Pro / Flash). הסוכן מקבל את מנות הכתוביות המובנות מ-RightSub, מתרגם אותן בעצמו באיכות שידור מקצועית, ומחזיר אותן למערכת למיזוג.
 3. **עבודה חופשית עם קובצי מדיה כבדים (Local-First Media Processing):**
    - קובצי סרטים שוקלים 2GB עד 30GB ולא ניתן להעלותם לרשת. שרת MCP רץ מקומית על המחשב מעל `stdio` ומפעיל את FFmpeg ישירות בדיסק המקומי. חילוץ הכתובית אורך כ-0.2 שניות, ורק טקסט הכתובית הזעיר (כ-50KB) מועבר למודל השפה.
 4. **ניהול מפתחות שקוף:**
@@ -27,11 +33,11 @@
 - **פרוטוקול:** Model Context Protocol (MCP) מבית Anthropic.
 - **ערוץ תקשורת (Transport):** `stdio` (Standard Input / Standard Output) עם הודעות JSON-RPC מקומיות.
 - **אבטחה:** השרת רץ כתהליך בן (Subprocess) של יישום ה-AI. אין פורטים פתוחים ברשת ואין חשיפה של קבצים מחוץ לספריות המורשות.
-- **פקודת הפעלה:** `./rightsub mcp` או `python3 -m rightsub.mcp`.
+- **פקודת הפעלה:** `rightsub mcp` או `python3 rightsub.py mcp`.
 
 ---
 
-## 3. מפרט כלי ה-MCP המוצעים (Tools Specification)
+## 3. מפרט כלי ה-MCP המובנים (8 Native Tools)
 
 שרת ה-MCP יחשוף לסוכן ה-AI סדרה של כלים מוגדרים היטב:
 
@@ -68,6 +74,9 @@
 ### ז. `audit_subtitles_qa(en_srt_path: str, he_srt_path: str, strict_gender: bool = False)`
 - **תיאור:** מפעיל בדיקת איכות מלאה (Red Team QA) להשוואת המקור מול התרגום (אינדקסים, פערי זמנים ובדיקת מגדר דמויות).
 
+### ח. `polish_subtitles(he_srt_path: str, en_srt_path: str = "", diff_only: bool = False, use_gemini: bool = False)`
+- **תיאור:** מריץ מעבר קאנון דטרמיניסטי ותיקון מספרים דו-לשוני (`0` טוקנים), בתוספת הגהה סמנטית אופציונלית ב-Gemini.
+
 ---
 
 ## 4. תרחיש שימוש מלא (End-to-End User Experience)
@@ -98,7 +107,7 @@
 
 ---
 
-## 5. מתקין אוטומטי לסוכני AI והקשחת Red Team (`v1.5.0`)
+## 5. מתקין אוטומטי לסוכני AI והקשחת Red Team (`v1.5.1`)
 
 במקום לערוך ידנית קובצי JSON, ניתן לרשום את השרת אוטומטית בפקודה אחת:
 ```bash
@@ -110,7 +119,7 @@ rightsub mcp --uninstall    # מסיר את הרישום בצורה נקייה
 
 ### פרטי המימוש בייצור (`scripts/23_mcp_server.py`):
 - **אפס תלויות צד-שלישי**: מומש ישירות מעל ספריות הליבה של Python (`json`, `sys`, `io`, `contextlib`) ללא תלות בחבילות חיצוניות כבדות.
-- **בידוד מוחלט של ערוץ `stdout` (`_isolated_stdio`)**: כל הדפסת `print()` פנימית של סקריפטי הליבה מנותבת בזמן ריצה ל-`stderr` ולזיכרון פנימי כדי שלעולם לא תשבש את פרוטוקול ה-JSON-RPC 2.0 מול הסוכן.
+- **בידוד מוחלט ברמת מערכת ההפעלה של ערוץ `stdout` (`_isolated_stdio`)**: מנתב הן את `sys.stdout` והן את תיאור הקובץ ברמת OS (`fd 1` אל `fd 2` דרך `os.dup2`) במהלך הרצת הכלים, כך שכל הדפסת `print()` או פלט חיצוני של `ffmpeg` לעולם לא ישבשו את פרוטוקול ה-JSON-RPC 2.0 מול הסוכן.
 - **תמיכה כפולה בפורמט הודעות (Dual-Mode Framing)**: תומך אוטומטית הן ב-JSONL (שורה לכל הודעה לפי תקן MCP stdio) והן בכותרות `Content-Length` בסגנון LSP.
 - **הזרקת `PATH` מלאה לתהליכי GUI**: מזריק את `/opt/homebrew/bin`, `/usr/local/bin` ו-`~/.local/bin` לתוך בלוק ה-`env` בקובץ הקונפיגורציה של הסוכן (עם גיבוי `.bak` אוטומטי), כך שאפליקציות שולחניות תמיד ימצאו את `ffmpeg` ואת `python3`.
 

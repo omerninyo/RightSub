@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="INSTALLATION_GUIDE.he.md"><b>עברית</b></a>
+  <a href="מדריך-התקנה-והפצה"><b>עברית</b></a>
 </p>
 
 This guide explains how to install **RightSub** as a global command-line tool across **macOS**, **Windows**, and **Linux**, allowing you to invoke `rightsub` from any terminal or command prompt directory.
@@ -14,9 +14,9 @@ This guide explains how to install **RightSub** as a global command-line tool ac
 
 | Method | Operating System | Command | Best For | Prerequisites |
 | :--- | :--- | :--- | :--- | :---: |
-| **1. Official Homebrew Tap** | macOS / Linux | `brew tap omerninyo/tap && brew install rightsub` | **Recommended for macOS** (1-sec universal bottle) | Homebrew |
+| **1. Official Homebrew Tap** | macOS / Linux | `brew tap omerninyo/tap && brew install rightsub` | **Recommended for macOS** (Clean system install, zero deps) | Homebrew |
 | **2. Fast Script Installer** | macOS / Linux | `./install.sh` | Local developer setup (Global `~/.local/bin` link) | Python 3 |
-| **3. Windows Batch Installer** | Windows | `install.bat` | **Recommended for Windows** (Checks Python, installs packages & auto-updates User PATH) | Python 3 |
+| **3. Windows Batch Installer** | Windows | `install.bat` | **Recommended for Windows** (Checks Python & auto-updates User PATH) | Python 3 |
 | **4. Isolated Package (`pipx`)**| Cross-Platform | `pipx install .` | Isolated Python virtual environment | pipx |
 | **5. Setup, Hooks & Diagnostics**| Cross-Platform | `rightsub setup` / `rightsub doctor` | End-to-end onboarding wizard, downloader hooks, services & health check | RightSub installed |
 | **6. AI Agent MCP Auto-Installer**| Cross-Platform | `rightsub mcp --install` | 1-click native MCP Server registration for Antigravity, Claude, Cursor & Windsurf | RightSub installed |
@@ -54,7 +54,7 @@ If you are setting up RightSub on a brand new computer lacking common developer 
 
 ## ⚡ Method 1: Fast macOS & Linux Installer (`install.sh`)
 
-The [install.sh](file:///Volumes/Other/Antigravity/RightSub/install.sh) script verifies dependencies (`python3`, `ffmpeg`), installs packages from `requirements.txt`, and creates a global symlink in `~/.local/bin/rightsub`.
+The [install.sh](https://github.com/omerninyo/RightSub/blob/main/install.sh) script verifies core system tools (`python3`, `ffmpeg`), sets up zero-dependency execution (zero `pip` packages required), and creates a global symlink in `~/.local/bin/rightsub`.
 
 ### Local Installation:
 ```bash
@@ -92,7 +92,7 @@ rightsub --help
    ```cmd
    install.bat
    ```
-   `install.bat` verifies `python` and `ffmpeg`, installs dependencies from `requirements.txt`, and **automatically registers the RightSub directory in your Windows User `PATH`** via PowerShell (no Administrator privileges required).
+   `install.bat` verifies `python` (or `py -3`) and `ffmpeg`, configures the zero-dependency CLI launcher (zero external `pip` packages required), and **automatically registers the RightSub directory in your Windows User `PATH`** via PowerShell (no Administrator privileges required).
 3. **Verify & Launch:**
    Open a new CMD or PowerShell window and run:
    ```cmd
@@ -110,7 +110,7 @@ rightsub --help
 ## 🍺 Method 3: Official Homebrew Tap (`brew install`)
 
 For macOS users who prefer Homebrew package management:
-The formula is pre-built in [Formula/rightsub.rb](file:///Volumes/Other/Antigravity/RightSub/Formula/rightsub.rb).
+The formula is pre-built in [Formula/rightsub.rb](https://github.com/omerninyo/RightSub/blob/main/Formula/rightsub.rb).
 
 ```bash
 brew tap omerninyo/tap
@@ -123,7 +123,7 @@ Alternatively, you can install directly in a single command:
 brew install omerninyo/tap/rightsub
 ```
 
-Homebrew automatically manages `ffmpeg` and `python` dependencies, creates a virtualenv in `/opt/homebrew/Cellar/rightsub/`, and symlinks the binary directly to `/opt/homebrew/bin/rightsub`.
+Homebrew automatically manages `ffmpeg` and `python@3.12` dependencies, installs RightSub cleanly with zero external Python packages into `libexec`, and symlinks the binary directly to `/opt/homebrew/bin/rightsub`.
 
 ---
 
@@ -169,7 +169,7 @@ If typing `rightsub` in Command Prompt returns `'rightsub' is not recognized`:
 
 ---
 
-## 🧙 Post-Install Onboarding: Setup Wizard, Interactive TUI & MCP Server (`v1.5.0`)
+## 🧙 Post-Install Onboarding: Setup Wizard, Interactive TUI & MCP Server (`v1.5.1`)
 
 Once RightSub is installed, three built-in interactive wizards let you configure, operate, and connect RightSub without memorizing any flags:
 
@@ -189,4 +189,4 @@ Once RightSub is installed, three built-in interactive wizards let you configure
    ```
    Automatically registers RightSub's local JSON-RPC 2.0 MCP Server (`8` tools) into **Google Antigravity**, **Claude Desktop**, **Cursor**, **Windsurf**, and **Claude Code**.
 
-For architectural details, see [RFC 001: Interactive CLI Wizard](proposals/RFC_001_INTERACTIVE_TUI.md), [RFC 002: Native MCP Server](proposals/RFC_002_MCP_SERVER.md), [RFC 003: Setup & Health-Check Wizard](proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md), and the [Product Roadmap](../ROADMAP.md).
+For architectural details, see [RFC 001: Interactive CLI Wizard](Interactive-CLI-Specification), [RFC 002: Native MCP Server](MCP-Server-Specification), [RFC 003: Setup & Health-Check Wizard](Setup-Wizard-Specification), and the [Product Roadmap](Roadmap).

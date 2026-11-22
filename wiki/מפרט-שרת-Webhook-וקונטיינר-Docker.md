@@ -2,12 +2,12 @@
 
 # 🐳 מפרט ארכיטקטוני: שרת Webhook וקונטיינר Docker לאינטגרציית Sonarr, Radarr ו-Bazarr (`rightsub serve`)
 
-> **סטטוס:** ✅ **שוחרר בייצור (`v1.4.0` ו-`v1.5.0`)** — מומש ב-[`scripts/21_webhook_server.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/21_webhook_server.py), ב-[`Dockerfile`](file:///Volumes/Other/Antigravity/RightSub/Dockerfile), ב-[`docker-compose.yml`](file:///Volumes/Other/Antigravity/RightSub/docker-compose.yml) וב-[`unraid/rightsub.xml`](file:///Volumes/Other/Antigravity/RightSub/unraid/rightsub.xml). מאומת על ידי [`tests/test_webhook_server.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_webhook_server.py).
+> **סטטוס:** ✅ **שוחרר בייצור (`v1.4.0`–`v1.5.1`)** — מומש ב-[`scripts/21_webhook_server.py`](https://github.com/omerninyo/RightSub/blob/main/scripts/21_webhook_server.py), ב-[`Dockerfile`](https://github.com/omerninyo/RightSub/blob/main/Dockerfile) וב-[`docker-compose.yml`](https://github.com/omerninyo/RightSub/blob/main/docker-compose.yml). מאומת על ידי [`tests/test_webhook_server.py`](https://github.com/omerninyo/RightSub/blob/main/tests/test_webhook_server.py).
 
 <p align="right">
   <b>שפה / Language:</b>
   <b>עברית</b> |
-  <a href="RFC_004_DOCKER_WEBHOOK_SERVER.md"><b>English</b></a>
+  <a href="Docker-Webhook-Server-Specification"><b>English</b></a>
 </p>
 
 מסמך זה מגדיר את עקרונות התכנון, הארכיטקטורה, חוזי ה-API, הקשחת האבטחה ומודל הפריסה עבור **שרת ה-Webhook המובנה וקונטיינר ה-Docker הרשמי של RightSub** (`rightsub serve`).  
@@ -33,7 +33,7 @@
 
 1. **אפס תלויות שרת כבדות (Zero Heavy Frameworks):**
    - שרת ה-Webhook יוטמע ישירות בליבת RightSub ויופעל באמצעות הפקודה `rightsub serve --port 8775`.
-   - יישום קל-משקל המבוסס על ספריות הפייתון המובנות (`http.server` / `asyncio`) או מיקרו-פריימוורק מהיר במיוחד, הצורך פחות מ-15 MB זיכרון RAM במנוחה.
+   - יישום קל-משקל המבוסס בלעדית על ספריות הליבה של Python (`http.server.ThreadingHTTPServer`) ללא תלויות חיצוניות, הצורך פחות מ-15 MB זיכרון RAM במנוחה.
 2. **תמיכה מקורית בפורמטי ה-JSON של Sonarr, Radarr ו-Bazarr:**
    - פענוח אוטומטי של המטען ללא צורך בהגדרת פרמטרים מורכבים מצד המשתמש.
 3. **מיפוי נתיבים אוטונומי (Path Mapping):**
@@ -116,13 +116,19 @@
   ```
 
 ### ה. `GET /health`
-- מחזיר בדיקת תקינות, גרסה, מונה קבצים שעובדו וזמן פעילות (Uptime):
+- מחזיר בדיקת תקינות, גרסה, נקודות קצה ומדדי עיבוד:
   ```json
   {
     "status": "healthy",
-    "version": "1.4.0",
-    "uptime_seconds": 86400,
-    "processed_count": 142
+    "service": "RightSub Webhook Daemon",
+    "version": "1.5.1",
+    "uptime_seconds": 86400.0,
+    "metrics": {
+      "events_count": 142,
+      "processed_count": 142,
+      "errors_count": 0
+    },
+    "endpoints": ["/ui", "/health", "/webhook/sonarr", "/webhook/radarr", "/webhook/bazarr", "/webhook/generic"]
   }
   ```
 
@@ -145,12 +151,10 @@ PATH_MAP="/data/media:/media"
 
 ---
 
-## 5. הגדרת פריסה: Docker Compose ו-Unraid
+## 5. הגדרת פריסה: Docker Compose וקונטיינר
 
 ### דוגמת `docker-compose.yml` מלאה:
 ```yaml
-version: "3.8"
-
 services:
   rightsub:
     image: ghcr.io/omerninyo/rightsub:latest
@@ -160,6 +164,7 @@ services:
       - "8775:8775"
     environment:
       - RIGHTSUB_PORT=8775
+      - RIGHTSUB_CONFIG_DIR=/config
       - PATH_MAP=/data/media:/media
       - PUID=1000
       - PGID=1000
@@ -184,17 +189,14 @@ services:
 
 ---
 
-## 6. תוכנית מימוש עבור גרסה 1.4.0
+## 6. פרטי המימוש בייצור (`v1.4.0`–`v1.5.1`)
 
-1. **שלב 1 (Core Webhook Daemon):**
-   - כתיבת מודול `src/daemon/webhook_server.py` המבוסס על `http.server` ללא תלויות צד שלישי כבדות.
-   - מימוש המפענחים הייעודיים ל-Sonarr, Radarr ו-Bazarr.
-2. **שלב 2 (Path Mapping & Multi-threading):**
-   - מנגנון תרגום נתיבים גלובלי.
-   - טיפול בבקשות בתור אסינכרוני (Thread pool / Queue) למניעת חסימת ה-HTTP response בעת עיבוד קבצים כבדים.
-3. **שלב 3 (Docker Packaging & GHCR Pipeline):**
-   - כתיבת `Dockerfile` רזה (מבוסס `python:3.11-slim`).
-   - הגדרת GitHub Action לבנייה ודחיפה אוטומטית של תגיות `latest` ו-`v1.4.0` ל-`ghcr.io`.
-   - יצירת תבנית XML רשמית עבור Unraid Community Applications.
+1. **ליבת שרת ה-Webhook והממשק המקומי (`/ui`):**
+   - ממומשת במודול `scripts/21_webhook_server.py` (`ThreadingHTTPServer`) ללא תלויות צד שלישי, עם מפענחי Sonarr, Radarr ו-Bazarr והגשה מובנית של סדנת הדפדפן ב-`/ui`.
+2. **נעילות, הגנת Seed-Safe והקשחת אבטחה:**
+   - נעילות ברמת קובץ (`_get_file_lock`) וכתיבה אטומית מונעות התנגשויות מקביליות; מצב Seed-Safe מופעל כברירת מחדל.
+   - גרסה `1.5.1` מוסיפה אימות `--api-key`, הגבלת תיקיות `--allowed-roots`, אכיפת `Content-Type: application/json`, והאזנה מאובטחת על `127.0.0.1` בשירותי OS.
+3. **אריזת Docker (`Dockerfile`):**
+   - תמונת `Dockerfile` נקייה ללא משתמש root המבוססת על `python:3.12-slim` עם `RIGHTSUB_CONFIG_DIR=/config`.
 
 </div>

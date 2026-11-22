@@ -2,6 +2,12 @@
 
 # אפיון עלילה, דמויות, מגדר ודיאלקט (אינטגרציית TMDb)
 
+<p align="right">
+  <b>שפה / Language:</b>
+  <b>עברית</b> |
+  <a href="TMDB_INTEGRATION.md"><b>English</b></a>
+</p>
+
 פרויקט RightSub משלב את ממשק ה-API של **The Movie Database (TMDb)** לצורך זיהוי עובדתי ודטרמיניסטי של דמויות, שיוך מגדרי מדויק לשחקני אורח, חילוץ תקצירי עלילה והזרקת הנחיות דיאלקט (בריטי/אמריקאי) ומשלב לשוני.
 
 - **ספק נתונים**: [The Movie Database (TMDb)](https://www.themoviedb.org)

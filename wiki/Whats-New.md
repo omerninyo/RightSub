@@ -3,10 +3,24 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="WHATS_NEW.he.md"><b>עברית</b></a>
+  <a href="מה-חדש"><b>עברית</b></a>
 </p>
 
 This document tracks **major milestone releases** and product capabilities in RightSub. Unlike dry git commit logs, these notes focus on practical user value, media server improvements, and workflow enhancements.
+
+---
+
+## 🌟 Version 1.5.1 — Security Hardening, Zero-Dependency Packaging, Web UI Workbench & Docs/Wiki SSOT Sync
+
+> **Release Date:** November 2026  
+> **Milestone Focus:** Comprehensive full-repo QA remediation: Webhook & MCP security hardening, `site/subrefine.js` & Python 1:1 parity fixes, zero-dependency packaging (`python@3.12` Homebrew without stale bottles, fixed `pyproject.toml` wheel bundling), and unified docs/wiki/site synchronization.
+
+### 🎯 Key Highlights
+- **Webhook & Server Hardening (`scripts/21_webhook_server.py`):** Default `127.0.0.1` binding in Docker/OS services (opt-in `0.0.0.0` for containers), `--api-key` bearer/header authentication, `--allowed-roots` filesystem confinement, strict `application/json` content-type validation, Seed-Safe default even when `in_place` is omitted, and local `/ui` web workbench serving with cache headers.
+- **MCP Server OS Pipe & Path Safety (`scripts/23_mcp_server.py`):** OS-level file-descriptor `stdout -> stderr` (`os.dup2`) isolation preventing native subprocess leaks on JSON-RPC stdio, strict argument validation, and fixed `en_path` / `--en` wiring across `fix-plex` and CLI entrypoints.
+- **Gemini Auth & Pipeline Reliability (`scripts/19_polish_and_qc.py`, `scripts/tmdb_client.py`, `scripts/00..18`):** Moved Gemini API keys from query strings to HTTP `x-goog-api-key` headers with log redaction, enforced atomic writes + SMB `os.utime()` across pipeline stages, fixed 64KB multi-byte SRT encoding detection, added bare `rightsub adjust-fps` alias (`--fps-from` / `--fps-to`), and fixed `--seed-safe` propagation in Docker.
+- **Web App & `SubRefine` JS Parity (`site/`):** Upgraded `site/subrefine.js` and `site/app.js` with `safeGetStorage` incognito safety, batch `.zip` downloads, per-file English companion timestamp matching, clean `HELP_KB` CLI commands, and 100% parity with Python UAX #9 Rule N1 + bilingual number un-flipping.
+- **Zero-Dependency Packaging & Docs/Wiki SSOT:** Fixed `pyproject.toml` `[tool.setuptools]` package discovery (bundled `scripts/` + `rightsub`), removed stale `pip install -r` references, modernized Homebrew to `python@3.12`, and eliminated local filesystem links across `docs/` and `wiki/`.
 
 ---
 
@@ -81,7 +95,7 @@ This document tracks **major milestone releases** and product capabilities in Ri
 - **Architectural Shift — Why No 24/7 Daemon:** Proved why event-driven completion hooks beat heavy background polling daemons: **0% idle CPU, 0 MB RAM**, and absolute elimination of race conditions on multi-gigabyte active torrent downloads.
 - **Clean-Slate / Bare System Support:** Guided setups for users starting without basic package managers (no Homebrew on macOS or no Winget on Windows).
 - **Safe-Zone Social Preview & Hero Banner:** 1280x640 OpenGraph-compliant cards featuring authentic Hebrew and Arabic subtitles designed with 65% central safe margins.
-- **Architectural Specifications:** Published comprehensive future RFC specifications for the [Interactive CLI Wizard](proposals/RFC_001_INTERACTIVE_TUI.md) and the [Autonomous Setup & Health-Check Wizard](proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md).
+- **Architectural Specifications:** Published comprehensive future RFC specifications for the [Interactive CLI Wizard](Interactive-CLI-Specification) and the [Autonomous Setup & Health-Check Wizard](Setup-Wizard-Specification).
 
 ---
 

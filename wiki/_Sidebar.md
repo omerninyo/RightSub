@@ -19,7 +19,7 @@
 - **[🗺️ Product Roadmap](Roadmap)**
 - **[🚀 What's New & Release Notes](Whats-New)**
 - **[Boston Legal Case Study](Boston-Legal-Case-Study)**
-- **[CLI Reference](Home#cli-commands-reference)**
+- **[CLI Reference](Home#-cli-commands-reference-v151)**
 
 ---
 
@@ -42,7 +42,7 @@
 - **[🗺️ מפת דרכים ומעקב אבני-דרך](מפת-דרכים)**
 - **[🚀 מה חדש ועדכוני גרסאות](מה-חדש)**
 - **[מקרה בוחן - בוסטון ליגל](מקרה-בוחן-בוסטון-ליגל)**
-- **[מדריך פקודות CLI](Home-HE#מדריך-פקודות-cli-מלא)**
+- **[מדריך פקודות CLI](Home-HE#-מדריך-פקודות-cli-מלא-v151)**
 
 ---
 

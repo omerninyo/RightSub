@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="QUICKSTART_FOR_BEGINNERS.he.md"><b>עברית</b></a>
+  <a href="מדריך-פשוט-למתחילים"><b>עברית</b></a>
 </p>
 
 Welcome to **RightSub**!  
@@ -13,7 +13,7 @@ If you are unfamiliar with command-line tools, do not know what CLI "flags" are,
 
 ## 🚀 Two Zero-Jargon Ways to Use RightSub
 
-Forget about remembering complex flags or chained commands. In **RightSub v1.5.0**, you have two effortless ways to do everything:
+Forget about remembering complex flags or chained commands. In **RightSub v1.5.1**, you have two effortless ways to do everything:
 
 ### Option A (Zero Flags): Launch the Interactive Mastering Wizard (`rightsub`)
 Simply type `rightsub` with no arguments in your Terminal (macOS/Linux) or Command Prompt / PowerShell (Windows) and press **Enter**:
@@ -128,7 +128,7 @@ This automatically registers RightSub's **Native MCP Server** (`8` local subtitl
 
 > *"Please use RightSub to inspect, fix, and translate the subtitles in my directory [path], ensure 100% Plex compliance, and report back when finished."*
 
-For complete MCP tool schemas, ready-to-copy prompt templates, and system prompt configurations, see the [AI Integration Guide](AI_INTEGRATION_GUIDE.md).
+For complete MCP tool schemas, ready-to-copy prompt templates, and system prompt configurations, see the [AI Integration Guide](AI-Integration-Guide).
 
 ---
 

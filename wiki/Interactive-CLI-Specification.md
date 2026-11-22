@@ -1,11 +1,11 @@
 # 🧙 Architectural Specification: Interactive CLI Wizard (`rightsub` / `rightsub wizard`)
 
-> **Status:** ✅ **Shipped in Production (`v1.5.0`)** — Implemented in [`scripts/22_interactive_wizard.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/22_interactive_wizard.py), [`scripts/19_polish_and_qc.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/19_polish_and_qc.py) (`--interactive`), and [`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). Verified by [`tests/test_interactive_wizard.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_interactive_wizard.py).
+> **Status:** ✅ **Shipped in Production (`v1.5.0+` / `v1.5.1`)** — Implemented in [`scripts/22_interactive_wizard.py`](https://github.com/omerninyo/RightSub/blob/main/scripts/22_interactive_wizard.py), [`scripts/19_polish_and_qc.py`](https://github.com/omerninyo/RightSub/blob/main/scripts/19_polish_and_qc.py) (`--interactive`), and [`rightsub.py`](https://github.com/omerninyo/RightSub/blob/main/rightsub.py). Verified by [`tests/test_interactive_wizard.py`](https://github.com/omerninyo/RightSub/blob/main/tests/test_interactive_wizard.py).
 
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="RFC_001_INTERACTIVE_TUI.he.md"><b>עברית</b></a>
+  <a href="מפרט-אשף-פקודה-אינטראקטיבי"><b>עברית</b></a>
 </p>
 
 This document details the architectural design principles, workflow, and production implementation of the **Interactive CLI Wizard (TUI / Terminal Dialog)** in **RightSub** (`v1.5.0`). The wizard empowers end users on macOS, Windows (`CMD` / `PowerShell`), and Linux to execute the full suite of RightSub mastering, polishing, and translation capabilities without memorizing commands, arguments, or CLI flags.
@@ -95,7 +95,7 @@ The wizard does not require re-entering API credentials on each run, nor does it
 
 ---
 
-## 6. Production Implementation Details (`v1.5.0`)
+## 6. Production Implementation Details (`v1.5.1`)
 
 1. **Zero External Dependencies (`scripts/22_interactive_wizard.py`):**
    - Built exclusively with Python standard libraries (`sys`, `os`, `pathlib`, `shlex`, `getpass`, `platform`).

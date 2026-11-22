@@ -2,6 +2,12 @@
 
 # תמלול מקומי On-Device וסנכרון מונחה שמע (אינטגרציית quicksubs)
 
+<p align="right">
+  <b>שפה / Language:</b>
+  <b>עברית</b> |
+  <a href="QUICKSUBS_INTEGRATION.md"><b>English</b></a>
+</p>
+
 פרויקט RightSub משלב את **`quicksubs`**, כלי שורת פקודה מתקדם לתמלול מקומי על גבי macOS שפותח על ידי **Matt Birchler**.
 
 - **מחבר**: Matt Birchler

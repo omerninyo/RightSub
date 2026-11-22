@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="AI_INTEGRATION_GUIDE.he.md"><b>עברית</b></a>
+  <a href="מדריך-חיבור-לכלי-בינה-מלאכותית"><b>עברית</b></a>
 </p>
 
 Welcome to the **RightSub** AI Integration Guide for modern autonomous coding assistants and LLMs (**Google Antigravity**, **Claude Code**, **Cursor**, **Windsurf**, **Gemini CLI**, **ChatGPT**, and **Ollama**).

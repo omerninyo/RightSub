@@ -31,6 +31,17 @@ flowchart LR
 
 ## 🟢 Shipped Milestones (Production Stable)
 
+### 🌟 [v1.5.1](https://github.com/omerninyo/RightSub/releases/tag/v1.5.1) — Security Hardening, Zero-Dependency Packaging, Web UI Workbench & Docs/Wiki SSOT
+> **Released:** November 2026  
+> **Primary RFCs:** [RFC 002](docs/proposals/RFC_002_MCP_SERVER.md) · [RFC 004](docs/proposals/RFC_004_DOCKER_WEBHOOK_SERVER.md)  
+> **Key Capabilities:**
+- [x] **Server & Protocol Security Hardening (`rightsub serve`, `rightsub mcp`)**:
+  - Loopback `127.0.0.1` default on OS background services, `--api-key` authentication, `--allowed-roots` path confinement, strict `application/json` content-type validation, Seed-Safe default enforcement, and OS-level `fd 1` (`os.dup2`) isolation in the MCP stdio transport.
+- [x] **Client-Side Web App & `SubRefine` JS Parity (`site/`)**:
+  - Incognito-safe storage wrappers, batch `.zip` downloads, per-file bilingual timestamp companion matching, clean `HELP_KB` CLI commands, and 100% parity with Python UAX #9 Rule N1 + bilingual number un-flipping.
+- [x] **Zero-Dependency Packaging & Docs/Wiki SSOT**:
+  - Fixed `pyproject.toml` wheel package discovery, modernized Homebrew to `python@3.12` (zero external dependencies), added `adjust-fps` CLI alias, and unified `docs/`, `wiki/`, and `site/` version/test SSOT.
+
 ### 🌟 [v1.5.0](https://github.com/omerninyo/RightSub/releases/tag/v1.5.0) — Native MCP Server, Multi-Agent Auto-Installer & Unified Interactive Suite
 > **Released:** October 2026  
 > **Primary RFC:** [RFC 002: RightSub Native Model Context Protocol (MCP) Server](docs/proposals/RFC_002_MCP_SERVER.md)  
@@ -95,7 +106,7 @@ flowchart LR
 ## 🟣 Future Explorations & Community Backlog
 
 The following ideas are actively tracked for research and community feedback:
-- **Web UI & Dashboard**: Lightweight local browser interface (FastAPI / HTML5) for visual library auditing.
+- **Web UI & Dashboard**: Local browser interface (`/ui` via zero-dependency Python `http.server`) and live GitHub Pages Client-Side Workbench (`site/`) already available; further library-wide multi-season auditing UI remains tracked here.
 - **Multilingual Support**: Expanding SubRefine BiDi and character normalization to Arabic, Persian, and Cyrillic script families.
 - **Whisper Fine-Tuning for Hebrew Audio**: Specialized acoustic model for Hebrew speech recognition and speech-aligned retiming.
 

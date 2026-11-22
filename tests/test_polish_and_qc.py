@@ -520,3 +520,41 @@ you're on the planet that it's farthest from.
         assert he_out.exists()
         assert "48" in he_out.read_text(encoding="utf-8")
 
+    def test_gemini_uses_header_auth_never_url_key_and_redacts_secrets(self, monkeypatch):
+        captured_urls = []
+        captured_headers = []
+
+        class DummyResp:
+            def __init__(self, body):
+                self._body = body
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return self._body
+
+        def fake_urlopen(req, timeout=5):
+            captured_urls.append(req.full_url)
+            captured_headers.append(req.get_header("X-goog-api-key"))
+            return DummyResp(
+                json.dumps({"models": [{"name": "models/gemini-3.8-flash", "supportedGenerationMethods": ["generateContent"]}]}).encode("utf-8")
+            )
+
+        monkeypatch.setattr(polish_module, "_cached_gemini_models", None)
+        monkeypatch.setattr(polish_module.urllib.request, "urlopen", fake_urlopen)
+        models = polish_module.get_available_gemini_models("AIzaTestHeaderSecret99")
+        assert models
+        assert all("key=" not in u for u in captured_urls)
+        assert captured_headers == ["AIzaTestHeaderSecret99"]
+
+        redacted = polish_module._redact_secret(
+            "Error https://example?key=AIzaTestHeaderSecret99 failed with AIzaAnotherKey12345",
+            "AIzaTestHeaderSecret99",
+        )
+        assert "AIzaTestHeaderSecret99" not in redacted
+        assert "AIzaAnotherKey12345" not in redacted
+

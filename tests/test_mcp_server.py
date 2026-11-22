@@ -39,7 +39,7 @@ class TestMCPProtocolAndRedTeamIsolation:
         assert resp["id"] == 1
         assert resp["result"]["protocolVersion"] == "2024-11-05"
         assert resp["result"]["serverInfo"]["name"] == "rightsub"
-        assert resp["result"]["serverInfo"]["version"] == "1.5.0"
+        assert resp["result"]["serverInfo"]["version"] == "1.5.1"
 
         # 2. Red Team #2: Notification (no "id" field) MUST return None
         notif = {
@@ -165,6 +165,39 @@ class TestMCPProtocolAndRedTeamIsolation:
         parsed = json.loads(json_part.decode("utf-8"))
         assert parsed["id"] == 99
         assert parsed["result"] == {}
+
+    def test_subprocess_os_pipe_zero_stdout_corruption(self, tmp_path):
+        """Run real `rightsub.py mcp` subprocess over OS pipes and assert pure JSON-RPC on stdout."""
+        import subprocess
+        plain_he = tmp_path / "PipeTest.srt"
+        plain_he.write_text("1\n00:00:01,000 --> 00:00:03,000\n.שלום חברים\n", encoding="utf-8")
+        reqs = [
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05"}},
+            {"jsonrpc": "2.0", "method": "notifications/initialized"},
+            {
+                "jsonrpc": "2.0",
+                "id": 10,
+                "method": "tools/call",
+                "params": {"name": "fix_plex_subtitles", "arguments": {"path": str(plain_he)}},
+            },
+        ]
+        stdin_payload = "\n".join(json.dumps(r) for r in reqs).encode("utf-8") + b"\n"
+        rightsub_py = Path(__file__).resolve().parent.parent / "rightsub.py"
+        proc = subprocess.Popen(
+            [sys.executable, str(rightsub_py), "mcp"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout_bytes, _ = proc.communicate(input=stdin_payload, timeout=20)
+        assert proc.returncode == 0
+        lines = [line for line in stdout_bytes.decode("utf-8").splitlines() if line.strip()]
+        assert len(lines) == 2
+        parsed = [json.loads(line) for line in lines]
+        assert [item["id"] for item in parsed] == [1, 10]
+        he_sidecar = tmp_path / "PipeTest.he.srt"
+        assert he_sidecar.is_file()
+        assert "\u200Fשלום חברים.\u200F" in he_sidecar.read_text(encoding="utf-8")
 
 
 class TestMultiAgentMCPInstaller:

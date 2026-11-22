@@ -47,6 +47,12 @@ FRANCHISE_PACKS = {
             (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?חייל\s*סער(?![א-ת])", r"\g<1>לוחם סער", "מינוח קאנוני (Stormtrooper)"),
             (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?חיילי\s*סער(?![א-ת])", r"\g<1>לוחמי סער", "מינוח קאנוני (Stormtroopers)"),
             (r"(?<![א-ת])הצד\s*החשוך(?![א-ת])", "הצד האפל", "מינוח קאנוני (Dark Side)"),
+            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?מעשה\s*בראשית(?![א-ת])", r"\g<1>למעשה", "תיקון ביטוי שגוי (As a matter of fact = למעשה ולא מעשה בראשית)"),
+            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?קאבתן(?![א-ת])", r"\g<1>קברניט", "תיקון תעתיק פונטי שגוי (Captain = קברניט/קפטן ולא קאבתן)"),
+            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?מכלית\s*קרב(?![א-ת])", r"\g<1>חללית קרב", "מינוח מדויק (snub fighter = חללית קרב)"),
+            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?קרן\s*משיכה(?![א-ת])", r"\g<1>קרן גרירה", "מינוח קאנוני (Tractor Beam = קרן גרירה ולא קרן משיכה)"),
+            (r"(?<![א-ת])לשום\s+את(?![א-ת])", "לשים את", "תיקון שגיאת כתיב (לשים ולא לשום)"),
+            (r"(?<![א-ת])מוחב\s+אותנו(?![א-ת])", "מושכת אותנו", "תיקון שגיאת כתיב (מושכת ולא מוחב)"),
             (r"(?<![א-ת])אובי\s*[-–—]?\s*וואן\s+קאנובי(?![א-ת])", "אובי-וואן קנובי", "תיקון איות קאנוני (קנובי)"),
             (r"(?<![א-ת])סי\s*[-–—]?\s*ת'?ריפיאו(?![א-ת])", "סי-ת'ריפיו", "תיקון איות קאנוני (C-3PO)"),
             (r"(?<![א-ת])ארטו\s*[-–—]?\s*דיטו(?![א-ת])", "ארטו-דיטו", "תיקון איות קאנוני (R2-D2)"),
@@ -68,7 +74,7 @@ FRANCHISE_PACKS = {
         "canon_terms": [
             (r"(?<![א-ת])קרן\s*השתגרות(?![א-ת])", "טרנספורטר", "מינוח קאנוני (Transporter)"),
             (r"(?<![א-ת])ווארפ\s*דרייב(?![א-ת])", "הנעת ווארפ", "מינוח קאנוני (Warp Drive)"),
-            (r"(?<![א-ת])פייזרים(?![א-ת])", "פייזרים", "מינוח קאנוני (Phasers)"),
+            (r"(?<![א-ת])פייזרס(?![א-ת])", "פייזרים", "מינוח קאנוני (Phasers)"),
         ],
         "characters": [
             {"name": "Spock", "he_name": "ספוק", "gender": "Male", "pronouns": "אתה/הוא"},
@@ -103,6 +109,34 @@ FRANCHISE_PACKS = {
             {"name": "Natasha Romanoff", "he_name": "נטשה רומנוף", "gender": "Female", "pronouns": "את/היא"},
             {"name": "Wanda Maximoff", "he_name": "וונדה מקסימוף", "gender": "Female", "pronouns": "את/היא"},
             {"name": "Carol Danvers", "he_name": "קרול דנברס", "gender": "Female", "pronouns": "את/היא"},
+        ]
+    },
+    "boston legal": {
+        "title_patterns": [r"\bboston\s*legal\b", r"\bcrane\s*poole\b"],
+        "domains": ["legal"],
+        "canon_terms": [
+            (r"(?<![א-ת])מהשור\s+הזה(?![א-ת])", "מהבחור הזה שור", "תיקון תרגום מילולי שגוי של שם המשפחה Shore ('מהבחור הזה שור')"),
+            (r"(?<![א-ת])השור\s+הזה,\s+סאלי", "הבחור הזה שור, סאלי", "תיקון תרגום מילולי שגוי של שם המשפחה Shore"),
+            (r"(?<![א-ת])קלוד\s+דבראו(?![א-ת])", "קלוד דברו", "אחידות תעתיק צרפתי (Devereaux = דברו)"),
+            (r"(?<![א-ת])ראלף\s+דבראו(?![א-ת])", "ראלף דברו", "אחידות תעתיק צרפתי (Devereaux = דברו)"),
+        ],
+        "characters": [
+            {"name": "Alan Shore", "he_name": "אלן שור", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "Denny Crane", "he_name": "דני קריין", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "Shirley Schmidt", "he_name": "שירלי שמידט", "gender": "Female", "pronouns": "את/היא"},
+            {"name": "Lori Colson", "he_name": "לורי קולסון", "gender": "Female", "pronouns": "את/היא"},
+            {"name": "Sally Heep", "he_name": "סאלי היפ", "gender": "Female", "pronouns": "את/היא"},
+            {"name": "Tara Wilson", "he_name": "טארה וילסון", "gender": "Female", "pronouns": "את/היא"},
+            {"name": "Brad Chase", "he_name": "בראד צ'ייס", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "Paul Lewiston", "he_name": "פול לויסטון", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "Edwin Poole", "he_name": "אדווין פול", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "Denise Bauer", "he_name": "דניס באוור", "gender": "Female", "pronouns": "את/היא"},
+            {"name": "Jerry Espenson", "he_name": "ג'רי אספנסון", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "Jeffrey Coho", "he_name": "ג'פרי קוהו", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "Claire Simms", "he_name": "קלייר סימס", "gender": "Female", "pronouns": "את/היא"},
+            {"name": "Katie Lloyd", "he_name": "קייטי לויד", "gender": "Female", "pronouns": "את/היא"},
+            {"name": "Carl Sack", "he_name": "קארל סאק", "gender": "Male", "pronouns": "אתה/הוא"},
+            {"name": "Whitney Rome", "he_name": "וויטני רום", "gender": "Female", "pronouns": "את/היא"},
         ]
     }
 }
@@ -165,14 +199,23 @@ DOMAIN_PACKS = {
             "- 'objection' -> 'התנגדות'.\n"
             "- 'sustained' -> 'מתקבלת'.\n"
             "- 'overruled' -> 'נדחית'.\n"
-            "- 'counsel' -> 'פרקליט' / 'בא-כוח' / 'עו״ד'.\n"
+            "- 'counsel' -> 'פרקליט' / 'אדוני הפרקליט' / 'בא-כוח' / 'עו״ד'.\n"
+            "- 'second chair' -> 'פרקליט משנה' / 'פרקליטת משנה' (NEVER literal 'כיסא שני').\n"
+            "- 'open minds (in that jury box)' -> 'אנשים עם ראש פתוח' (NEVER literal 'מוחות פתוחים').\n"
+            "- 'Thank you, Officer' -> 'תודה לך, אדוני השוטר' (NEVER bare 'תודה לך, השוטר').\n"
+            "- 'elicit derogatory, inculpatory information (from a witness on cross-examination)' -> 'להוציא מידע מביך שיערער את אמינותו'.\n"
             "- 'motion' -> 'בקשה' (למשל 'motion to dismiss' -> 'בקשה למחיקת התביעה').\n"
-            "- 'Your Honor' -> 'כבוד השופט' / 'כבודו'."
+            "- 'Your Honor' -> 'כבוד השופט' / 'כבוד השופטת' / 'כבודו'."
         ),
         "bilingual_rules": [
             (r"\bobjection\b", r"\b(ו|ה|ב|ל|כ|מ|ש)?מחאה\b", r"\g<1>התנגדות", "מינוח משפטי (Objection = התנגדות)"),
             (r"\bsustained\b", r"\bנתמך\b", "מתקבלת", "מינוח משפטי (Sustained = מתקבלת)"),
             (r"\boverruled\b", r"\bבוטל\b", "נדחית", "מינוח משפטי (Overruled = נדחית)"),
+            (r"\bsecond\s+chair\b", r"אם את צריכה כיסא שני", "אם את צריכה פרקליטת משנה", "מינוח משפטי (Second Chair = פרקליטת משנה)"),
+            (r"\bsecond\s+chair\b", r"כיסא שני", "פרקליט משנה", "מינוח משפטי (Second Chair = פרקליט משנה ולא כיסא שני)"),
+            (r"\b12\s+open\s+minds\b", r"12\s+מוחות\s+פתוחים", "12 אנשים עם ראש פתוח", "ניסוח עברי טבעי (open minds = אנשים עם ראש פתוח)"),
+            (r"\bthank\s+you,\s+officer\b", r"תודה לך,\s+השוטר", "תודה לך, אדוני השוטר", "פנייה תקנית בעברית (Thank you, Officer = תודה לך, אדוני השוטר)"),
+            (r"\btwo\s+questions\.\s*that\s+was\s+your\s+summation\b", r"זה היה הסיכום שלך", "זו הייתה החקירה הנגדית שלך", "דיוק הקשר משפטי (שתי שאלות לעד = חקירה נגדית)"),
         ]
     },
     "medical": {
@@ -265,6 +308,12 @@ UNIVERSAL_BILINGUAL_RULES: List[Tuple[str, str, str, str]] = [
         r"\b(ו|ה|ב|ל|כ|מ|ש)?קאבתן\b",
         r"\g<1>קברניט",
         "תיקון תעתיק פונטי שגוי (Captain = קברניט/קפטן ולא קאבתן)"
+    ),
+    (
+        r"\bthat\s+shore\s+guy\b",
+        r"(?<![א-ת])מהשור\s+הזה(?![א-ת])",
+        "מהבחור הזה שור",
+        "תיקון תרגום מילולי שגוי של שם המשפחה Shore ('מהבחור הזה שור')"
     ),
 ]
 

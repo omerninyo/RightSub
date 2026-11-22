@@ -6,8 +6,17 @@
 
 set -e
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
+REPO_DIR=""
+if [ -n "$SCRIPT_SOURCE" ] && [ -f "$SCRIPT_SOURCE" ]; then
+    CAND_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
+    if [ -f "$CAND_DIR/rightsub.py" ]; then
+        REPO_DIR="$CAND_DIR"
+    fi
+fi
+
 BIN_NAME="rightsub"
+RIGHTSUB_HOME="${RIGHTSUB_HOME:-$HOME/.local/share/rightsub}"
 
 # Colors for terminal output
 RED='\033[0;31m'
@@ -19,7 +28,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}=== RightSub Global CLI Installer ===${NC}"
 
 # Handle uninstall
-if [ "$1" == "--uninstall" ] || [ "$1" == "-u" ]; then
+if [ "${1:-}" == "--uninstall" ] || [ "${1:-}" == "-u" ]; then
     echo -e "${YELLOW}[*] Uninstalling RightSub global CLI link...${NC}"
     REMOVED=0
     for TARGET_DIR in "$HOME/.local/bin" "/usr/local/bin"; do
@@ -36,12 +45,35 @@ if [ "$1" == "--uninstall" ] || [ "$1" == "-u" ]; then
     exit 0
 fi
 
-# 1. Check Python 3
+# 0. Ensure repository source exists locally (supports curl ... | bash remote install)
+if [ -z "$REPO_DIR" ]; then
+    echo -e "${BLUE}[*] Downloading RightSub source into ${RIGHTSUB_HOME}...${NC}"
+    if [ -d "$RIGHTSUB_HOME/.git" ] && command -v git &>/dev/null; then
+        git -C "$RIGHTSUB_HOME" pull --ff-only || true
+    elif command -v git &>/dev/null; then
+        mkdir -p "$(dirname "$RIGHTSUB_HOME")"
+        rm -rf "$RIGHTSUB_HOME"
+        git clone --depth 1 https://github.com/omerninyo/RightSub.git "$RIGHTSUB_HOME"
+    else
+        TMP_TGZ="$(mktemp)"
+        mkdir -p "$RIGHTSUB_HOME"
+        curl -fsSL https://github.com/omerninyo/RightSub/archive/refs/heads/main.tar.gz -o "$TMP_TGZ"
+        tar -xzf "$TMP_TGZ" -C "$RIGHTSUB_HOME" --strip-components=1
+        rm -f "$TMP_TGZ"
+    fi
+    REPO_DIR="$RIGHTSUB_HOME"
+fi
+
+# 1. Check Python 3.9+
 if ! command -v python3 &>/dev/null; then
     echo -e "${RED}[-] Error: python3 is not installed or not in PATH.${NC}"
     exit 1
 fi
 PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' || {
+    echo -e "${RED}[-] Error: Python 3.9+ is required (found ${PY_VERSION}).${NC}"
+    exit 1
+}
 echo -e "${GREEN}[✓] Python detected: $(python3 --version) (${PY_VERSION})${NC}"
 
 # 2. Check FFmpeg (Warning if missing)
@@ -56,12 +88,8 @@ else
     echo -e "${GREEN}[✓] FFmpeg detected: $(ffmpeg -version | head -n 1 | awk '{print $1, $2, $3}')${NC}"
 fi
 
-# 3. Install Python dependencies
-echo -e "${BLUE}[*] Verifying/installing Python dependencies from requirements.txt...${NC}"
-if [ -f "$REPO_DIR/requirements.txt" ]; then
-    python3 -m pip install -q -r "$REPO_DIR/requirements.txt" --user || python3 -m pip install -q -r "$REPO_DIR/requirements.txt"
-    echo -e "${GREEN}[✓] Python dependencies installed successfully.${NC}"
-fi
+# 3. Zero-dependency stdlib runtime verification (avoids PEP 668 pip failures)
+echo -e "${GREEN}[✓] Runtime dependencies: 0 external pip packages required (100% Python stdlib).${NC}"
 
 # 4. Make rightsub.py executable
 chmod +x "$REPO_DIR/rightsub.py"

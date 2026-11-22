@@ -1,20 +1,26 @@
 # 🔄 RightSub Home Media & Download Integrations Guide
 
+<p align="left">
+  <b>Language / שפה:</b>
+  <b>English</b> |
+  <a href="מדריך-אינטגרציות-ואוטומציה"><b>עברית</b></a>
+</p>
+
 > **Overview**: Automate RightSub across your home lab and media server stack. Run subtitle mastering, BiDi correction, and translation in a 100% hands-off "Set-and-Forget" workflow.
 
 This guide provides tested, copy-pasteable configurations for the most popular home media tools across **Windows** and **macOS/Linux**:
 0. [The Recommended 2-Phase Strategy & Automated Wizard (`rightsub setup`)](#0-the-recommended-2-phase-strategy--daemon-architecture)
 1. [qBittorrent (Run on Completion & Seed-Safe)](#1-qbittorrent-torrent-completion-hook)
-2. [Sonarr & Radarr (Custom Connect Scripts)](#2-sonarr--radarr-connect-scripts)
-3. [Bazarr (Custom Post-Processing Hook)](#3-bazarr-post-processing-hook)
+2. [Sonarr & Radarr (Webhook Integration or Post-Import Script)](#2-sonarr--radarr-webhook-integration-or-post-import-script)
+3. [Bazarr (Webhook Daemon or Post-Processing Hook)](#3-bazarr-webhook-daemon-or-post-processing-hook)
 4. [Transmission (Torrent Completion Script)](#4-transmission-completion-script)
 5. [Tautulli / Plex (Recently Added Webhook)](#5-tautulli--plex-recently-added-hook)
 6. [Standalone OS Folder Watchers (Non-Arr / Manual Setups)](#6-standalone-os-folder-watchers-non-arr--manual-setups)
-7. [Troubleshooting & Verifying Integrations](#7-troubleshooting--verifying-integrations)
+7. [Troubleshooting & Verifying Integrations](#7--troubleshooting--verifying-integrations)
 
 ---
 
-## ⚡ New in v1.5.0: Automated Hook & Background Service Generator (`rightsub setup`)
+## ⚡ New in v1.5.1: Automated Hook & Background Service Generator (`rightsub setup`)
 
 Instead of writing shell/batch scripts or plist/systemd service files manually, you can now generate and register them interactively in seconds:
 
@@ -32,7 +38,7 @@ rightsub config --install-service
 - **Generated Background Service Files:**
   - **macOS:** `~/Library/LaunchAgents/com.rightsub.webhook.plist`
   - **Linux:** `~/.config/systemd/user/rightsub-webhook.service`
-  - **Windows:** `~/.config/rightsub/service/start_rightsub_webhook.bat` (with ready-to-run `schtasks` command).
+  - **Windows:** `~/.config/rightsub/hooks/start_webhook_daemon.bat` (with ready-to-run `schtasks` command).
 
 ---
 
@@ -398,4 +404,4 @@ To test that your automated pipeline is executing correctly:
    ```bash
    rightsub auto "/path/to/Sample.mkv" --dry-run
    ```
-2. Inspect the historical report at `docs/analytics/TRAFFIC_REPORT.md` to observe automated hits and processing records.
+2. Run a full environment diagnostic (`rightsub doctor`), or verify the live Webhook daemon status directly at `http://127.0.0.1:8775/health`.

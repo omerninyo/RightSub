@@ -3,7 +3,7 @@
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="FEATURE_AI_POLISH_AND_QC.he.md"><b>עברית</b></a>
+  <a href="מפרט-מנוע-ליטוש-סמנטי-ובקרת-איכות"><b>עברית</b></a>
 </p>
 
 This document specifies the architectural design, data contracts, CLI interface, and production implementation of the **Semantic AI Polish & Subtitle QC Engine** in RightSub (shipped in v1.3.0): the `rightsub polish` command.
@@ -53,7 +53,7 @@ rightsub polish "Star Wars (1977).he.srt" --bible translation_bible.json
 # Query TMDb by specific ID for cast rosters and franchise canon:
 rightsub polish "Gladiator.he.srt" --en "Gladiator.en.srt" --tmdb-id 98
 
-# Cloud AI proofreading with automated Model Cascade (gemini-3.8-flash -> gemini-3.5-flash):
+# Cloud AI proofreading with automated Model Cascade (gemini-3.8-flash -> gemini-3.7 -> gemini-3.6 -> 3.5/3.1-lite):
 rightsub polish "Movie.he.srt" --gemini
 
 # Run locally and 100% offline via Ollama:
@@ -67,7 +67,7 @@ rightsub polish "Movie.he.srt" --en "Movie.en.srt" --interactive
 ```
 
 ### 3.1 Interactive Line-by-Line Diff Reviewer (`--interactive` / `-i`)
-Shipped in `v1.5.0` ([`scripts/19_polish_and_qc.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/19_polish_and_qc.py)), `rightsub polish --interactive` (or `-i`) presents every proposed canon, number, or AI modification in a linear terminal review loop before writing to disk:
+Shipped in `v1.5.0+` ([`scripts/19_polish_and_qc.py`](https://github.com/omerninyo/RightSub/blob/main/scripts/19_polish_and_qc.py)), `rightsub polish --interactive` (or `-i`) presents every proposed canon, number, or AI modification in a linear terminal review loop before writing to disk:
 - **`[Y / Enter]`**: Approve the proposed change for this cue.
 - **`[N]`**: Reject the change and preserve the original Hebrew line.
 - **`[E]`**: Type a custom manual Hebrew replacement for this cue.

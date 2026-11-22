@@ -14,13 +14,13 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![Platform: Windows & macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![Plex & Infuse Verified](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-194%2F194%20Passing-success.svg)]()
+[![Tests: 100% Pass](https://img.shields.io/badge/Pytest-212%2F212%20Passing-success.svg)]()
 [![Web App: 100% Local Browser Fixer](https://img.shields.io/badge/Web%20App-Client--Side%20SubRefine-teal.svg)](https://rightsub.ninyo.co/)
 [![Benchmark: 101/101 Episodes](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **Subtitles Done Right — from Instant Browser & 1-Click Plex BiDi Repair to Autonomous Multi-Agent AI Translation.**
 >
-> 🌐 **New in `v1.5.0` — Official Web App & Instant Browser `.srt` Master:** Fix broken Hebrew `.srt` files directly in your browser with **0 installation and 100% client-side privacy** via **[rightsub.ninyo.co](https://rightsub.ninyo.co/)** (or locally at `http://localhost:8775/ui` when running `rightsub serve`). Includes a live single-line BiDi sandbox and free-text natural-language Troubleshooting & Solution Finder (`#help`).
+> 🌐 **`v1.5.1` — Official Web App & Instant Browser `.srt` Master:** Fix broken Hebrew `.srt` files directly in your browser with **0 installation and 100% client-side privacy** via **[rightsub.ninyo.co](https://rightsub.ninyo.co/)** (or locally at `http://localhost:8775/ui` when running `rightsub serve`). Includes a live single-line BiDi sandbox, batch ZIP download, and free-text natural-language Troubleshooting & Solution Finder (`#help`).
 
 **RightSub** is a high-performance CLI suite and Python framework designed to repair, clean, synchronize, translate, and format subtitles for **ANY movie or television series** across **Windows** and **macOS**.
 
@@ -235,7 +235,7 @@ rightsub extract "Movie.mkv" -o "Movie.en.srt" --lang eng
 ### Recipe 3: Fix 25 FPS to 23.976 FPS (Framerate Desync)
 Stretch subtitles extracted from PAL DVDs or European TV to match US Web-DL / BluRay rips:
 ```bash
-rightsub adjust-fps "PAL_sub.srt" -o "synced_sub.srt"
+rightsub adjust-fps "PAL_sub.srt" -o "synced_sub.srt" --fps-from 25.0 --fps-to 23.976
 ```
 
 ### Recipe 4: Translate a Movie or Episode with AI
@@ -299,7 +299,7 @@ For developers and power users, RightSub cleanly separates high-level workflow c
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                           RightSub CLI (rightsub)                       │
-│    extract · clean · fix-plex · sync · adjust-fps · split · merge · qa  │
+│   auto · fix-plex · extract · sync · adjust-fps · split · merge · qa    │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
          ┌───────────────────────────┴───────────────────────────┐
@@ -319,7 +319,7 @@ For developers and power users, RightSub cleanly separates high-level workflow c
 ```
 
 ### 1. 🧼 The SubRefine Engine (Sanitization, SDH & BiDi)
-- **Zero-Reverse Punctuation on Plex & Infuse**: Automatically injects invisible Right-to-Left Marks (`\u200F` / RLM) at line starts and trailing punctuation (`?`, `!`, `.`, `:`, `-`), preventing punctuation from flipping to the wrong side of the screen on Apple TV, Android TV, Infuse, and VLC.
+- **Zero-Reverse Punctuation on Plex & Infuse**: Automatically injects invisible Right-to-Left Marks (`\u200F` / RLM) at line starts and *after* trailing punctuation (`?`, `!`, `.`, `:`, `-`) per Unicode **UAX #9 Rule N1**, preventing punctuation from flipping to the wrong side of the screen on Apple TV, Android TV, Infuse, and VLC.
 - **Hearing-Impaired (SDH) Cleaner**: Intelligently removes descriptive auditory noise like `[DOOR CLOSES]`, `(CHEERING)`, `♪ Pop music ♪` while strictly preserving dialogue timing blocks.
 - **Auto-Charset & Mojibake Rescue**: Detects legacy Hebrew encodings (Windows-1255 / CP1255 / ISO-8859-8) and seamlessly converts them into clean UTF-8.
 - **Homoglyph & Typography Repair**: Normalizes accidental Cyrillic (`м`, `р`, `с`) and Arabic letters into native Hebrew characters. Automatically converts standard quotes in Hebrew acronyms into typographic gershayim (e.g., `עו"ד` ➔ `עו״ד`, `ארה"ב` ➔ `ארה״ב`).
@@ -359,7 +359,7 @@ For developers and power users, RightSub cleanly separates high-level workflow c
 | `polish` | **SubRefine & AI** | Semantic AI proofreading, canon harmonization & interactive diff review (`-i`) | `rightsub polish "Star Wars.he.srt" -i` | `rightsub polish "Star Wars.he.srt" -i` |
 | `translate-ollama` | **SubSwarm** | 100% offline local subtitle translation via Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
 | `fix-plex` | **SubRefine** | Fix BiDi, RLM, punctuation, CP1255 encoding & ads | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
-| `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
+| `adjust-fps` | **SubRefine** | Stretch framerate (25.0 <-> 23.976) or shift offset | `rightsub adjust-fps in.srt -o out.srt --fps-from 25.0 --fps-to 23.976` | `rightsub adjust-fps in.srt -o out.srt --fps-from 25.0 --fps-to 23.976` |
 | `extract` | **SubRefine** | Extract subtitle tracks from MKV/MP4 using FFmpeg | `rightsub extract video.mp4 -o out.srt` | `rightsub extract video.mp4 -o out.srt` |
 | `transcribe` | **quicksubs** | On-device Speech-to-Subtitle transcription (Apple / Whisper) | `rightsub transcribe video.mp4` | `rightsub transcribe video.mp4` |
 | `audio-sync` | **quicksubs** | Subtitle retiming guided by authoritative audio | `rightsub audio-sync bad.srt -v vid.mp4 -o ok.srt` | `rightsub audio-sync bad.srt -v vid.mp4 -o ok.srt` |
@@ -392,14 +392,14 @@ RightSub was validated across an end-to-end dataset modeled on the 5-season run 
 
 ## 🧪 Testing & Verification
 
-RightSub comes with a comprehensive automated test suite (194 automated tests: 169 unit tests + 25 dataset integration tests):
+RightSub comes with a comprehensive automated test suite (212 automated tests: 187 unit tests + 25 dataset integration tests):
 ```bash
 pytest -v
 ```
 
 Tests cover:
 - BiDi trailing punctuation, 18-pattern legacy visual un-flipping (`Subabi` recovery), and RLM idempotency.
-- Client-side JavaScript `SubRefine` engine (`site/subrefine.js`) 1:1 parity against Python `07_fix_plex_punctuation.py` across all 15 Red Team vectors, CP1255 browser byte decoding, and bilingual number un-flipping.
+- Client-side JavaScript `SubRefine` engine (`site/subrefine.js`) 1:1 parity against Python `07_fix_plex_punctuation.py` across 26+ Red Team vectors, CP1255 browser byte decoding, and bilingual number un-flipping.
 - Hebrew acronym gershayim conversion (`עו״ד`, `ארה״ב`).
 - Multi-lingual homoglyph normalization (Georgian `דეייט` $\rightarrow$ `דייט`, Armenian, Greek, Arabic, Cyrillic, Asian).
 - Bilingual 2-digit number cross-check (`cross_check_bilingual_numbers`, `84` $\rightarrow$ `48`) and content-based Seed-Safe `.srt` $\rightarrow$ `.he.srt` protection.
@@ -428,10 +428,11 @@ Tests cover:
 - 🔄 **[End-to-End Pipeline Workflow](docs/PIPELINE_WORKFLOW.md)** — Step-by-step from raw video to deployed subtitles.
 - ⚖️ **[RightSub vs. Bazarr Technical Comparison](docs/COMPARISON_BAZARR.md)** — Architectural breakdown, differences, and integration guide.
 - 🔄 **[Home Media & Download Integrations (qBittorrent, Sonarr, Radarr, Bazarr, Daemons)](docs/INTEGRATIONS_GUIDE.md)** — Automated hands-off pipeline setups, why event hooks beat background daemons, and folder watcher scripts.
-- 🗺️ **[Official Product Roadmap](ROADMAP.md)** — Shipped milestones, upcoming releases (v1.4, v1.5), and GitHub tracking.
+- 🗺️ **[Official Product Roadmap](ROADMAP.md)** — Shipped milestones, upcoming releases (v1.5, v1.6), and GitHub tracking.
 - 🧪 **[RFC 001: Interactive TUI Specification](docs/proposals/RFC_001_INTERACTIVE_TUI.md)** — Terminal user interface and diff approval spec.
 - 🔌 **[RFC 002: Native MCP Server Specification](docs/proposals/RFC_002_MCP_SERVER.md)** — Model Context Protocol architecture for AI agents.
 - ⚙️ **[RFC 003: System Integration Wizard Specification](docs/proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.md)** — Automated downloader hooks & service setup.
+- 🐳 **[RFC 004: Docker Webhook Server & Container Specification](docs/proposals/RFC_004_DOCKER_WEBHOOK_SERVER.md)** — Zero-dep HTTP daemon and Docker Compose automation.
 - 💎 **[Semantic AI Polish & Subtitle QC Guide](docs/FEATURE_AI_POLISH_AND_QC.md)** — Autonomous proofreading, canon harmonization, and diff auditing.
 - 🚀 **[What's New & Release Notes](docs/WHATS_NEW.md)** — Curated product milestone announcements and feature highlights.
 - 📖 **[Official GitHub Wiki](https://github.com/omerninyo/RightSub/wiki)** — Complete bilingual online documentation.

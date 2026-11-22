@@ -122,4 +122,50 @@ class TestSplitMergePipeline:
         assert ok_drift is False
         assert rep_drift["shifted_windows"] >= 1
 
+    def test_merge_ignores_input_and_manifest_and_handles_null_hebrew(self, tmp_path):
+        en_srt = tmp_path / "show.en.srt"
+        en_srt.write_text(
+            "1\n00:00:01,000 --> 00:00:02,500\nFirst line.\n\n"
+            "2\n00:00:03,000 --> 00:00:04,500\n♪ Music ♪\n",
+            encoding="utf-8",
+        )
+        batches_dir = tmp_path / "batches"
+        batches_dir.mkdir()
+        (batches_dir / "batch_01_he.json").write_text(
+            json.dumps(
+                [{"index": 1, "hebrew": "שורה ראשונה."}, {"index": 2, "hebrew": None}],
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        (batches_dir / "batch_01_input.json").write_text(
+            json.dumps([{"index": 1, "hebrew": "WRONG_TRAP"}]),
+            encoding="utf-8",
+        )
+        (batches_dir / "prompt_manifest.json").write_text(
+            json.dumps({"index": 1, "hebrew": "MANIFEST_TRAP"}),
+            encoding="utf-8",
+        )
+        out_srt = tmp_path / "merged.he.srt"
+        assert merge_module.merge_and_validate(str(en_srt), str(batches_dir), str(out_srt)) is True
+        merged = out_srt.read_text(encoding="utf-8")
+        assert "שורה ראשונה." in merged
+        assert "WRONG_TRAP" not in merged
+        assert "MANIFEST_TRAP" not in merged
+        assert "None" not in merged
+
+    def test_split_preserves_two_line_empty_cues(self, tmp_path):
+        en_srt = tmp_path / "empty_cue.en.srt"
+        en_srt.write_text(
+            "1\n00:00:01,000 --> 00:00:02,000\n\n"
+            "2\n00:00:03,000 --> 00:00:04,000\nHello.\n",
+            encoding="utf-8",
+        )
+        out_dir = tmp_path / "out_batches"
+        split_module.split_srt_to_batches(str(en_srt), str(out_dir), batch_size=10)
+        batch_data = json.loads((out_dir / "batch_01_en.json").read_text(encoding="utf-8"))
+        assert [c["index"] for c in batch_data] == [1, 2]
+        assert batch_data[0]["text"] == ""
+        assert batch_data[1]["text"] == "Hello."
+
 

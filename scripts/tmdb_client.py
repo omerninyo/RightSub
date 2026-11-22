@@ -25,14 +25,22 @@ from pathlib import Path
 
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
+def _get_config_path() -> Path:
+    cfg_dir = os.environ.get("RIGHTSUB_CONFIG_DIR")
+    if cfg_dir:
+        return Path(cfg_dir) / "config.json"
+    if Path("/config").is_dir() and Path("/.dockerenv").exists():
+        return Path("/config") / "config.json"
+    return Path.home() / ".config" / "rightsub" / "config.json"
+
 def get_tmdb_auth(api_key: str = None) -> tuple:
     """
     Returns (token, is_bearer) from provided key, environment variables
-    (TMDB_API_KEY, TMDB_READ_TOKEN), or local config file (~/.config/rightsub/config.json).
+    (TMDB_API_KEY, TMDB_READ_TOKEN), or local config file.
     """
     key = api_key or os.environ.get("TMDB_API_KEY") or os.environ.get("TMDB_READ_TOKEN")
     if not key:
-        config_path = Path.home() / ".config" / "rightsub" / "config.json"
+        config_path = _get_config_path()
         if config_path.is_file():
             try:
                 data = json.loads(config_path.read_text(encoding="utf-8"))
@@ -42,6 +50,8 @@ def get_tmdb_auth(api_key: str = None) -> tuple:
     if not key:
         return None, False
     key = str(key).strip()
+    if key.lower().startswith("bearer "):
+        key = key[7:].strip()
     # If key starts with 'ey' it is likely a v4 JWT Bearer Read Access Token
     is_bearer = key.startswith("ey") and len(key) > 50
     return key, is_bearer
@@ -51,26 +61,32 @@ def is_tmdb_available(api_key: str = None) -> bool:
     token, _ = get_tmdb_auth(api_key)
     return token is not None
 
+def _redact_tmdb_secret(text: str, token: str = None) -> str:
+    msg = str(text or "")
+    if token and len(token) > 4:
+        msg = msg.replace(token, "[REDACTED]")
+    return re.sub(r'([?&]api_key=)[^&\s]+', r'\1[REDACTED]', msg, flags=re.IGNORECASE)
+
 def tmdb_get(endpoint: str, params: dict = None, api_key: str = None) -> dict:
     """Execute a GET request to TMDb API."""
     token, is_bearer = get_tmdb_auth(api_key)
     if not token:
         raise ValueError("TMDb API key or Read Access Token not found. Set TMDB_API_KEY or TMDB_READ_TOKEN environment variable.")
 
-    params = params or {}
+    req_params = dict(params) if params else {}
     headers = {
         "Accept": "application/json",
-        "User-Agent": "RightSub/2.0 (Subtitle Translation Suite)"
+        "User-Agent": "RightSub/1.5 (Subtitle Translation Suite)"
     }
 
     if is_bearer:
         headers["Authorization"] = f"Bearer {token}"
     else:
-        params["api_key"] = token
+        req_params["api_key"] = token
 
     url = f"{TMDB_BASE_URL}{endpoint}"
-    if params:
-        query_str = urllib.parse.urlencode(params)
+    if req_params:
+        query_str = urllib.parse.urlencode(req_params)
         url = f"{url}?{query_str}"
 
     req = urllib.request.Request(url, headers=headers)
@@ -82,10 +98,10 @@ def tmdb_get(endpoint: str, params: dict = None, api_key: str = None) -> dict:
             else:
                 return {}
     except urllib.error.HTTPError as err:
-        print(f"[-] TMDb HTTP Error {err.code} on {endpoint}: {err.reason}", file=sys.stderr)
+        print(f"[-] TMDb HTTP Error {err.code} on {endpoint}: {_redact_tmdb_secret(err.reason, token)}", file=sys.stderr)
         return {}
     except Exception as exc:
-        print(f"[-] TMDb Request failed on {endpoint}: {exc}", file=sys.stderr)
+        print(f"[-] TMDb Request failed on {endpoint}: {_redact_tmdb_secret(exc, token)}", file=sys.stderr)
         return {}
 
 def parse_media_filename(filepath_or_name: str) -> dict:
@@ -195,22 +211,24 @@ def fetch_show_or_movie_metadata(
     season: int = None,
     episode: int = None,
     year: int = None,
-    api_key: str = None
+    api_key: str = None,
+    tmdb_id: int = None
 ) -> dict:
     """
     Comprehensive query helper:
-    Takes title or filename, queries TMDb, and returns structured metadata,
+    Takes title, filename, or explicit tmdb_id, queries TMDb, and returns structured metadata,
     cast with 100% verified genders, episodic guest stars, synopsis, and genres.
     """
-    if filepath and not title:
+    parsed_is_tv = None
+    if filepath:
         parsed = parse_media_filename(filepath)
-        title = parsed["title"]
-        season = season or parsed.get("season")
-        episode = episode or parsed.get("episode")
-        year = year or parsed.get("year")
-        is_tv = parsed.get("is_tv", True)
-    else:
-        is_tv = (season is not None) or True
+        title = title or parsed.get("title")
+        season = season if season is not None else parsed.get("season")
+        episode = episode if episode is not None else parsed.get("episode")
+        year = year if year is not None else parsed.get("year")
+        parsed_is_tv = parsed.get("is_tv")
+
+    is_tv = parsed_is_tv if parsed_is_tv is not None else ((season is not None) or (episode is not None))
 
     if not is_tmdb_available(api_key):
         return {
@@ -218,19 +236,49 @@ def fetch_show_or_movie_metadata(
             "error": "TMDb API key not configured. Set TMDB_API_KEY environment variable."
         }
 
-    search_res = search_title(title, year=year, is_tv=is_tv, api_key=api_key)
-    if not search_res:
-        return {
-            "success": False,
-            "error": f"Title not found on TMDb: '{title}'"
-        }
+    prefetched_details = None
+    if tmdb_id is not None:
+        primary_tv = is_tv or (season is not None) or (episode is not None)
+        endpoints_to_try = (
+            [(f"/tv/{tmdb_id}", True), (f"/movie/{tmdb_id}", False)]
+            if primary_tv else
+            [(f"/movie/{tmdb_id}", False), (f"/tv/{tmdb_id}", True)]
+        )
+        details = {}
+        matched_tv = primary_tv
+        for ep, ep_is_tv in endpoints_to_try:
+            details = tmdb_get(ep, api_key=api_key)
+            if details and details.get("id"):
+                matched_tv = ep_is_tv
+                break
+        if not details or not details.get("id"):
+            return {
+                "success": False,
+                "error": f"TMDb ID not found: {tmdb_id}"
+            }
+        prefetched_details = details
+        media_id = details["id"]
+        is_tv = matched_tv
+        media_title = details.get("name") if is_tv else details.get("title")
+        overview = details.get("overview", "")
+        original_lang = details.get("original_language", "en")
+        origin_country = details.get("origin_country", []) if is_tv else [
+            c.get("iso_3166_1", "") for c in details.get("production_countries", [])
+        ]
+    else:
+        search_res = search_title(title, year=year, is_tv=is_tv, api_key=api_key)
+        if not search_res:
+            return {
+                "success": False,
+                "error": f"Title not found on TMDb: '{title}'"
+            }
 
-    media_id = search_res["id"]
-    is_tv = search_res.get("is_tv", True)
-    media_title = search_res.get("name") if is_tv else search_res.get("title")
-    overview = search_res.get("overview", "")
-    original_lang = search_res.get("original_language", "en")
-    origin_country = search_res.get("origin_country", [])
+        media_id = search_res["id"]
+        is_tv = search_res.get("is_tv", True)
+        media_title = search_res.get("name") if is_tv else search_res.get("title")
+        overview = search_res.get("overview", "")
+        original_lang = search_res.get("original_language", "en")
+        origin_country = search_res.get("origin_country", [])
 
     characters = []
     genre_names = []
@@ -239,7 +287,7 @@ def fetch_show_or_movie_metadata(
 
     if is_tv:
         # 1. Fetch TV Details (Genres)
-        tv_details = tmdb_get(f"/tv/{media_id}", api_key=api_key)
+        tv_details = prefetched_details if prefetched_details is not None else tmdb_get(f"/tv/{media_id}", api_key=api_key)
         genre_names = [g["name"] for g in tv_details.get("genres", [])]
         if not origin_country and tv_details.get("origin_country"):
             origin_country = tv_details["origin_country"]
@@ -327,19 +375,24 @@ def main():
     parser.add_argument("-s", "--season", type=int, help="Season number")
     parser.add_argument("-e", "--episode", type=int, help="Episode number")
     parser.add_argument("-y", "--year", type=int, help="Release year")
+    parser.add_argument("--tmdb-id", type=int, help="Explicit TMDb Movie/TV ID")
     parser.add_argument("--api-key", help="TMDb API key or v4 Bearer Read Token")
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
     args = parser.parse_args()
 
     # If target is a file or contains S01E05 pattern
-    meta = fetch_show_or_movie_metadata(
-        title=args.target if not re.search(r'\.(srt|vtt|mp4|mkv|m4v)$|[sS]\d{1,2}[eE]\d{1,2}', args.target) else None,
-        filepath=args.target if re.search(r'\.(srt|vtt|mp4|mkv|m4v)$|[sS]\d{1,2}[eE]\d{1,2}', args.target) else None,
-        season=args.season,
-        episode=args.episode,
-        year=args.year,
-        api_key=args.api_key
-    )
+    is_media_arg = bool(re.search(r'\.(srt|vtt|mp4|mkv|m4v)$|[sS]\d{1,2}[eE]\d{1,2}', args.target))
+    fetch_kwargs = {
+        "title": args.target if not is_media_arg else None,
+        "filepath": args.target if is_media_arg else None,
+        "season": args.season,
+        "episode": args.episode,
+        "year": args.year,
+        "api_key": args.api_key,
+    }
+    if args.tmdb_id is not None:
+        fetch_kwargs["tmdb_id"] = args.tmdb_id
+    meta = fetch_show_or_movie_metadata(**fetch_kwargs)
 
     if args.json:
         print(json.dumps(meta, ensure_ascii=False, indent=2))

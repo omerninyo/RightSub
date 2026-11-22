@@ -11,6 +11,7 @@ Provides lightweight, autonomous configuration and diagnostics for RightSub:
 import os
 import sys
 import json
+import shlex
 import shutil
 import platform
 import subprocess
@@ -18,8 +19,19 @@ import urllib.request
 import urllib.error
 import argparse
 from pathlib import Path
+from xml.sax.saxutils import escape as xml_escape
 
-CONFIG_DIR = Path.home() / ".config" / "rightsub"
+
+def _resolve_config_dir() -> Path:
+    env_dir = os.environ.get("RIGHTSUB_CONFIG_DIR", "").strip()
+    if env_dir:
+        return Path(env_dir).expanduser()
+    if (Path("/config").is_dir() and (Path("/.dockerenv").exists() or os.environ.get("RIGHTSUB_IN_DOCKER") == "1")):
+        return Path("/config")
+    return Path.home() / ".config" / "rightsub"
+
+
+CONFIG_DIR = _resolve_config_dir()
 CONFIG_FILE = CONFIG_DIR / "config.json"
 HOOKS_DIR = CONFIG_DIR / "hooks"
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -51,9 +63,10 @@ def install_downloader_hooks(
         "# RightSub qBittorrent Completion Hook (Seed-Safe)\n"
         "# Usage in qBittorrent -> Options -> Downloads -> Run external program on torrent completion:\n"
         f"#   \"{qbit_sh}\" \"%F\"\n"
+        "export PATH=\"/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH\"\n"
         "TARGET_PATH=\"$1\"\n"
         "if [ -z \"$TARGET_PATH\" ]; then exit 0; fi\n"
-        f"\"{python_exe}\" \"{rightsub_py}\" auto \"$TARGET_PATH\"\n"
+        f"{shlex.quote(python_exe)} {shlex.quote(rightsub_py)} auto -- \"$TARGET_PATH\"\n"
     )
     qbit_sh.write_text(qbit_sh_content, encoding="utf-8")
     try:
@@ -66,10 +79,10 @@ def install_downloader_hooks(
     qbit_bat_content = (
         "@echo off\r\n"
         ":: RightSub qBittorrent Completion Hook (Windows Seed-Safe)\r\n"
-        ":: Usage in qBittorrent: \"" + str(qbit_bat) + "\" \"%F\"\r\n"
+        f":: Direct command (recommended, prevents cmd.exe '&' splitting): \"{python_exe}\" \"{rightsub_py}\" auto -- \"%F\"\r\n"
         "chcp 65001 >nul 2>&1\r\n"
         "if \"%~1\"==\"\" exit /b 0\r\n"
-        f"\"{python_exe}\" \"{rightsub_py}\" auto \"%~1\"\r\n"
+        f"\"{python_exe}\" \"{rightsub_py}\" auto -- \"%~1\"\r\n"
     )
     qbit_bat.write_text(qbit_bat_content, encoding="utf-8")
 
@@ -78,9 +91,10 @@ def install_downloader_hooks(
     trans_sh_content = (
         "#!/usr/bin/env bash\n"
         "# RightSub Transmission Completion Hook (Seed-Safe)\n"
+        "export PATH=\"/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH\"\n"
         "TARGET_PATH=\"${TR_TORRENT_DIR}/${TR_TORRENT_NAME}\"\n"
         "if [ -z \"$TR_TORRENT_NAME\" ]; then exit 0; fi\n"
-        f"\"{python_exe}\" \"{rightsub_py}\" auto \"$TARGET_PATH\"\n"
+        f"{shlex.quote(python_exe)} {shlex.quote(rightsub_py)} auto -- \"$TARGET_PATH\"\n"
     )
     trans_sh.write_text(trans_sh_content, encoding="utf-8")
     try:
@@ -120,7 +134,7 @@ def install_downloader_hooks(
             except Exception as e:
                 api_registrations.append({"service": svc_name, "success": False, "error": str(e)})
 
-    qbit_cmd = f'"{qbit_bat}" "%F"' if sys.platform == "win32" else f'"{qbit_sh}" "%F"'
+    qbit_cmd = f'"{python_exe}" "{rightsub_py}" auto -- "%F"' if sys.platform == "win32" else f'"{qbit_sh}" "%F"'
     return {
         "hooks_dir": str(target_dir),
         "qbittorrent_script": str(qbit_bat if sys.platform == "win32" else qbit_sh),
@@ -149,7 +163,7 @@ def install_background_service(service_dir: Path = None, port: int = 8775) -> di
         target_dir.mkdir(parents=True, exist_ok=True)
         plist_path = target_dir / "com.rightsub.webhook.plist"
         log_path = CONFIG_DIR / "webhook.log"
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        CONFIG_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -158,21 +172,28 @@ def install_background_service(service_dir: Path = None, port: int = 8775) -> di
     <string>com.rightsub.webhook</string>
     <key>ProgramArguments</key>
     <array>
-        <string>{python_exe}</string>
-        <string>{rightsub_py}</string>
+        <string>{xml_escape(python_exe)}</string>
+        <string>{xml_escape(rightsub_py)}</string>
         <string>serve</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
         <string>--port</string>
         <string>{port}</string>
         <string>--seed-safe</string>
     </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>{log_path}</string>
+    <string>{xml_escape(str(log_path))}</string>
     <key>StandardErrorPath</key>
-    <string>{log_path}</string>
+    <string>{xml_escape(str(log_path))}</string>
 </dict>
 </plist>
 """
@@ -188,7 +209,8 @@ def install_background_service(service_dir: Path = None, port: int = 8775) -> di
         bat_path = target_dir / "start_webhook_daemon.bat"
         bat_content = (
             "@echo off\r\n"
-            f"\"{python_exe}\" \"{rightsub_py}\" serve --port {port} --seed-safe\r\n"
+            "chcp 65001 >nul 2>&1\r\n"
+            f"\"{python_exe}\" \"{rightsub_py}\" serve --host 127.0.0.1 --port {port} --seed-safe\r\n"
         )
         bat_path.write_text(bat_content, encoding="utf-8")
         return {
@@ -200,13 +222,15 @@ def install_background_service(service_dir: Path = None, port: int = 8775) -> di
         target_dir = Path(service_dir) if service_dir else (Path.home() / ".config" / "systemd" / "user")
         target_dir.mkdir(parents=True, exist_ok=True)
         unit_path = target_dir / "rightsub-webhook.service"
+        sd_py = python_exe.replace("%", "%%")
+        sd_rs = rightsub_py.replace("%", "%%")
         unit_content = f"""[Unit]
 Description=RightSub Native Webhook Daemon (Sonarr/Radarr/Bazarr)
 After=network.target
 
 [Service]
 Type=simple
-ExecStart="{python_exe}" "{rightsub_py}" serve --port {port} --seed-safe
+ExecStart="{sd_py}" "{sd_rs}" serve --host 127.0.0.1 --port {port} --seed-safe
 Restart=on-failure
 RestartSec=5
 
@@ -232,9 +256,18 @@ def load_config() -> dict:
 
 
 def save_config(cfg: dict) -> None:
-    """Save configuration dictionary to ~/.config/rightsub/config.json."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    CONFIG_FILE.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
+    """Atomically save configuration dictionary with owner-only permissions (0o600)."""
+    CONFIG_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    CONFIG_FILE.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    tmp_path = CONFIG_FILE.with_name(f".{CONFIG_FILE.name}.tmp.{os.getpid()}")
+    tmp_path.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
+    if os.name != "nt":
+        try:
+            os.chmod(CONFIG_DIR, 0o700)
+            os.chmod(tmp_path, 0o600)
+        except Exception:
+            pass
+    os.replace(tmp_path, CONFIG_FILE)
 
 
 def mask_key(key: str) -> str:
@@ -270,18 +303,19 @@ def verify_tmdb(key: str) -> tuple:
     except urllib.error.HTTPError as e:
         return False, f"Authentication failed (HTTP {e.code})"
     except Exception as e:
-        return False, f"Network error: {str(e)}"
+        safe_err = str(e).replace(key, "[REDACTED]")
+        return False, f"Network error: {safe_err}"
 
 
 def verify_gemini(key: str) -> tuple:
-    """Verify Google Gemini API key with a live metadata/models check."""
+    """Verify Google Gemini API key via x-goog-api-key header (never query string)."""
     if not key:
         return False, "Key is empty"
     key = key.strip()
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models"
     req = urllib.request.Request(
         url,
-        headers={"Accept": "application/json", "x-goog-api-key": key, "User-Agent": "RightSub/1.3"}
+        headers={"Accept": "application/json", "x-goog-api-key": key, "User-Agent": "RightSub/1.5"}
     )
     try:
         with urllib.request.urlopen(req, timeout=7) as resp:
@@ -295,7 +329,8 @@ def verify_gemini(key: str) -> tuple:
     except urllib.error.HTTPError as e:
         return False, f"Authentication failed (HTTP {e.code})"
     except Exception as e:
-        return False, f"Network error: {str(e)}"
+        safe_err = str(e).replace(key, "[REDACTED]")
+        return False, f"Network error: {safe_err}"
 
 
 def handle_config(args):
@@ -379,20 +414,22 @@ def handle_config(args):
 
     # Non-interactive updates via flags
     modified = False
-    if args.gemini:
-        ok, msg = verify_gemini(args.gemini)
+    gemini_flag = getattr(args, "gemini", None)
+    if isinstance(gemini_flag, str) and gemini_flag.strip():
+        ok, msg = verify_gemini(gemini_flag)
         if ok:
-            cfg["gemini_api_key"] = args.gemini.strip()
+            cfg["gemini_api_key"] = gemini_flag.strip()
             modified = True
             print(f"[✓] Gemini API Key verified: {msg}")
         else:
             print(f"[✗] Gemini API Key verification failed: {msg}")
             return 1
 
-    if args.tmdb:
-        ok, msg = verify_tmdb(args.tmdb)
+    tmdb_flag = getattr(args, "tmdb", None)
+    if isinstance(tmdb_flag, str) and tmdb_flag.strip():
+        ok, msg = verify_tmdb(tmdb_flag)
         if ok:
-            cfg["tmdb_api_key"] = args.tmdb.strip()
+            cfg["tmdb_api_key"] = tmdb_flag.strip()
             modified = True
             print(f"[✓] TMDb API Key verified: {msg}")
         else:
@@ -632,24 +669,27 @@ def handle_setup(args, input_fn=input):
     handle_doctor(args)
 
     # Step 2: Downloader Hooks
-    hooks_res = install_downloader_hooks()
-    print(f" [✓] Downloader Hooks created in: {hooks_res['hooks_dir']}")
-    print(f"     qBittorrent Command: {hooks_res['qbittorrent_command']}")
+    if getattr(args, "install_hooks", True) is not False:
+        hooks_res = install_downloader_hooks()
+        print(f" [✓] Downloader Hooks created in: {hooks_res['hooks_dir']}")
+        print(f"     qBittorrent Command: {hooks_res['qbittorrent_command']}")
 
     # Step 3: Background Service
-    svc_res = install_background_service()
-    print(f" [✓] Background Webhook Service file ready: {svc_res['service_file']}")
+    if getattr(args, "install_service", True) is True:
+        svc_res = install_background_service()
+        print(f" [✓] Background Webhook Service file ready: {svc_res['service_file']}")
 
     # Step 4: MCP Auto-Registration across AI Agents
-    try:
-        import importlib
-        m23 = importlib.import_module("23_mcp_server")
-        mcp_res = m23.install_mcp_for_agents(target_agent="all")
-        for item in mcp_res.get("results", []):
-            icon = "[✓]" if item["success"] else "[i]"
-            print(f" {icon} MCP Agent [{item['agent']}]: {item['message']}")
-    except Exception as e:
-        print(f" [!] MCP registration note: {e}")
+    if getattr(args, "install_mcp", True) is not False:
+        try:
+            import importlib
+            m23 = importlib.import_module("23_mcp_server")
+            mcp_res = m23.install_mcp_for_agents(target_agent="all")
+            for item in mcp_res.get("results", []):
+                icon = "[✓]" if item["success"] else "[i]"
+                print(f" {icon} MCP Agent [{item['agent']}]: {item['message']}")
+        except Exception as e:
+            print(f" [!] MCP registration note: {e}")
 
     if not getattr(args, "non_interactive", False) and sys.stdin.isatty():
         try:

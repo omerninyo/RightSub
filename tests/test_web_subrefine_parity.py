@@ -95,6 +95,16 @@ def test_js_vs_python_18_visual_flip_and_homoglyph_parity():
         ("<i>שלום עולם!</i>", False),
         ("{\\an8}- שלום דני!", False),
         ("{\\an8}{\\fad(100,100)}- שלום דני!", False),
+        ('אני שותף בכיר ב"קריין, פול ושמידט".', False),
+        ('בפרקים הקודמים ב״בוסטון ליגל"...', False),
+        ("תפסתי את האקדח וירתי בו לאחר שהודאת תחת כפייה.", False),
+        ("אתה מבין ש-", False),
+        ("...מחוץ לבית החולים --", False),
+        ("אנחנו מתקדימים יפה בתיק האחרוןהס.", False),
+        ("את לא אדם אלי\u0651מ, קצ\uFB4A כבוד.", False),
+        ('(ארה"ב)', False),
+        ('(ארה"ב)', True),
+        ("עד 12:00 בצהריים.", False),
     ]
 
     for raw_line, is_preflipped in vectors:
@@ -195,3 +205,66 @@ def test_webhook_server_serves_web_ui_and_preserves_json_health():
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_js_number_multiplicity_app_incognito_and_help_kb_commands():
+    """Verify multiplicity number un-flipping, throwing localStorage resilience, and valid HELP_KB commands."""
+    node_bin = shutil.which("node")
+    if not node_bin:
+        pytest.skip("Node.js not installed")
+
+    assert _run_js_eval(
+        'sr.crossCheckBilingualNumbers("יש 48 ועוד 84 תיקים.", "There are 48 and 48 cases.")'
+    ) == "יש 48 ועוד 48 תיקים."
+    assert _run_js_eval(
+        'sr.crossCheckBilingualNumbers("יש 48 ועוד 84 תיקים.", "There are 48 and 84 cases.")'
+    ) == "יש 48 ועוד 84 תיקים."
+
+    rightsub_code = (REPO_ROOT / "rightsub.py").read_text(encoding="utf-8")
+    valid_cmds = {"wizard", "mcp", "serve", "setup", "config", "doctor"}
+    mapping_match = __import__("re").search(r"script_mapping\s*=\s*\{([^}]+)\}", rightsub_code)
+    assert mapping_match
+    valid_cmds.update(__import__("re").findall(r'["\']([a-z0-9\-_]+)["\']\s*:', mapping_match.group(1)))
+
+    app_js_path = (SITE_DIR / "app.js").as_posix()
+    subrefine_path = (SITE_DIR / "subrefine.js").as_posix()
+    vm_script = f"""
+    const fs = require("fs");
+    const vm = require("vm");
+    const code = fs.readFileSync({json.dumps(app_js_path)}, "utf8");
+    const instrumented = code.replace(
+      /\\}}\\)\\(\\);\\s*$/,
+      'globalThis.__TEST_HELP_KB = typeof HELP_KB !== "undefined" ? HELP_KB : []; }})();'
+    );
+    const throwingStorage = {{
+      getItem() {{ throw new Error("SecurityError"); }},
+      setItem() {{ throw new Error("SecurityError"); }}
+    }};
+    const ctx = {{
+      window: {{ localStorage: throwingStorage, location: {{ protocol: "https:", hostname: "rightsub.ninyo.co" }} }},
+      localStorage: throwingStorage,
+      location: {{ protocol: "https:", hostname: "rightsub.ninyo.co" }},
+      RightSubRefine: require({json.dumps(subrefine_path)}),
+      document: {{
+        documentElement: {{ setAttribute() {{}}, lang: "he" }},
+        addEventListener() {{}},
+        querySelectorAll() {{ return []; }},
+        getElementById() {{ return null; }}
+      }},
+      navigator: {{ clipboard: {{ writeText: async () => {{}} }} }},
+      console, setTimeout, clearTimeout
+    }};
+    ctx.window.window = ctx.window;
+    ctx.globalThis = ctx;
+    vm.runInNewContext(instrumented, ctx);
+    process.stdout.write(JSON.stringify(ctx.__TEST_HELP_KB));
+    """
+    proc = subprocess.run([node_bin, "-e", vm_script], capture_output=True, text=True, check=True)
+    help_kb = json.loads(proc.stdout)
+    assert len(help_kb) >= 6
+    re_mod = __import__("re")
+    for entry in help_kb:
+        for field in ("cmdHe", "cmdEn", "cmd"):
+            cmd_val = entry.get(field) or ""
+            for m in re_mod.findall(r"\brightsub\s+([a-z0-9\-_]+)", cmd_val):
+                assert m in valid_cmds, f"HELP_KB {entry.get('id')} references unknown subcommand `rightsub {m}`"

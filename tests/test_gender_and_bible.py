@@ -174,13 +174,44 @@ class TestQAGenderMismatchDetection:
             (2, "00:00:04,000 --> 00:00:06,000", "תפסיקי לצעוק עליי, אלן!"),
             (3, "00:00:07,000 --> 00:00:09,000", "אתה ובעלך מוזמנים לארוחת ערב."),
             (4, "00:00:10,000 --> 00:00:12,000", "אלוהים אדיבים, מה קרה כאן?"),
-            (5, "00:00:13,000 --> 00:00:15,000", "אני מוכן ללכת למשפט, שירלי.")  # 1st person 'אני מוכן' is valid!
+            (5, "00:00:13,000 --> 00:00:15,000", "אני מוכן ללכת למשפט, שירלי."),  # 1st person 'אני מוכן' is valid!
+            (6, "00:00:16,000 --> 00:00:18,000", "תפסתי את האקדח וירתי בו."),
+            (7, "00:00:19,000 --> 00:00:21,000", "ניסיתי להוכיח שהודאת תחת כפייה."),
+            (8, "00:00:22,000 --> 00:00:24,000", 'בפרקים הקודמים ב״בוסטון ליגל"...')
         ]
         mismatches = check_gender_mismatches(cues)
-        assert len(mismatches) == 4
+        assert len(mismatches) == 7
         assert any("female 'שירלי'" in m for m in mismatches)
         assert any("male 'אלן'" in m for m in mismatches)
         assert any("אתה ובעלך" in m for m in mismatches)
         assert any("אלוהים אדיבים" in m for m in mismatches)
+        assert any("ירתי" in m for m in mismatches)
+        assert any("הודאת" in m for m in mismatches)
+        assert any("Mismatched quote pair" in m for m in mismatches)
         assert not any("cue 5" in m for m in mismatches)
+
+    def test_vocative_html_dash_flagged_and_third_person_not_flagged(self):
+        cues = [
+            (1, "00:00:01,000 --> 00:00:03,000", "- <i>שירלי, אתה מוכן?</i>"),
+            (2, "00:00:04,000 --> 00:00:06,000", "השופטת לא תקשיב לזה, שירלי."),
+        ]
+        mismatches = check_gender_mismatches(cues)
+        assert len(mismatches) == 1
+        assert "cue 1" in mismatches[0]
+
+    def test_bible_excludes_non_speaker_headers_and_decodes_cp1255(self, tmp_path):
+        bible_mod = import_module("03_generate_bible")
+        cp_srt = tmp_path / "recap_cp1255.en.srt"
+        raw_srt = (
+            "1\r\n00:00:01,000 --> 00:00:03,000\r\nPREVIOUSLY ON: Boston Legal\r\n\r\n"
+            "2\r\n00:00:03,500 --> 00:00:05,000\r\nNEXT ON: Season two.\r\n\r\n"
+            "3\r\n00:00:06,000 --> 00:00:08,000\r\nALAN: שלום שירלי.\r\n"
+        )
+        cp_srt.write_bytes(raw_srt.encode("cp1255"))
+
+        bible = bible_mod.extract_entities([str(cp_srt)], title="Boston Legal", use_tmdb=False)
+        names = [c["name"].upper() for c in bible["characters"]]
+        assert "PREVIOUSLY ON" not in names
+        assert "NEXT ON" not in names
+        assert "ALAN" in names
 

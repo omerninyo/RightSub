@@ -35,6 +35,19 @@ class TestBiDiAndTextFormatting:
         assert 'בימ״ש' in fixed
         assert '"' not in fixed
 
+        # Prefixed opening quotes (e.g. ב"קריין, פול ושמידט", ל"רגע") must stay balanced '"' and NOT become '״'
+        prefixed_quote = 'אני שותף בכיר ב"קריין, פול ושמידט" ועוד לא הגעתי ל"רגע" שלי.'
+        fixed_pq = fix_plex_module.apply_rlm_to_line(prefixed_quote)
+        assert 'ב"קריין, פול ושמידט"' in fixed_pq
+        assert 'ל"רגע"' in fixed_pq
+        assert 'ב״קריין' not in fixed_pq
+
+        # Previously corrupted prefixed gershayim opening quote paired with closing '"' is repaired to balanced '"'
+        corrupted_pq = 'בפרקים הקודמים ב״בוסטון ליגל"...'
+        repaired_pq = fix_plex_module.apply_rlm_to_line(corrupted_pq)
+        assert 'ב"בוסטון ליגל"' in repaired_pq
+        assert 'ב״בוסטון' not in repaired_pq
+
     def test_idempotency_no_duplicate_rlm(self):
         raw = "שלום עולם."
         fixed_once = merge_module.apply_rlm_punctuation_fix(raw)
@@ -106,7 +119,7 @@ class TestBiDiAndTextFormatting:
             ("זה יהיה הרבה יותר גרוע, כי למעשה מר מ\u0995\u09C7\u09AC\u09BE", "מר מקבה"),
             ("לעשות פ\u0F62\u0F0Bסה מהעניין הזה", "פארסה"),
             ("ג׳ק בוסטי\u0E34\u0E01", "בוסטיק"),
-            ("מתקד\u056B\u0574ים", "מתקדימים")
+            ("מתקד\u056B\u0574ים", "מתקדמים")
         ]
         for raw, expected in cases:
             fixed = fix_plex_module.clean_and_sanitize_text(raw)
@@ -220,3 +233,142 @@ class TestBiDiAndTextFormatting:
         # Preserves numbers when already matching or when palindrome
         assert fix_plex_module.cross_check_bilingual_numbers("הוא בן 48 היום.", "He is 48 today.") == "הוא בן 48 היום."
         assert fix_plex_module.cross_check_bilingual_numbers("סעיף 22 בחוזה.", "Section 22 in the contract.") == "סעיף 22 בחוזה."
+
+    def test_prefixed_quotes_vs_acronyms_and_empty_sdh_block_preservation(self):
+        # Prefixed opening quotes must remain ASCII '"' while genuine acronyms become '״'
+        line = 'בפרק הקודם ב״בוסטון ליגל", עו"ד אלן שור הגן על ד"ר סמית בארה"ב.'
+        fixed = fix_plex_module.apply_rlm_to_line(line)
+        assert 'ב"בוסטון ליגל"' in fixed
+        assert 'עו״ד' in fixed
+        assert 'ד״ר' in fixed
+        assert 'בארה״ב' in fixed
+
+        # Universal verb typo repairs
+        assert fix_plex_module.clean_and_sanitize_text("שלפתי את האקדח וירתי בו לאחר שהודאת בכך.") == "שלפתי את האקדח ויריתי בו לאחר שהודית בכך."
+
+        # Empty SDH placeholder blocks must be preserved 1-to-1 across repeated runs
+        srt_with_empty = (
+            "1\n00:00:01,000 --> 00:00:02,000\nגבר 2: שלום.\n\n"
+            "2\n00:00:02,500 --> 00:00:03,500\n\n\n"
+            "3\n00:00:04,000 --> 00:00:05,000\n[ לוחש ] בוא הנה.\n"
+        )
+        out1, total1, _, _ = fix_plex_module.process_srt_content(srt_with_empty, clean_ads=True, clean_speakers=True)
+        out2, total2, _, _ = fix_plex_module.process_srt_content(out1, clean_ads=True, clean_speakers=True)
+        assert total1 == 3
+        assert total2 == 3
+        assert out1 == out2
+        assert "גבר 2:" not in out1
+        assert "[ לוחש ]" not in out1
+
+    def test_logical_trailing_dash_arabic_marks_and_alignment_checks(self):
+        # 1. Interrupted logical lines stay intact when is_preflipped_file=False
+        assert fix_plex_module.apply_rlm_to_line("אתה מבין ש-", is_preflipped_file=False) == f"{RLM}אתה מבין ש-{RLM}"
+        assert fix_plex_module.apply_rlm_to_line("...מחוץ לבית החולים --", is_preflipped_file=False) == f"{RLM}...מחוץ לבית החולים --{RLM}"
+        assert fix_plex_module.apply_rlm_to_line("וניפול עם נשק—", is_preflipped_file=False) == f"{RLM}וניפול עם נשק—{RLM}"
+
+        # 2. Arabic combining mark before final letter, Arabic standalone pronouns, and presentation forms
+        dirty = "את לא אדם אלי\u0651מ, האמת هي שזה קצ\uFB4A כבוד וקצ\uFE95 צדק או א\uFB4B לא."
+        cleaned = fix_plex_module.clean_and_sanitize_text(dirty)
+        assert "אלים" in cleaned
+        assert "היא" in cleaned
+        assert cleaned.count("קצת") == 2
+        assert "או לא" in cleaned
+
+        # 3. Three-layer validate_anchor_alignment: -2 drift, untranslated ♪ run, and isolated non-sequitur
+        en_drift = {i: ("Are you serious?" if i % 3 == 0 else "We must prepare.") for i in range(1, 21)}
+        he_drift = {i: en_drift.get(i + 2, "שלום.") for i in range(1, 21)}
+        # Build matching Hebrew shifted by -2 relative to en_drift
+        he_aligned = {i: ("אתה רציני?" if i % 3 == 0 else "אנחנו חייבים להתכונן.") for i in range(1, 21)}
+        he_minus2 = {i: he_aligned[i + 2] for i in range(1, 19)}
+        he_minus2[19] = ""
+        he_minus2[20] = ""
+        ok_m2, rep_m2 = merge_module.validate_anchor_alignment(en_drift, he_minus2)
+        assert ok_m2 is False
+        assert any("-2" in d for d in rep_m2["details"])
+
+        # Untranslated ♪ placeholder run over varied real dialogue (S03E12 pattern)
+        sample_lines = [
+            "Teacher worked very hard every day in court.",
+            "Could the defense please address the jury now?",
+            "Her students brought peanut butter despite school rules.",
+            "Public schools face serious funding shortages every winter.",
+            "Emergency epinephrine must be ready inside every classroom.",
+            "Parents demanded immediate accountability after the verdict arrived.",
+            "We cannot blame one dedicated instructor for everything.",
+            "Nobody read the compliance binder before October ended.",
+            "Cross examination begins promptly tomorrow morning at nine.",
+            "Closing arguments require careful attention to the record.",
+        ]
+        en_song_bug = {i: (f"Line {i} was fine." if i < 5 else sample_lines[i - 5]) for i in range(1, 15)}
+        he_song_bug = {i: ("♪" if i >= 5 else f"שורה {i} תקינה.") for i in range(1, 15)}
+        ok_song, rep_song = merge_module.validate_anchor_alignment(en_song_bug, he_song_bug)
+        assert ok_song is False
+        assert any("Untranslated dialogue run" in d for d in rep_song["details"])
+
+        # Isolated hallucinated non-sequitur cues (S01E04 pattern)
+        en_ns = {i: f"Statement number {i} is clear." for i in range(1, 15)}
+        he_ns = {i: f"הצהרה מספר {i} ברורה." for i in range(1, 15)}
+        en_ns[4] = "YOU'RE THE EDWIN POOLE? INDEED."
+        he_ns[4] = "- אני מתכוון לדבר עם השותפים שם.\n- דבר."
+        en_ns[8] = "HE COLLECTS AUTOGRAPHS -- HAS ALMOST 1,200 OF THEM,"
+        he_ns[8] = "למעשה, אני די מחבב אותך, אבל..."
+        ok_ns, rep_ns = merge_module.validate_anchor_alignment(en_ns, he_ns)
+        assert ok_ns is False
+        assert any("non-sequitur" in d for d in rep_ns["details"])
+
+    def test_clock_preservation_and_acronym_parens(self):
+        srt_clock = '1\n00:00:01,000 --> 00:00:03,000\nעד 12:00 בצהריים (ארה"ב).\n'
+        out, total, _, ads = fix_plex_module.process_srt_content(
+            srt_clock, clean_ads=True, clean_speakers=True
+        )
+        assert total == 1
+        assert ads == 0
+        assert "עד 12:00" in out
+        assert "(ארה״ב)" in out
+
+    def test_idempotent_preflipped_speaker_and_rlm_multiline_credit(self):
+        srt_spk = "1\n00:00:01,000 --> 00:00:03,000\n.אלן: שלום\n"
+        out1, _, _, _ = fix_plex_module.process_srt_content(
+            srt_spk, clean_ads=False, clean_speakers=False
+        )
+        out2, _, _, _ = fix_plex_module.process_srt_content(
+            out1, clean_ads=False, clean_speakers=False
+        )
+        assert out1 == out2
+        assert f"{RLM}אלן: שלום.{RLM}" in out1
+
+        srt_credit = (
+            "1\n00:00:01,000 --> 00:00:03,000\n"
+            f"שלום עולם!\n{RLM}<i>הובא וסונכרן על ידי\nאריאל אפרתי</i>{RLM}\n"
+        )
+        out_c, _, _, ads_c = fix_plex_module.process_srt_content(srt_credit, clean_ads=True)
+        assert ads_c == 2
+        assert "סונכרן" not in out_c
+        assert "אפרתי" not in out_c
+        assert "שלום עולם!" in out_c
+
+    def test_bilingual_number_multiplicity_and_shifted_timestamp_process_srt(self):
+        assert (
+            fix_plex_module.cross_check_bilingual_numbers(
+                "יש 48 ועוד 84 תיקים.", "There are 48 and 48 cases."
+            )
+            == "יש 48 ועוד 48 תיקים."
+        )
+        assert (
+            fix_plex_module.cross_check_bilingual_numbers(
+                "יש 48 ועוד 84 תיקים.", "There are 48 and 84 cases."
+            )
+            == "יש 48 ועוד 84 תיקים."
+        )
+
+        he_shifted = "1\n00:00:05,000 --> 00:00:08,000\nחיכינו 84 שעות.\n"
+        en_shifted = (
+            "1\n00:00:01,000 --> 00:00:03,000\nPreviously...\n\n"
+            "2\n00:00:05,300 --> 00:00:08,200\nWe waited 48 hours.\n"
+        )
+        out_s, _, _, _ = fix_plex_module.process_srt_content(
+            he_shifted, clean_ads=True, en_content=en_shifted
+        )
+        assert "48" in out_s
+        assert "84" not in out_s
+

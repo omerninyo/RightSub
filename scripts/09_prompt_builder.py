@@ -12,11 +12,14 @@ Features:
 
 import os
 import sys
-import os
-import sys
 import re
 import json
 import argparse
+from pathlib import Path
+
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 
 PROMPT_TEMPLATE = """Translate the following subtitle cues from English to Hebrew for '{title}'.
 Model Policy: Gemini 3.5 Flash-Lite / Gemini 3.8 Flash (fast, direct translation).
@@ -33,6 +36,8 @@ CRITICAL RULES:
 - Hebrew grammar strictly distinguishes 2nd person gender ("אתה" vs "את") and verb conjugations ("אתה רוצה" vs "את רוצה").
 - Direct Address (Vocative): When dialogue addresses a female character by name or title (e.g. 'Shirley, you...', 'Tara, did you...', 'Judge (female), you...'), conjugate all verbs, pronouns, and adjectives in the feminine ("שירלי, את...", "טרה, ראית...", "כבוד השופטת, את...").
 - Speaker & Listener Continuity: Use dialogue context to track who is in the room. When speaking to a woman, address her as female.
+- RECAP ('PREVIOUSLY ON...') & PREVIEW ('NEXT ON...') MONTAGE ISOLATION: Opening recaps (cues 1-25) and closing previews stitch together rapid, disconnected clips from different scenes. A narrator speaker tag on cue 1 (e.g. 'Alan: PREVIOUSLY ON...') applies ONLY to that single announcement cue — NEVER carry that speaker/listener gender over to the subsequent montage clips! Evaluate each montage clip's speaker and addressee independently from its own dialogue and character roster.
+- PROPER-NOUN SURNAME HOMOGRAPHS: Never translate character surnames literally as common nouns (e.g. 'that Shore guy' -> 'הבחור הזה שור', NEVER 'השור הזה' [bull]).
 - SDH & Speaker Tags: Tags like [Tara], [Alan], or 'DENNY:' are context indicators for YOU. Use them to know who speaks and to whom, but STRIP them completely from the final Hebrew text (translate dialogue only).
 5. If a cue is purely SDH or sound effects (e.g. ♪♪♪, [Music], (sighs), (sobs), [crying], [screaming], [gunshot], [buzzer blares], ***), return an empty string "" for hebrew, but KEEP ITS EXACT INDEX. Remove inline audio descriptions from dialogue.
 6. Use Hebrew gershayim (״ \\u05F4) or single quotes for acronyms (e.g. עו״ד, ארה״ב, ד״ר, FBI, CIA, DNA). NEVER use standard double quotes inside Hebrew strings.
@@ -98,16 +103,23 @@ def load_bible(bible_path):
     return text
 
 def parse_srt(path):
-    with open(path, 'r', encoding='utf-8-sig', errors='replace') as f:
-        content = f.read().strip()
-    blocks = re.split(r'\n\s*\n', content)
+    try:
+        from importlib import import_module
+        fix_mod = import_module("07_fix_plex_punctuation")
+        content, _ = fix_mod.read_file_with_auto_encoding(Path(path))
+    except Exception:
+        with open(path, 'r', encoding='utf-8-sig', errors='replace') as f:
+            content = f.read()
+    content = content.replace('\r\n', '\n').replace('\r', '\n').strip()
+    blocks = re.split(r'\n\s*\n', content) if content else []
     res = []
     for b in blocks:
         lines = b.strip().splitlines()
-        if len(lines) >= 2:
+        if len(lines) >= 2 and ('-->' in lines[1] or '-->' in lines[0]):
             try:
-                idx = int(lines[0].strip())
-                text = '\n'.join(lines[2:])
+                has_idx = '-->' in lines[1]
+                idx = int(lines[0].strip()) if has_idx else (len(res) + 1)
+                text = '\n'.join(lines[2:] if has_idx else lines[1:])
                 res.append({"index": idx, "text": text})
             except ValueError:
                 continue

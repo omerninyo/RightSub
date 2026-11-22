@@ -184,3 +184,63 @@ def test_version_single_source_of_truth_and_milestone_gate():
                 f"Use a patch version (e.g. 1.3.x) until all milestone tasks are shipped."
             )
 
+
+def test_no_local_file_urls_in_docs_and_wiki():
+    """Ensure no workstation-specific file:// URLs remain anywhere in docs/ or wiki/."""
+    for folder in (DOCS_DIR, REPO_ROOT / "wiki"):
+        for md_path in sorted(folder.rglob("*.md")):
+            content = md_path.read_text(encoding="utf-8")
+            assert "file://" not in content, f"Local file:// URL found in {md_path.relative_to(REPO_ROOT)}"
+
+
+def test_wiki_internal_links_and_switchers_valid():
+    """Ensure all wiki/*.md internal links resolve to valid extensionless Wiki slugs and switchers exist."""
+    wiki_dir = REPO_ROOT / "wiki"
+    valid_slugs = {p.stem for p in wiki_dir.glob("*.md")}
+    for md_path in sorted(wiki_dir.glob("*.md")):
+        txt = md_path.read_text(encoding="utf-8")
+        md_links = re.findall(r"\[[^\]]*\]\(([^)#\s]+(?:#[^)\s]*)?)\)", txt)
+        html_links = re.findall(r'href=["\']([^"\']+)["\']', txt)
+        for target in md_links + html_links:
+            if target.startswith(("http://", "https://", "mailto:", "#")):
+                continue
+            slug = target.split("#", 1)[0]
+            assert "/" not in slug and not slug.endswith(".md"), (
+                f"Broken non-slug wiki target {target!r} in {md_path.name}"
+            )
+            assert slug in valid_slugs, f"Dangling wiki slug {slug!r} in {md_path.name}"
+        if md_path.name not in ("_Footer.md", "_Sidebar.md"):
+            assert "<a href=" in txt, f"Missing language switcher in wiki/{md_path.name}"
+
+
+def test_doc_and_site_test_counts_parity():
+    """Verify README.md, README.he.md, site/index.html, and site/app.js report identical unified test counts."""
+    readme_en = README_EN.read_text(encoding="utf-8")
+    readme_he = README_HE.read_text(encoding="utf-8")
+    site_html = (REPO_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+    site_app = (REPO_ROOT / "site" / "app.js").read_text(encoding="utf-8")
+
+    m_en_badge = re.search(r"Pytest-(\d+)%2F(\d+)%20Passing", readme_en)
+    m_he_badge = re.search(r"Pytest-(\d+)%2F(\d+)%20Passing", readme_he)
+    assert m_en_badge and m_he_badge
+    assert m_en_badge.group(1) == m_en_badge.group(2)
+    assert m_he_badge.group(1) == m_he_badge.group(2)
+    badge_total = int(m_en_badge.group(1))
+    assert int(m_he_badge.group(1)) == badge_total
+
+    m_en_bd = re.search(r"\((\d+)\s+automated tests:\s*(\d+)\s+unit tests\s*\+\s*(\d+)\s+dataset integration tests\)", readme_en)
+    m_he_bd = re.search(r"של\s+(\d+)\s+בדיקות אוטומטיות\s*\((\d+)\s+בדיקות יחידה\s*\+\s*(\d+)\s+בדיקות אינטגרציה על מערך הפרקים\)", readme_he)
+    assert m_en_bd and m_he_bd
+    assert int(m_en_bd.group(1)) == badge_total
+    assert int(m_en_bd.group(2)) + int(m_en_bd.group(3)) == badge_total
+    assert int(m_he_bd.group(1)) == badge_total
+    assert int(m_he_bd.group(2)) + int(m_he_bd.group(3)) == badge_total
+
+    m_html = re.search(r"(\d+)\s+בדיקות אוטומטיות", site_html)
+    m_app_he = re.search(r"(\d+)\s+בדיקות אוטומטיות", site_app)
+    m_app_en = re.search(r"(\d+)\s+Automated Tests", site_app)
+    assert m_html and m_app_he and m_app_en
+    assert int(m_html.group(1)) == badge_total
+    assert int(m_app_he.group(1)) == badge_total
+    assert int(m_app_en.group(1)) == badge_total
+

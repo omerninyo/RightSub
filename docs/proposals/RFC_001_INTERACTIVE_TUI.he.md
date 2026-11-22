@@ -2,7 +2,13 @@
 
 # 🧙 מפרט ארכיטקטוני: ממשק אינטראקטיבי בשורת הפקודה (`rightsub` / `rightsub wizard`)
 
-> **סטטוס:** ✅ **שוחרר בייצור (`v1.5.0`)** — מומש ב-[`scripts/22_interactive_wizard.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/22_interactive_wizard.py), ב-[`scripts/19_polish_and_qc.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/19_polish_and_qc.py) (`--interactive`) וב-[`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). מאומת על ידי [`tests/test_interactive_wizard.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_interactive_wizard.py).
+> **סטטוס:** ✅ **שוחרר בייצור (`v1.5.0+` / `v1.5.1`)** — מומש ב-[`scripts/22_interactive_wizard.py`](../../scripts/22_interactive_wizard.py), ב-[`scripts/19_polish_and_qc.py`](../../scripts/19_polish_and_qc.py) (`--interactive`) וב-[`rightsub.py`](../../rightsub.py). מאומת על ידי [`tests/test_interactive_wizard.py`](../../tests/test_interactive_wizard.py).
+
+<p align="right">
+  <b>שפה / Language:</b>
+  <b>עברית</b> |
+  <a href="RFC_001_INTERACTIVE_TUI.md"><b>English</b></a>
+</p>
 
 מסמך זה מתעד את עקרונות התכנון, הארכיטקטורה והמימוש בייצור של הממשק האינטראקטיבי (**Interactive CLI Wizard**) עבור **RightSub** (`v1.5.0`). הממשק מאפשר למשתמשי קצה ב-macOS, ב-Windows (`CMD` / `PowerShell`) וב-Linux להפעיל את מלוא יכולות המערכת ללא צורך בזכירת פקודות או דגלים (Flags).
 
@@ -91,7 +97,7 @@
 
 ---
 
-## 6. פרטי המימוש בייצור (`v1.5.0`)
+## 6. פרטי המימוש בייצור (`v1.5.1`)
 
 1. **אפס תלויות חיצוניות (`scripts/22_interactive_wizard.py`):**
    - ממומש באמצעות ספריות הליבה של Python בלבד (`sys`, `os`, `pathlib`, `shlex`, `getpass`, `platform`).

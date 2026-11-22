@@ -114,6 +114,15 @@ class TestSubtitleDiscoveryAndMastering:
         assert expected_output.exists()
         assert res["file"] == str(expected_output)
 
+    def test_existing_he_srt_masters_in_place_without_plex_fixed_sprawl(self, tmp_path):
+        he_sub = tmp_path / "already_sidecar.he.srt"
+        he_sub.write_text("1\n00:00:01,000 --> 00:00:02,000\n.שלום עולם\n", encoding="utf-8")
+
+        res = srv.master_subtitle_file(he_sub)
+        assert res["status"] == "fixed"
+        assert not (tmp_path / "already_sidecar.he.plex_fixed.srt").exists()
+        assert "\u200Fשלום עולם.\u200F" in he_sub.read_text(encoding="utf-8")
+
 
 @pytest.fixture(scope="module")
 def live_server(tmp_path_factory):
@@ -163,7 +172,7 @@ class TestLiveWebhookDaemon:
             assert resp.status == 200
             data = json.loads(resp.read().decode("utf-8"))
             assert data["status"] == "healthy"
-            assert data["version"] == srv.SERVER_VERSION == "1.5.0"
+            assert data["version"] == srv.SERVER_VERSION == "1.5.1"
             assert "uptime_seconds" in data
             assert "/webhook/sonarr" in data["endpoints"]
 
@@ -360,5 +369,75 @@ class TestLiveWebhookDaemon:
         assert all(s == 200 and d["status"] == "ok" for s, d in results)
         final_text = sub.read_text(encoding="utf-8")
         assert "\u200Fשלום עולם!\u200F" in final_text
+
+    def test_api_key_content_type_and_allowed_roots_guards(self, tmp_path):
+        allowed_dir = tmp_path / "allowed"
+        allowed_dir.mkdir()
+        outside_dir = tmp_path / "outside"
+        outside_dir.mkdir()
+        allowed_sub = allowed_dir / "ep.he.srt"
+        allowed_sub.write_text("1\n00:00:01,000 --> 00:00:02,000\nשלום!\n", encoding="utf-8")
+        outside_sub = outside_dir / "secret.he.srt"
+        outside_sub.write_text("1\n00:00:01,000 --> 00:00:02,000\nסוד!\n", encoding="utf-8")
+
+        class GuardedHandler(srv.WebhookRequestHandler):
+            pass
+
+        GuardedHandler.path_map = []
+        GuardedHandler.server_options = {
+            "in_place": False,
+            "seed_safe": True,
+            "clean_ads": True,
+            "backup": False,
+            "dry_run": False,
+            "api_key": "top-secret-token",
+            "allowed_roots": [str(allowed_dir)],
+        }
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), GuardedHandler)
+        port = httpd.server_address[1]
+        t = threading.Thread(target=httpd.serve_forever, daemon=True)
+        t.start()
+        base = f"http://127.0.0.1:{port}/webhook/generic"
+
+        try:
+            # 1. Missing API key -> 401
+            req_no_auth = urllib.request.Request(
+                base, data=json.dumps({"path": str(allowed_sub)}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with pytest.raises(urllib.error.HTTPError) as e1:
+                urllib.request.urlopen(req_no_auth)
+            assert e1.value.code == 401
+
+            # 2. Wrong Content-Type -> 415
+            req_bad_ct = urllib.request.Request(
+                base, data=b'{"path": "x"}',
+                headers={"Content-Type": "text/plain", "X-Api-Key": "top-secret-token"},
+            )
+            with pytest.raises(urllib.error.HTTPError) as e2:
+                urllib.request.urlopen(req_bad_ct)
+            assert e2.value.code == 415
+
+            # 3. Path outside allowed_roots via Bearer token -> 403
+            req_oob = urllib.request.Request(
+                base, data=json.dumps({"path": str(outside_sub)}).encode("utf-8"),
+                headers={"Content-Type": "application/json", "Authorization": "Bearer top-secret-token"},
+            )
+            with pytest.raises(urllib.error.HTTPError) as e3:
+                urllib.request.urlopen(req_oob)
+            assert e3.value.code == 403
+
+            # 4. Authorized request inside allowed_roots -> 200
+            req_ok = urllib.request.Request(
+                base, data=json.dumps({"path": str(allowed_sub)}).encode("utf-8"),
+                headers={"Content-Type": "application/json", "X-Api-Key": "top-secret-token"},
+            )
+            with urllib.request.urlopen(req_ok) as resp:
+                assert resp.status == 200
+                body = json.loads(resp.read().decode("utf-8"))
+                assert body["status"] == "ok"
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
 
 

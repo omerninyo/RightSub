@@ -16,13 +16,13 @@
 [![גרסת פייתון: 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://python.org)
 [![פלטפורמה: Windows ו-macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue.svg)]()
 [![מאומת ל-Plex ו-Infuse](https://img.shields.io/badge/Plex%20%26%20Infuse-BiDi%20Verified-orange.svg)]()
-[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-194%2F194%20Passing-success.svg)]()
+[![בדיקות: 100% מעבר](https://img.shields.io/badge/Pytest-212%2F212%20Passing-success.svg)]()
 [![אפליקציית Web: תיקון מיידי בדפדפן](https://img.shields.io/badge/Web%20App-Client--Side%20SubRefine-teal.svg)](https://rightsub.ninyo.co/)
 [![בנצ׳מרק: 101/101 פרקים](https://img.shields.io/badge/Boston%20Legal-100%25%20Tested-purple.svg)]()
 
 > **כתוביות כמו שצריך — מתיקון מיידי בדפדפן וב-Plex ועד תרגום אוטונומי בנחיל סוכני בינה מלאכותית.**
 >
-> 🌐 **חדש ב-`v1.5.0` — אתר רשמי ואפליקציית Web לתיקון מיידי בדפדפן:** תקנו קובצי `.srt` בעברית ישירות מתוך הדפדפן ב-**0 התקנה ו-100% פרטיות מקומית** דרך **[rightsub.ninyo.co](https://rightsub.ninyo.co/)** (או מקומית בכתובת `http://localhost:8775/ui` בעת הרצת `rightsub serve`). כולל מעבדת שורה חיה ומנוע חיפוש פתרונות בשפה חופשית (`#help`).
+> 🌐 **`v1.5.1` — אתר רשמי ואפליקציית Web לתיקון מיידי בדפדפן:** תקנו קובצי `.srt` בעברית ישירות מתוך הדפדפן ב-**0 התקנה ו-100% פרטיות מקומית** דרך **[rightsub.ninyo.co](https://rightsub.ninyo.co/)** (או מקומית בכתובת `http://localhost:8775/ui` בעת הרצת `rightsub serve`). כולל מעבדת שורה חיה, הורדת אצווה כ-ZIP ומנוע חיפוש פתרונות בשפה חופשית (`#help`).
 
 **RightSub** היא סוויטת כלי CLI וספריית פייתון ברמת Production, שתוכננה עבור **Windows** ועבור **macOS** במטרה לתקן, להשביח, לנקות, לסנכרן ולתרגם כתוביות עבור **כל סרט וכל סדרת טלוויזיה**.
 
@@ -237,7 +237,7 @@ rightsub extract "Movie.mkv" -o "Movie.en.srt" --lang eng
 ### מתכון 3: תיקון בריחת סנכרון (מ-25 FPS ל-23.976 FPS)
 מתיחת כתוביות שנלקחו משידור טלוויזיה או DVD אירופי (PAL) כדי שיתאימו לגרסת Web-DL או BluRay:
 ```bash
-rightsub adjust-fps "PAL_sub.srt" -o "synced_sub.srt"
+rightsub adjust-fps "PAL_sub.srt" -o "synced_sub.srt" --fps-from 25.0 --fps-to 23.976
 ```
 
 ### מתכון 4: תרגום מלא של סרט או פרק באמצעות AI
@@ -301,7 +301,7 @@ rightsub doctor
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          RightSub CLI (rightsub)                        │
-│    extract · clean · fix-plex · sync · adjust-fps · split · merge · qa  │
+│   auto · fix-plex · extract · sync · adjust-fps · split · merge · qa    │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
          ┌───────────────────────────┴───────────────────────────┐
@@ -322,7 +322,7 @@ rightsub doctor
 ```
 
 ### 1. 🧼 מנוע SubRefine (השבחה, ניקוי ו-BiDi)
-- **אפס היפוכי פיסוק ב-Plex ו-Infuse**: הזרקה אוטומטית של תווי RLM סמויים (`\u200F`) בתחילת כל שורה ולפני סימני פיסוק סופיים (`?`, `!`, `.`, `:`, `-`), המונעת מהפיסוק לקפוץ לצד הלא נכון בנגני Apple TV, Android TV, LG WebOS, Infuse ו-VLC.
+- **אפס היפוכי פיסוק ב-Plex ו-Infuse**: הזרקה אוטומטית של תווי RLM סמויים (`\u200F`) בתחילת כל שורה ו*אחרי* סימני פיסוק סופיים (`?`, `!`, `.`, `:`, `-`) לפי תקן **UAX #9 Rule N1**, המונעת מהפיסוק לקפוץ לצד הלא נכון בנגני Apple TV, Android TV, LG WebOS, Infuse ו-VLC.
 - **ניקוי רעשי שמע (SDH Cleaner)**: זיהוי והסרה חכמה של תיאורי שמיעה כגון `[דלת נטרקת]`, `(מחיאות כפיים)`, `♪ מוזיקת פופ ♪` תוך שמירה קפדנית על אינדקס התזמון של הדו-שיח.
 - **הצלת קובצי ג'יבריש (Auto-Charset)**: זיהוי אוטומטי של קידודי עברית ישנים (Windows-1255 / CP1255 / ISO-8859-8) והמרתם ל-UTF-8 מודרני ונקי.
 - **נרמול הומוגליפים וטיפוגרפיה**: תיקון אותיות קיריליות שנראות זהות לעברית (`м`, `р`, `с`) ואותיות ערביות שהופקו בטעות. המרה אוטומטית של מרכאות כפולות בראשי תיבות עבריים לגרשיים תקניים (למשל `עו"ד` ➔ `עו״ד`, `ארה"ב` ➔ `ארה״ב`).
@@ -362,7 +362,7 @@ rightsub doctor
 | `polish` | **SubRefine & AI** | הגהה סמנטית, יישור קאנון ומבקר שינויים אינטראקטיבי (`-i`) | `rightsub polish "Star Wars.he.srt" -i` | `rightsub polish "Star Wars.he.srt" -i` |
 | `translate-ollama` | **SubSwarm** | תרגום מקומי 100% חינמי ואופליין דרך Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
 | `fix-plex` | **SubRefine** | תיקון פיסוק, RLM, קידוד CP1255, ניקוי SDH וספאם | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
-| `adjust-fps` | **SubRefine** | מתיחת פריימים (25 <-> 23.976) או הזזת אופסט | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
+| `adjust-fps` | **SubRefine** | מתיחת פריימים (25 <-> 23.976) או הזזת אופסט | `rightsub adjust-fps in.srt -o out.srt --fps-from 25.0 --fps-to 23.976` | `rightsub adjust-fps in.srt -o out.srt --fps-from 25.0 --fps-to 23.976` |
 | `extract` | **SubRefine** | חילוץ כתוביות מווידאו (MKV/MP4) בעזרת FFmpeg | `rightsub extract video.mp4 -o out.srt` | `rightsub extract video.mp4 -o out.srt` |
 | `transcribe` | **quicksubs** | תמלול קולי מהיר ישירות מהשמע (Apple Speech / Whisper) | `rightsub transcribe video.mp4` | `rightsub transcribe video.mp4` |
 | `audio-sync` | **quicksubs** | סנכרון וכיול כתוביות מוסטות על בסיס ציר השמע | `rightsub audio-sync bad.srt -v v.mp4 -o ok.srt` | `rightsub audio-sync bad.srt -v v.mp4 -o ok.srt` |
@@ -395,14 +395,14 @@ RightSub נבחנה ואומתה על גבי מערך נתונים הממודל 
 
 ## 🧪 בדיקות יחידה ואימות אוטומטי
 
-RightSub מגיעה עם סוויטת בדיקות מקיפה של 194 בדיקות אוטומטיות (169 בדיקות יחידה + 25 בדיקות אינטגרציה על מערך הפרקים):
+RightSub מגיעה עם סוויטת בדיקות מקיפה של 212 בדיקות אוטומטיות (187 בדיקות יחידה + 25 בדיקות אינטגרציה על מערך הפרקים):
 ```bash
 pytest -v
 ```
 
 הבדיקות מוודאות:
 - הזרקת RLM, ביטול 18 תבניות היפוך ויזואליות (`Subabi`) ואי-שכפול תווי כיווניות (אידמפוטנטיות).
-- זהות מוחלטת (1:1 Parity) בין מנוע ה-JavaScript בדפדפן (`site/subrefine.js`) לבין מנוע ה-Python (`07_fix_plex_punctuation.py`) על פני 15 וקטורי Red Team, פענוח בייטים CP1255 בדפדפן והיפוך מספרים דו-לשוני.
+- זהות מוחלטת (1:1 Parity) בין מנוע ה-JavaScript בדפדפן (`site/subrefine.js`) לבין מנוע ה-Python (`07_fix_plex_punctuation.py`) על פני 26+ וקטורי Red Team, פענוח בייטים CP1255 בדפדפן והיפוך מספרים דו-לשוני.
 - המרת גרשיים עבריים תקניים בראשי תיבות (`עו״ד`, `ארה״ב`).
 - נרמול הומוגליפים רב-לשוניים (גאורגית `דეייט` $\rightarrow$ `דייט`, יוונית, ארמנית, ערבית, קירילית ואסייתית).
 - אימות והיפוך מספרים דו-לשוני (`cross_check_bilingual_numbers`, `84` $\rightarrow$ `48`) וזיהוי קובצי `.srt` עבריים לפי תוכן במצב Seed-Safe (`.srt` $\rightarrow$ `.he.srt`).
@@ -431,10 +431,11 @@ pytest -v
 - 🔄 **[תהליך עבודה מלא מקצה לקצה (Pipeline)](docs/PIPELINE_WORKFLOW.he.md)** — שלב אחר שלב מווידאו גולמי לכתובית מושלמת.
 - ⚖️ **[השוואה טכנית מול Bazarr](docs/COMPARISON_BAZARR.he.md)** — פירוט הבדלים ארכיטקטוניים, מתי להשתמש בכל כלי ואיך לשלב ביניהם.
 - 🔄 **[מדריך אינטגרציות ואוטומציה לשרתי מדיה (qBittorrent, Sonarr, Radarr, Bazarr, Daemons)](docs/INTEGRATIONS_GUIDE.he.md)** — חיבור אוטומטי בתצורת "הגדר ושכח", מדוע Hooks עדיפים על דמונים, וסקריפטים לניטור תיקיות.
-- 🗺️ **[מפת דרכים רשמית של המוצר](ROADMAP.he.md)** — אבני-דרך שהושלמו, גרסאות מתוכננות (v1.4, v1.5) ומעקב ב-GitHub.
+- 🗺️ **[מפת דרכים רשמית של המוצר](ROADMAP.he.md)** — אבני-דרך שהושלמו, גרסאות מתוכננות (v1.5, v1.6) ומעקב ב-GitHub.
 - 🧪 **[RFC 001: ממשק טרמינל אינטראקטיבי (TUI)](docs/proposals/RFC_001_INTERACTIVE_TUI.he.md)** — מפרט ממשק טרמינל במסך מלא לאישור שינויי כתוביות.
 - 🔌 **[RFC 002: שרת RightSub MCP ייעודי](docs/proposals/RFC_002_MCP_SERVER.he.md)** — ארכיטקטורת שרת Model Context Protocol לסוכני AI.
 - ⚙️ **[RFC 003: אשף התקנה, חיבורים ואבחון מערכת](docs/proposals/RFC_003_SYSTEM_INTEGRATION_WIZARD.he.md)** — חיבור אוטומטי לתוכנות הורדה ומעטפת שירות.
+- 🐳 **[RFC 004: שרת Webhook וקונטיינר Docker](docs/proposals/RFC_004_DOCKER_WEBHOOK_SERVER.he.md)** — מפרט דמון אוטומציה וממשק רשת בקונטיינר.
 - 💎 **[מדריך הגהה סמנטית ובקרת איכות (`rightsub polish`)](docs/FEATURE_AI_POLISH_AND_QC.he.md)** — השבחה והגהה של כתוביות קיימות, מניעת שיבושי קאנון ותיקון מגדר ללא תרגום מאפס.
 - 🚀 **[מה חדש ועדכוני גרסאות](docs/WHATS_NEW.he.md)** — עדכוני מוצר מרכזיים, הכרזות אבן-דרך ותכונות חדשות.
 - 📖 **[GitHub Wiki הרשמי](https://github.com/omerninyo/RightSub/wiki)** — תיעוד מקוון מלא ודו-לשוני.

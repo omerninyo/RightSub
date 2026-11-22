@@ -1,3 +1,5 @@
+<div dir="rtl">
+
 # עץ ההחלטות הדטרמיניסטי המלא לכתוביות 🌲⚙️
 ## The Complete Deterministic Subtitle Processing & Edge Case Decision Tree
 
@@ -138,7 +140,7 @@ graph TD
     Pytest --> B5["בדיקת שלמות שרשרת פיצול-מיזוג (2 בדיקות)"]
     Pytest --> B6["בדיקת סנכרון גלובלי של כל קובצי המדיה (15 בדיקות)"]
     
-    B1 & B2 & B3 & B4 & B5 & B6 -- "100% ירוק (34 Passed)" --> Pass["אישור הפצה ושחרור (Release Gate Pass)"]
+    B1 & B2 & B3 & B4 & B5 & B6 -- "100% ירוק" --> Pass["אישור הפצה ושחרור (Release Gate Pass)"]
     B1 & B2 & B3 & B4 & B5 & B6 -- "כישלון בודד (AssertionError)" --> Fail["חסימת שחרור מיידית (Fail Loudly & Abort)"]
 ```
 
@@ -149,5 +151,7 @@ graph TD
 | `tests/test_timing_and_sync.py` | וידוא מתיחת FPS ברמת המילי-שנייה ואי-קיום משכים שליליים. | `pytest tests/test_timing_and_sync.py` |
 | `tests/test_junk_and_sdh_cleaning.py` | וידוא שכל פרסומת, אתר רשת או תיאור שמע מושמדים לחלוטין. | `pytest tests/test_junk_and_sdh_cleaning.py` |
 | `tests/test_split_merge_pipeline.py` | מניעת כתוביות חסרות או אי-התאמה של 1:1 בשרשרת הפיצול והמיזוג. | `pytest tests/test_split_merge_pipeline.py` |
-| `tests/test_boston_legal_dataset.py` | אימות שלמות מתמטי על כל 101 הפרקים של הסדרה בדיסק. | `pytest tests/test_boston_legal_dataset.py` |
+| `case_study_archive/test_boston_legal_dataset.py` | אימות שלמות מתמטי על כל 101 הפרקים של הסדרה בדיסק. | `pytest case_study_archive/test_boston_legal_dataset.py` |
+
+</div>
 

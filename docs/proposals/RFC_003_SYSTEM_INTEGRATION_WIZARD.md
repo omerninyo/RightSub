@@ -1,6 +1,6 @@
 # 🛠️ Architectural Specification: Automated Setup, Downloader Hooks & Health-Check Wizard (`rightsub setup` / `rightsub doctor`)
 
-> **Status:** ✅ **Shipped in Production (`v1.3.0` & `v1.5.0`)** — Implemented in [`scripts/20_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/20_config_and_doctor.py), [`install.sh`](file:///Volumes/Other/Antigravity/RightSub/install.sh), [`install.bat`](file:///Volumes/Other/Antigravity/RightSub/install.bat), and [`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). Verified by [`tests/test_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_config_and_doctor.py).
+> **Status:** ✅ **Shipped in Production (`v1.3.0`–`v1.5.1`)** — Implemented in [`scripts/20_config_and_doctor.py`](../../scripts/20_config_and_doctor.py), [`install.sh`](../../install.sh), [`install.bat`](../../install.bat), and [`rightsub.py`](../../rightsub.py). Verified by [`tests/test_config_and_doctor.py`](../../tests/test_config_and_doctor.py).
 
 <p align="left">
   <b>Language / שפה:</b>
@@ -48,8 +48,8 @@ The wizard makes onboarding 100% autonomous (One-Click / One-Liner), including A
       ✓ Detected: macOS 15.1 (Apple Silicon - aarch64)
 
 [2/5] Checking Python Runtime...
-      ✓ Python 3.9+ detected: /opt/homebrew/bin/python3 (v3.11.8)
-      ✓ Installing/verifying requirements.txt dependencies... Done.
+      ✓ Python 3.9+ detected: /opt/homebrew/bin/python3 (v3.12.x)
+      ✓ Zero-dependency standard library runtime ready. Done.
 
 [3/5] Checking Media Binaries & Package Managers...
       [!] Homebrew is not installed on this Mac.
@@ -104,7 +104,7 @@ if ($userPath -notlike "*$installDir*") {
 
 ---
 
-## 5. Shipped Commands (`v1.5.0`)
+## 5. Shipped Commands (`v1.5.1`)
 
 ```bash
 rightsub setup                    # Full interactive onboarding: health check + API keys + downloader hooks + background service

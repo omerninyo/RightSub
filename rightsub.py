@@ -8,7 +8,12 @@ Powered by the SubRefine Algorithmic Engine & SubSwarm Multi-Agent Orchestrator.
 
 Commands:
   auto          Zero-flag autonomous runner: processes single file, season, or directory.
+  wizard        Interactive Terminal & Windows CMD Mastering Wizard (default with no args).
+  setup         Run end-to-end Setup, Downloader Hooks & MCP Agent Integration Wizard.
+  mcp           Run Native MCP Server over stdio or auto-register with AI agents.
   serve         Run native Webhook daemon for Sonarr, Radarr, and Bazarr automation.
+  config        Interactive API key onboarding, downloader hooks & service manager.
+  doctor        Run comprehensive health check on dependencies and services.
   translate-ollama 100% offline, free local subtitle translation using Ollama (LLaMA 3, Qwen).
   polish        Semantic AI proofreading, canon harmonization & subtitle QC on existing subtitles.
   split         Split master English SRT into JSON batches (~210 items) for translation.
@@ -37,7 +42,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 default_engine = "apple" if sys.platform == "darwin" else "whisper"
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -49,8 +54,10 @@ def run_script(script_name, args):
         print(f"[-] Script not found: {script_path}")
         sys.exit(1)
     
+    env = os.environ.copy()
+    env.setdefault("PYTHONIOENCODING", "utf-8")
     cmd = [sys.executable, str(script_path)] + args
-    res = subprocess.run(cmd)
+    res = subprocess.run(cmd, env=env)
     sys.exit(res.returncode)
 
 def main():
@@ -101,12 +108,20 @@ def main():
     p_fix.add_argument("--recursive", "-r", action="store_true", help="Search directories recursively")
     p_fix.add_argument("--clean-ads", action="store_true", help="Strip promo spam & translation credit lines")
     p_fix.add_argument("--backup", "-b", action="store_true", help="Create .bak before in-place modifications")
+    p_fix.add_argument("--dry-run", "-d", action="store_true", help="Preview modifications without writing anything to disk")
+    p_fix.add_argument("--force", "-f", action="store_true", help="Force processing even if Hebrew ratio is low")
+    p_fix.add_argument("--en", help="Optional companion English SRT for deterministic bilingual number un-flipping")
 
     # Command: extract
     p_ext = subparsers.add_parser("extract", help="Discover & extract subtitles from video files via FFmpeg")
     p_ext.add_argument("target", help="Path to video file or directory")
     p_ext.add_argument("-o", "--output", help="Output .srt path")
+    p_ext.add_argument("-t", "--track", type=int, default=None, help="Explicit track index")
     p_ext.add_argument("-l", "--lang", default="eng", help="Subtitle language code (default: eng)")
+    p_ext.add_argument("-f", "--force", action="store_true", help="Force overwrite existing SRT")
+    p_ext.add_argument("-r", "--recursive", action="store_true", help="Recursively search directory")
+    p_ext.add_argument("--transcribe", action="store_true", help="Fallback to quicksubs transcription if no streams exist")
+    p_ext.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default=default_engine, help="quicksubs speech engine")
 
     # Command: sync
     p_sync = subparsers.add_parser("sync", help="Compare external Hebrew SRT against English master")
@@ -127,12 +142,20 @@ def main():
     p_fps = subparsers.add_parser("adjust-fps", help="Stretch framerate or shift time offsets")
     p_fps.add_argument("input", help="Input SRT file")
     p_fps.add_argument("-o", "--output", required=True, help="Output SRT file")
+    p_fps.add_argument("--offset_ms", "--offset-ms", dest="offset_ms", type=int, default=0, help="Offset in milliseconds (e.g. 1200 or -500)")
+    p_fps.add_argument("--fps_from", "--fps-from", dest="fps_from", type=float, default=None, help="Source FPS (e.g. 25.0)")
+    p_fps.add_argument("--fps_to", "--fps-to", dest="fps_to", type=float, default=None, help="Target FPS (e.g. 23.976)")
 
     # Command: transcribe (quicksubs)
     p_trans = subparsers.add_parser("transcribe", help="On-Device Speech-to-Subtitle transcription via quicksubs")
     p_trans.add_argument("input", help="Media video/audio file")
     p_trans.add_argument("-o", "--output-dir", help="Output directory")
     p_trans.add_argument("-e", "--engine", choices=["apple", "whisper", "parakeet"], default=default_engine, help="Speech engine")
+    p_trans.add_argument("-f", "--format", default="srt", choices=["srt", "vtt", "txt"], help="Output format")
+    p_trans.add_argument("--clean-up", action="store_true", help="Enable quicksubs Gemini AI transcript cleanup")
+    p_trans.add_argument("--api-key", help="Gemini API key for cleanup")
+    p_trans.add_argument("--model", help="Gemini model name for cleanup")
+    p_trans.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
 
     # Command: audio-sync (quicksubs)
     p_async = subparsers.add_parser("audio-sync", help="Audio-guided subtitle synchronization & retiming via quicksubs")
@@ -170,13 +193,17 @@ def main():
     p_polish.add_argument("-b", "--bible", help="Path to Translation Bible (translation_bible.json) or directory")
     p_polish.add_argument("--ollama", action="store_true", help="Use local Ollama engine")
     p_polish.add_argument("--gemini", action="store_true", help="Force Google Gemini engine")
-    p_polish.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-3.5-flash for Gemini)")
-    p_polish.add_argument("--api-key", help="TMDb or Gemini API key")
+    p_polish.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-3.8-flash for Gemini)")
+    p_polish.add_argument("--api-key", help="Gemini API key (or legacy TMDb key)")
+    p_polish.add_argument("--gemini-key", help="Explicit Google Gemini API key")
+    p_polish.add_argument("--tmdb-key", help="Explicit TMDb API key / Read Access Token")
     p_polish.add_argument("--batch-size", type=int, default=60, help="Number of cues per prompt batch (default: 60)")
     p_polish.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
     p_polish.add_argument("--diff-only", "--dry-run", dest="diff_only", action="store_true", help="Generate audit report only without saving subtitle file")
     p_polish.add_argument("--in-place", action="store_true", help="Backup and update original file instead of creating .he.polished.srt")
     p_polish.add_argument("--interactive", "-i", action="store_true", help="Interactive terminal diff reviewer: approve, reject, or edit each change line-by-line")
+    p_polish.add_argument("-o", "--output", help="Explicit output path")
+    p_polish.add_argument("--diff-report", help="Custom path for Markdown diff audit report")
     # Command: config (API Key, Hooks & Service Manager)
     p_config = subparsers.add_parser("config", help="Interactive API key onboarding, downloader hooks & service manager")
     p_config.add_argument("--gemini", help="Directly set Google Gemini API Key")
@@ -211,7 +238,10 @@ def main():
     p_serve.add_argument("--host", "-H", help="Host/IP to bind to (default: 0.0.0.0 or RIGHTSUB_HOST)")
     p_serve.add_argument("--port", "-p", type=int, help="Port to listen on (default: 8775 or RIGHTSUB_PORT)")
     p_serve.add_argument("--path-map", help="Container volume prefix mappings (e.g. /data/media:/media or PATH_MAP)")
-    p_serve.add_argument("--seed-safe", action="store_true", help="Never modify original torrent subtitle files; produce .he.srt sidecars")
+    p_serve.add_argument("--seed-safe", action="store_true", help="Keep original torrent files untouched and write .he.srt sidecars (default)")
+    p_serve.add_argument("--replace-original", "--no-seed-safe", dest="replace_original", action="store_true", help="Modify plain .srt files in-place instead of Seed-Safe duplication")
+    p_serve.add_argument("--api-key", help="Optional API key required via X-Api-Key or Bearer header on POST endpoints")
+    p_serve.add_argument("--allowed-roots", help="Optional comma/semicolon list of allowed local root directories")
     p_serve.add_argument("--no-clean-ads", action="store_true", help="Do not strip promo spam and credits")
     p_serve.add_argument("--backup", action="store_true", help="Create .bak backups before in-place modifications")
     p_serve.add_argument("--dry-run", action="store_true", help="Log actions without modifying any files on disk")

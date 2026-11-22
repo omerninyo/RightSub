@@ -146,3 +146,28 @@ class TestConfigAndDoctor:
         captured = capsys.readouterr().out
         assert "brew trust mattbirchler/tap" in captured
         assert "mattbirchler/tap/quicksubs" in captured
+
+    def test_config_dir_env_permissions_hooks_and_loopback_service(self, tmp_path, monkeypatch):
+        import os
+
+        custom_cfg_dir = tmp_path / "rightsub_custom_cfg"
+        monkeypatch.setenv("RIGHTSUB_CONFIG_DIR", str(custom_cfg_dir))
+        assert config_module._resolve_config_dir() == custom_cfg_dir.resolve()
+
+        cfg_file = custom_cfg_dir / "config.json"
+        monkeypatch.setattr(config_module, "CONFIG_DIR", custom_cfg_dir)
+        monkeypatch.setattr(config_module, "CONFIG_FILE", cfg_file)
+        config_module.save_config({"tmdb_api_key": "k1"})
+        assert cfg_file.is_file()
+        if os.name != "nt":
+            assert (cfg_file.stat().st_mode & 0o777) == 0o600
+
+        hooks_res = config_module.install_downloader_hooks(hooks_dir=tmp_path / "hooks")
+        qbit_bat = Path(hooks_res["hooks_dir"]) / "qbittorrent_hook.bat"
+        assert qbit_bat.is_file()
+        assert 'auto -- "%~1"' in qbit_bat.read_text(encoding="utf-8")
+
+        svc_res = config_module.install_background_service(service_dir=tmp_path / "svc", port=8775)
+        svc_content = Path(svc_res["service_file"]).read_text(encoding="utf-8")
+        assert "127.0.0.1" in svc_content
+        assert "--seed-safe" in svc_content

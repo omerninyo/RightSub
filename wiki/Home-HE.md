@@ -14,7 +14,7 @@
 
 ## ⚡ התחלה מהירה ב-30 שניות
 
-יש לכם קובץ כתוביות או וידאו שצריך לתקן או לתרגם? ב-**RightSub v1.5.0** עומדות לרשותכם 3 דרכים פשוטות:
+יש לכם קובץ כתוביות או וידאו שצריך לתקן או לתרגם? ב-**RightSub v1.5.1** עומדות לרשותכם 3 דרכים פשוטות:
 
 1. **אשף הפעלה אינטראקטיבי (ללא דגלים כלל):** הקלידו `rightsub` בלבד כדי לפתוח תפריט אינטראקטיבי עם תמיכה בגרירת קבצים (Drag & Drop) ודפדפן קבצים מובנה (`[B] Browse`).
 2. **פקודת-על אוטונומית (`rightsub auto`):**
@@ -36,7 +36,7 @@
 - 🎙️ **[תמלול וסנכרון מקומי מונחה אודיו](תמלול-וסנכרון-מקומי-quicksubs)**: תמלול מקומי ללא ענן באמצעות מנוע quicksubs.
 - 🎬 **[אינטגרציית TMDb](אינטגרציית-TMDb)**: שיוך מגדרי דטרמיניסטי, שחקני אורח והכנת דיאלקט.
 - 🔄 **[תהליך עבודה מלא מקצה לקצה](תהליך-עבודה)**: זרימת עבודה מלאה מווידאו גולמי לכתובית מושלמת.
-- 🗺️ **[מפת דרכים](מפת-דרכים)** ו-🚀 **[מה חדש (`v1.5.0`)](מה-חדש)**: היסטוריית גרסאות ומעקב אבני-דרך.
+- 🗺️ **[מפת דרכים](מפת-דרכים)** ו-🚀 **[מה חדש (`v1.5.1`)](מה-חדש)**: היסטוריית גרסאות ומעקב אבני-דרך.
 - 🏆 **[מקרה בוחן בוסטון ליגל (תיאורטי)](מקרה-בוחן-בוסטון-ליגל)**: בנצ'מרק אימות אלגוריתמי על 101 פרקים ומעל 78,000 כתוביות.
 
 ---
@@ -59,7 +59,7 @@ RightSub מפרידה באופן מודולרי בין ממשק הפקודות (
 
 ---
 
-## 💻 מדריך פקודות CLI מלא (`v1.5.0`)
+## 💻 מדריך פקודות CLI מלא (`v1.5.1`)
 
 | פקודה | מנוע אחראי | תיאור | דוגמה ב-Windows | דוגמה ב-macOS / Linux |
 | :--- | :---: | :--- | :--- | :--- |
@@ -71,7 +71,7 @@ RightSub מפרידה באופן מודולרי בין ממשק הפקודות (
 | `serve` | **Daemon** | שרת Webhook לקונטיינרים ולמארח עבור Sonarr, Radarr ו-Bazarr | `rightsub serve --port 8775` | `rightsub serve --port 8775` |
 | `translate-ollama` | **SubSwarm** | תרגום מקומי 100% חינמי ואופליין דרך Ollama | `rightsub translate-ollama prompts` | `rightsub translate-ollama prompts` |
 | `fix-plex` | **SubRefine** | תיקון פיסוק, RLM, קידוד CP1255, ניקוי SDH וספאם | `rightsub fix-plex ./Season1/ -r -i` | `rightsub fix-plex ./Season1/ -r -i` |
-| `adjust-fps` | **SubRefine** | מתיחת פריימים (25 <-> 23.976) או הזזת אופסט | `rightsub adjust-fps in.srt -o out.srt` | `rightsub adjust-fps in.srt -o out.srt` |
+| `adjust-fps` | **SubRefine** | מתיחת פריימים (25 <-> 23.976) או הזזת אופסט | `rightsub adjust-fps in.srt --fps-from 25 --fps-to 23.976 -o out.srt` | `rightsub adjust-fps in.srt --fps-from 25 --fps-to 23.976 -o out.srt` |
 | `extract` | **SubRefine** | חילוץ כתוביות מווידאו (MKV/MP4) בעזרת FFmpeg | `rightsub extract video.mp4 -o out.srt` | `rightsub extract video.mp4 -o out.srt` |
 | `transcribe` | **quicksubs** | תמלול קולי מהיר ישירות מהשמע (Apple Speech / Whisper) | `rightsub transcribe video.mp4` | `rightsub transcribe video.mp4` |
 | `audio-sync` | **quicksubs** | סנכרון וכיול כתוביות מוסטות על בסיס ציר השמע | `rightsub audio-sync bad.srt -v v.mp4 -o ok.srt` | `rightsub audio-sync bad.srt -v v.mp4 -o ok.srt` |

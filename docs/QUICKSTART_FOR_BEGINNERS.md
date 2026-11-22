@@ -13,7 +13,7 @@ If you are unfamiliar with command-line tools, do not know what CLI "flags" are,
 
 ## 🚀 Two Zero-Jargon Ways to Use RightSub
 
-Forget about remembering complex flags or chained commands. In **RightSub v1.5.0**, you have two effortless ways to do everything:
+Forget about remembering complex flags or chained commands. In **RightSub v1.5.1**, you have two effortless ways to do everything:
 
 ### Option A (Zero Flags): Launch the Interactive Mastering Wizard (`rightsub`)
 Simply type `rightsub` with no arguments in your Terminal (macOS/Linux) or Command Prompt / PowerShell (Windows) and press **Enter**:

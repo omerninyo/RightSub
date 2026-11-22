@@ -45,7 +45,7 @@ Season 4 represents the emotional and ideological peak of the series, culminatin
 ### 1. RightSub Architecture (SubRefine & SubSwarm)
 - **`split`**: Decomposes long English SRT files into chunked JSON batches (approx. 210 cues each) mapped through a `manifest.json`.
 - **`merge`**: Assembles translated Hebrew batches back into standard `.srt` format, strictly maintaining original timestamps and block IDs.
-- **BiDi Engine**: Automatically injects invisible Right-to-Left Marks (`\u200F` / RLM) at the start of every text line, ensuring proper punctuation and numeral display in Plex, Infuse, VLC, and Apple TV.
+- **BiDi Engine**: Automatically injects invisible Right-to-Left Marks (`\u200F` / RLM) at the start of every text line and after trailing punctuation, ensuring proper punctuation and numeral display in Plex, Infuse, VLC, and Apple TV.
 
 ### 2. High-Throughput Autonomous AI Agent Architecture
 - **Model Engine**: **Gemini 3.5 Flash-Lite** (`Model: "flash_lite"`).

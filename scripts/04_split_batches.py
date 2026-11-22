@@ -13,8 +13,38 @@ Features:
 """
 import os
 import re
+import sys
 import json
 import argparse
+from pathlib import Path
+
+def _read_srt_auto(srt_path):
+    try:
+        import importlib
+        scripts_dir = str(Path(__file__).resolve().parent)
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        fix_mod = importlib.import_module("07_fix_plex_punctuation")
+        content, _ = fix_mod.read_file_with_auto_encoding(Path(srt_path))
+        return content
+    except Exception:
+        with open(srt_path, "r", encoding="utf-8-sig", errors="replace") as f:
+            return f.read()
+
+def _atomic_write_json(path_str, obj):
+    dest = Path(path_str)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp_dest = dest.with_name(f".{dest.name}.tmp.{os.getpid()}")
+    try:
+        with open(tmp_dest, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_dest, dest)
+    finally:
+        if tmp_dest.exists():
+            try:
+                tmp_dest.unlink()
+            except Exception:
+                pass
 
 def clean_dialogue_text(raw_text):
     # Remove HTML / font tags
@@ -42,18 +72,21 @@ def clean_dialogue_text(raw_text):
 
 def split_srt_to_batches(srt_path, output_dir, batch_size=210):
     os.makedirs(output_dir, exist_ok=True)
-    with open(srt_path, "r", encoding="utf-8-sig", errors="replace") as f:
-        content = f.read().strip()
-    
+    batch_size = max(1, int(batch_size or 210))
+    content = _read_srt_auto(srt_path).replace("\r\n", "\n").replace("\r", "\n").strip()
+
     blocks = re.split(r'\n\s*\n', content)
     items = []
     for b in blocks:
         lines = b.strip().splitlines()
-        if len(lines) >= 3:
-            idx = int(lines[0].strip())
+        if len(lines) >= 2 and "-->" in lines[1]:
+            try:
+                idx = int(lines[0].strip().lstrip("\ufeff"))
+            except ValueError:
+                continue
             raw_text = "\n".join(lines[2:]).strip()
             dialogue, context = clean_dialogue_text(raw_text)
-            
+
             item = {"index": idx, "text": dialogue}
             if context:
                 item["context"] = context
@@ -67,8 +100,7 @@ def split_srt_to_batches(srt_path, output_dir, batch_size=210):
     for i, batch in enumerate(batches, start=1):
         filename = f"batch_{i:02d}_en.json"
         filepath = os.path.join(output_dir, filename)
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(batch, f, ensure_ascii=False, indent=2)
+        _atomic_write_json(filepath, batch)
         manifest.append({
             "batch": i,
             "file": filename,
@@ -78,14 +110,13 @@ def split_srt_to_batches(srt_path, output_dir, batch_size=210):
         print(f"    Batch {i:02d}: #{batch[0]['index']} to #{batch[-1]['index']} ({len(batch)} items) -> {filename}")
 
     manifest_path = os.path.join(output_dir, "manifest.json")
-    with open(manifest_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
+    _atomic_write_json(manifest_path, manifest)
     print(f"[✓] Manifest written to {manifest_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Split English SRT into JSON batches for translation.")
     parser.add_argument("srt", help="Input English SRT file")
-    parser.add_argument("-o", "--output_dir", required=True, help="Output directory for batches")
+    parser.add_argument("-o", "--output_dir", "--output-dir", dest="output_dir", required=True, help="Output directory for batches")
     parser.add_argument("-s", "--size", type=int, default=210, help="Batch size (default: 210)")
     args = parser.parse_args()
     split_srt_to_batches(args.srt, args.output_dir, args.size)

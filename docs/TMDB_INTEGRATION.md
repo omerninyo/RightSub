@@ -1,5 +1,11 @@
 # TMDb Metadata & Character Entity Integration
 
+<p align="left">
+  <b>Language / שפה:</b>
+  <b>English</b> |
+  <a href="TMDB_INTEGRATION.he.md"><b>עברית</b></a>
+</p>
+
 RightSub integrates with **The Movie Database (TMDb)** to provide deterministic, ground-truth metadata resolution for subtitles, character genders, episodic guest stars, genres, and regional dialects.
 
 - **Data Provider**: [The Movie Database (TMDb)](https://www.themoviedb.org)
@@ -17,7 +23,7 @@ RightSub integrates with **The Movie Database (TMDb)** to provide deterministic,
 
 2. **Episodic Plot Synopsis & Context Priming**:
    - Fetches the exact episode summary (`overview`) and title.
-   - Primes the AI translation prompt in `09_prompt_builder.py`, giving the LLM deep narrative context to disambiguate polysemous words (e.g. legal "case", "brief", "damages").
+   - Primes the AI translation prompt (`scripts/09_prompt_builder.py` / `scripts/17_translate_ollama.py` / `scripts/19_polish_and_qc.py`), giving the LLM deep narrative context to disambiguate polysemous words (e.g. legal "case", "brief", "damages").
 
 3. **Linguistic Dialect & Cultural Register Directives**:
    - Detects `origin_country` and `original_language` (e.g. `GB` for United Kingdom).

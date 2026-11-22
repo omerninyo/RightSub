@@ -58,10 +58,10 @@ Users frequently observe buttons in Bazarr's UI labeled *Reverse RTL*, *Remove H
   - The bracket regex character class `[A-Za-zÀ-ž0-9...]` strictly matches Latin and Western European characters.
   - **Hebrew Unicode codepoints (`\u0590-\u05FF`) are completely excluded.** Tags such as `[מוזיקה מתנגנת]`, `(טלפון מצלצל)`, or `[צעקות]` are never matched and remain intact.
   - Additionally, the All-Caps sound description list is hardcoded to exactly 19 English-only words (`LAUGH`, `SCREAM`, `DOOR`, etc.).
-- **The RightSub Solution (`junk_and_sdh_cleaning.py`):**
+- **The RightSub Solution (`scripts/07_fix_plex_punctuation.py` & `scripts/08_quality_assurance.py`):**
   - Full native support for Hebrew and English auditory patterns across all bracket types (`[]`, `()`, `{}`).
   - Removes musical notation (`♪`) while strictly preserving cue timing intervals.
-  - Whitelist protection (`test_legitimate_dialogue_not_flagged_as_ad`) to ensure short dialogue lines are never mistakenly stripped.
+  - Whitelist protection (`tests/test_bidi_and_text.py`) to ensure short dialogue lines are never mistakenly stripped.
 
 ---
 
@@ -77,7 +77,7 @@ Users frequently observe buttons in Bazarr's UI labeled *Reverse RTL*, *Remove H
   - Inspecting `dictionaries/data.py` reveals dictionary tables for only 16 European languages:  
     `['bos', 'dan', 'deu', 'eng', 'fin', 'fra', 'hrv', 'hun', 'nld', 'nob', 'nor', 'por', 'rus', 'spa', 'srp', 'swe']`.
   - **Hebrew (`heb`) is totally unsupported.** When clicked on a Hebrew subtitle, Bazarr outputs a debug log entry and silently exits without modifying anything.
-- **The RightSub Solution (v1.3.0):**
+- **The RightSub Solution (`v1.5.1`):**
   - **Universal Homoglyph Normalization:** Automatically identifies and replaces foreign character intrusions introduced by legacy bitmap OCR (e.g. Cyrillic `с` resembling Latin `c` or Hebrew characters).
   - **Hebrew Typographical Normalization:** Converts ASCII double quotes into canonical Hebrew Gershayim (`״` / `\u05F4`) for acronyms (e.g., עו״ד, ארה״ב, ד״ר).
   - **Semantic AI Polish (`rightsub polish`):** Uses LLMs and 3-tier domain lore (`domain_knowledge.py`) to audit spelling, slang, and franchise canon.
@@ -102,11 +102,11 @@ Users frequently observe buttons in Bazarr's UI labeled *Reverse RTL*, *Remove H
   parent.f.shift(...)
   ```
 - **The Operational Difference:**
-  - The underlying linear time scaling and offset math matches RightSub's `timing_and_sync.py`.
+  - The underlying linear time scaling and offset math matches RightSub's `scripts/06_adjust_fps_or_offset.py`.
   - **The Bazarr Bottleneck:** Requires manual user interaction: opening the video in an external player, seeking out two spoken lines, recording 4 separate timestamps, typing them into a web GUI modal, and clicking save.
 - **The RightSub Solution:**
-  - **Single-Line Headless CLI:** FPS conversions and millisecond offsets execute in a single headless command (`rightsub sync`).
-  - **Hardware-Accelerated Alignment (`quicksubs`):** Performs local on-device speech-to-text audio alignment against the video's audio track via Apple Silicon Neural Engine/Metal or local Whisper models — zero manual timestamp hunting and zero cloud API expenses.
+  - **Single-Line Headless CLI:** FPS conversions and millisecond offsets execute in a single headless command (`rightsub adjust-fps --fps-from ... --fps-to ...` / `--offset-ms ...`).
+  - **Hardware-Accelerated Alignment (`rightsub transcribe` / `rightsub sync`):** Performs local on-device speech-to-text audio alignment against the video's audio track via Apple Silicon Neural Engine/Metal or local Whisper models — zero manual timestamp hunting and zero cloud API expenses.
 
 ---
 
@@ -133,7 +133,7 @@ This is the primary architectural differentiator refuting the misconception that
    - Before submitting a single token to the LLM, RightSub scans the English SRT for explicit speaker tags (`ALAN:`, `[DENNY]`), character names, and recurring honorifics (`Judge`, `Counselor`, `Dr.`).
    - Executes an automated pre-flight query against the **TMDb API** to resolve the verified cast roster, character names, and official genders (Male/Female).
    - Generates and locks `translation_bible.json`, guaranteeing that character gender and nomenclature remain 100% consistent across entire 24-episode seasons.
-2. **Phase 2: Master System Prompt & Context Overlap (`09_prompt_builder.py`):**
+2. **Phase 2: Master System Prompt & Context Overlap (`scripts/09_prompt_builder.py` / `scripts/17_translate_ollama.py`):**
    - **Explicit Vocative Agreement Rules:** Enforces strict Semitic 2nd-person gender inflection ("אתה" vs. "את", "אתה רוצה" vs. "את רוצה") based on speaker and addressee continuity.
    - **SDH Filtered as Context-Only:** Speaker tags like `[Tara]` or `ALAN:` are supplied as context to inform the LLM of conversational participants, while the prompt strictly forbids outputting these metadata tags into final subtitles.
    - **Sliding Context Overlap:** Every batch receives 3–5 overlapping dialogue lines from preceding and succeeding cues, preventing fragmented sentences.
@@ -165,16 +165,16 @@ This is the primary architectural differentiator refuting the misconception that
 
 ---
 
-## 📊 Comprehensive Comparison Matrix (Version 1.5.0)
+## 📊 Comprehensive Comparison Matrix (Version 1.5.1)
 
-| Capability / Dimension | Bazarr | RightSub (v1.5.0) |
+| Capability / Dimension | Bazarr | RightSub (v1.5.1) |
 | :--- | :--- | :--- |
 | **Primary Pipeline Role** | Automated web crawler & downloader for existing community subtitles (Ingest). | Mastering, Semitic linguistics, BiDi RLM, AI proofreading, MCP agent server, and headless automation (Mastering). |
 | **Plex & Infuse BiDi Handling** | ❌ Broken physical character swap (`common.py`) or legacy RLE tags (`\u202b`). | ✔️ `SubRefine` engine injecting invisible Unicode RLM (`\u200F`) marks (UAX #9) + un-flipping 18 legacy visual-flip patterns (`Subabi`). |
 | **Hearing Impaired / SDH Sanitization** | ❌ Latin characters only; blind to Hebrew auditory descriptions. | ✔️ Native bilingual SDH sanitizer with dialogue protection. |
 | **OCR Typo & Number Repair** | ❌ Hebrew is completely missing from dictionary (`data.py`). | ✔️ Homoglyph normalization from 7 scripts (incl. Georgian `דეייט` $\rightarrow$ `דייט`) + bilingual 2-digit number un-flipping (`84` $\rightarrow$ `48`). |
 | **Legacy Mojibake Repair (CP1255)** | ⚠️ Passes through raw encoding from provider. | ✔️ Auto-Charset engine detecting Windows-1255 and converting to UTF-8. |
-| **Timing Synchronization (Sync)** | ⚠️ Manual web GUI only (Two-Point Fit requires typing 4 timestamps). | ✔️ Direct CLI flags (`rightsub sync`) + hardware-accelerated STT (`quicksubs`). |
+| **Timing Synchronization (Sync)** | ⚠️ Manual web GUI only (Two-Point Fit requires typing 4 timestamps). | ✔️ Direct CLI flags (`rightsub adjust-fps`) + hardware-accelerated audio/transcript sync (`rightsub sync` / `rightsub transcribe`). |
 | **Pre-Flight Architecture & Bible** | ❌ None. Static 4-line prompt with zero domain knowledge. | ✔️ TMDb cast resolution, speaker extraction, locked `translation_bible.json`. |
 | **Context Overlap Across Batches** | ❌ Flat 300-line batches. Sentences severed without context. | ✔️ 3–5 cue sliding overlap windows guaranteeing sentence continuity. |
 | **Vocative & Gender Agreement** | ❌ Completely blind (defaults to masculine, frequent gender flips). | ✔️ Explicit 2nd-person gender rules + deterministic vocative & morphological QA audit (`rightsub qa`). |

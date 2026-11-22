@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   rightsub:
     build: .
@@ -11,6 +9,7 @@ services:
     environment:
       - RIGHTSUB_PORT=8775
       - RIGHTSUB_HOST=0.0.0.0
+      - RIGHTSUB_CONFIG_DIR=/config
       - PATH_MAP=/data/media:/media
       - PUID=1000
       - PGID=1000

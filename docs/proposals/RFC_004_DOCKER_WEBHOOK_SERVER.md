@@ -1,6 +1,6 @@
 # 🐳 Architectural Specification: Docker Webhook Daemon for Sonarr, Radarr, and Bazarr (`rightsub serve`)
 
-> **Status:** ✅ **Shipped in Production (`v1.4.0` & `v1.5.0`)** — Implemented in [`scripts/21_webhook_server.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/21_webhook_server.py), [`Dockerfile`](file:///Volumes/Other/Antigravity/RightSub/Dockerfile), [`docker-compose.yml`](file:///Volumes/Other/Antigravity/RightSub/docker-compose.yml), and [`unraid/rightsub.xml`](file:///Volumes/Other/Antigravity/RightSub/unraid/rightsub.xml). Verified by [`tests/test_webhook_server.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_webhook_server.py).
+> **Status:** ✅ **Shipped in Production (`v1.4.0`–`v1.5.1`)** — Implemented in [`scripts/21_webhook_server.py`](../../scripts/21_webhook_server.py), [`Dockerfile`](../../Dockerfile), and [`docker-compose.yml`](../../docker-compose.yml). Verified by [`tests/test_webhook_server.py`](../../tests/test_webhook_server.py).
 
 <p align="left">
   <b>Language / שפה:</b>
@@ -31,7 +31,7 @@ The daemon enables turnkey, zero-kludge integration into home media environments
 
 1. **Zero Heavy Server Dependencies:**
    - The Webhook server is embedded directly into the RightSub codebase, invokable via `rightsub serve --port 8775`.
-   - Built on lightweight Python standard libraries (`http.server` / `asyncio`) consuming under 15 MB RAM idle.
+   - Built exclusively on lightweight Python standard libraries (`http.server.ThreadingHTTPServer`) consuming under 15 MB RAM idle.
 2. **Native Parsing for Sonarr, Radarr, and Bazarr Payloads:**
    - Automatic schema matching without complex user parameter tuning.
 3. **Autonomous Container Path Mapping (`PATH_MAP`):**
@@ -112,13 +112,19 @@ Default listening port: `8775` (configurable via `RIGHTSUB_PORT` or `--port` fla
   ```
 
 ### E. `GET /health`
-- Health check and operational status:
+- Health check, active endpoints, and operational metrics:
   ```json
   {
     "status": "healthy",
-    "version": "1.4.0",
-    "uptime_seconds": 86400,
-    "processed_count": 142
+    "service": "RightSub Webhook Daemon",
+    "version": "1.5.1",
+    "uptime_seconds": 86400.0,
+    "metrics": {
+      "events_count": 142,
+      "processed_count": 142,
+      "errors_count": 0
+    },
+    "endpoints": ["/ui", "/health", "/webhook/sonarr", "/webhook/radarr", "/webhook/bazarr", "/webhook/generic"]
   }
   ```
 
@@ -141,12 +147,10 @@ Into container path:
 
 ---
 
-## 5. Deployment Configurations: Docker Compose & Unraid
+## 5. Deployment Configurations: Docker Compose & Container Setup
 
 ### Reference `docker-compose.yml`:
 ```yaml
-version: "3.8"
-
 services:
   rightsub:
     image: ghcr.io/omerninyo/rightsub:latest
@@ -156,6 +160,7 @@ services:
       - "8775:8775"
     environment:
       - RIGHTSUB_PORT=8775
+      - RIGHTSUB_CONFIG_DIR=/config
       - PATH_MAP=/data/media:/media
       - PUID=1000
       - PGID=1000
@@ -180,15 +185,12 @@ services:
 
 ---
 
-## 6. Implementation Phasing for Version 1.4.0
+## 6. Production Implementation Details (`v1.4.0`–`v1.5.1`)
 
-1. **Phase 1: Core Webhook Daemon:**
-   - Implement `src/daemon/webhook_server.py` with zero heavy dependencies.
-   - Built-in Sonarr, Radarr, and Bazarr parsers.
-2. **Phase 2: Asynchronous Worker Queue & Path Mapping:**
-   - Background thread-pool processing preventing HTTP timeouts on large batches.
-   - Prefix translation logic.
-3. **Phase 3: Docker Packaging & GHCR Pipeline:**
-   - Streamlined `Dockerfile` (`python:3.11-slim`).
-   - GitHub Actions workflow publishing multi-arch images (`amd64`, `arm64`) to `ghcr.io`.
-   - Official Unraid Community Applications template XML.
+1. **Core Webhook & Local `/ui` Server:**
+   - Implemented in `scripts/21_webhook_server.py` (`ThreadingHTTPServer`) with zero external dependencies, native Sonarr/Radarr/Bazarr parsers, and static serving for the local `/ui` workbench.
+2. **Thread-Safe Locking, Seed-Safe Default & Security Hardening:**
+   - Per-file locks (`_get_file_lock`) and atomic disk replacement prevent simultaneous webhook races; Seed-Safe mode defaults to enabled even when `in_place` is omitted.
+   - `v1.5.1` adds optional `--api-key` (`X-Api-Key` / Bearer), `--allowed-roots` filesystem confinement, strict `Content-Type: application/json`, and `127.0.0.1` loopback binding in OS background services.
+3. **Docker Packaging (`Dockerfile`):**
+   - Streamlined non-root `Dockerfile` based on `python:3.12-slim` with `RIGHTSUB_CONFIG_DIR=/config` and multi-arch build support (`amd64`, `arm64`).

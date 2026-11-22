@@ -50,7 +50,7 @@ for _p in (str(SCRIPT_DIR), str(REPO_ROOT)):
 try:
     from rightsub import __version__ as SERVER_VERSION
 except Exception:
-    SERVER_VERSION = "1.5.0"
+    SERVER_VERSION = "1.5.1"
 
 # Augment PATH for GUI MCP hosts (Claude Desktop, Cursor, Antigravity, Windsurf)
 def _augment_environment_path() -> str:
@@ -324,6 +324,7 @@ def _exec_inspect_media(arguments: Dict[str, Any]) -> Dict[str, Any]:
         "type": "directory" if target.is_dir() else "file",
         "hebrew_subtitles": [],
         "english_subtitles": [],
+        "unreadable_subtitles": [],
         "videos": [],
         "recommended_action": ""
     }
@@ -337,19 +338,20 @@ def _exec_inspect_media(arguments: Dict[str, Any]) -> Dict[str, Any]:
             if ".bak" in srt.name.lower() or ".original." in srt.name.lower():
                 continue
             try:
-                content, enc = m07.read_file_with_encoding(srt)
-                is_he = m07.detect_hebrew(content)
+                content, enc = m07.read_file_with_auto_encoding(srt)
+                is_he, _ratio, _details = m07.detect_hebrew(content)
                 if is_he:
-                    polarity = m07.detect_file_flip_polarity(content)
+                    is_preflipped = bool(m07.detect_file_flip_polarity(content))
                     has_rlm = "\u200f" in content
                     is_seed_safe_named = srt.name.lower().endswith(".he.srt")
                     report["hebrew_subtitles"].append({
                         "file": str(srt),
                         "encoding": enc,
-                        "flip_polarity": polarity,
+                        "flip_polarity": "VISUAL_FLIPPED" if is_preflipped else "LOGICAL",
+                        "is_preflipped": is_preflipped,
                         "has_rlm": has_rlm,
                         "is_he_srt_named": is_seed_safe_named,
-                        "needs_fix_plex": (not has_rlm) or (enc.lower() != "utf-8") or (polarity == "VISUAL_FLIPPED") or (not is_seed_safe_named)
+                        "needs_fix_plex": (not has_rlm) or (enc.lower() not in ("utf-8", "utf-8-sig")) or is_preflipped or (not is_seed_safe_named)
                     })
                 else:
                     report["english_subtitles"].append({
@@ -357,13 +359,23 @@ def _exec_inspect_media(arguments: Dict[str, Any]) -> Dict[str, Any]:
                         "encoding": enc
                     })
             except Exception as e:
-                report["hebrew_subtitles"].append({"file": str(srt), "error": str(e)})
+                report["unreadable_subtitles"].append({"file": str(srt), "error": str(e)})
 
         for vid in videos[:20]:
             tracks = []
             try:
-                if hasattr(m01, "probe_subtitle_streams"):
-                    tracks = m01.probe_subtitle_streams(str(vid))
+                probe_info = m01.inspect_video(str(vid))
+                if isinstance(probe_info, dict):
+                    tracks = [
+                        {
+                            "index": s.get("index"),
+                            "codec": s.get("codec_name"),
+                            "language": (s.get("tags") or {}).get("language"),
+                            "title": (s.get("tags") or {}).get("title"),
+                        }
+                        for s in probe_info.get("streams", [])
+                        if s.get("codec_type") == "subtitle"
+                    ]
             except Exception:
                 tracks = []
             report["videos"].append({
@@ -392,7 +404,6 @@ def _exec_inspect_media(arguments: Dict[str, Any]) -> Dict[str, Any]:
 
 def _exec_fix_plex_subtitles(arguments: Dict[str, Any]) -> Dict[str, Any]:
     import importlib
-    m07 = importlib.import_module("07_fix_plex_punctuation")
     m18 = importlib.import_module("18_auto_pipeline")
 
     target = Path(arguments["path"]).expanduser().resolve()
@@ -402,6 +413,7 @@ def _exec_fix_plex_subtitles(arguments: Dict[str, Any]) -> Dict[str, Any]:
     if not target.exists():
         return {"error": f"Path does not exist: {target}"}
 
+    default_eng = "apple" if sys.platform == "darwin" else "whisper"
     processed_files = []
     with _isolated_stdio() as log_buf:
         if target.is_file() and target.suffix.lower() == ".srt":
@@ -409,7 +421,10 @@ def _exec_fix_plex_subtitles(arguments: Dict[str, Any]) -> Dict[str, Any]:
                 replace_original=replace_original,
                 no_clean_ads=not clean_ads,
                 no_backup=False,
-                dry_run=False
+                dry_run=False,
+                ollama=False,
+                model=None,
+                engine=default_eng,
             )
             ok = m18.handle_single_srt(target, args)
             processed_files.append({"file": str(target), "success": bool(ok)})
@@ -422,7 +437,10 @@ def _exec_fix_plex_subtitles(arguments: Dict[str, Any]) -> Dict[str, Any]:
                         replace_original=replace_original,
                         no_clean_ads=not clean_ads,
                         no_backup=False,
-                        dry_run=False
+                        dry_run=False,
+                        ollama=False,
+                        model=None,
+                        engine=default_eng,
                     )
                     ok = m18.handle_single_srt(srt, args)
                     processed_files.append({"file": str(srt), "success": bool(ok)})
@@ -443,22 +461,29 @@ def _exec_extract_subtitles(arguments: Dict[str, Any]) -> Dict[str, Any]:
     m01 = importlib.import_module("01_extract_subtitles")
 
     video_path = Path(arguments["video_path"]).expanduser().resolve()
-    lang = arguments.get("lang", "eng")
+    lang = (arguments.get("lang") or "eng").strip()
     output_path = arguments.get("output_path")
 
     if not video_path.exists():
         return {"error": f"Video path does not exist: {video_path}"}
 
+    if output_path:
+        target_out = Path(output_path).expanduser().resolve()
+    else:
+        ext_lang = "en" if lang.lower() in ("eng", "en") else ("he" if lang.lower() in ("heb", "he") else lang.lower())
+        target_out = video_path.parent / f"{video_path.stem}.{ext_lang}.srt"
+
     with _isolated_stdio() as log_buf:
-        out_srt = m01.extract_subtitle(
+        ok, reason = m01.extract_from_video(
             str(video_path),
-            output_srt=str(Path(output_path).expanduser().resolve()) if output_path else None,
-            preferred_lang=lang
+            output_srt=str(target_out),
+            lang=lang
         )
 
     return {
-        "status": "ok" if out_srt else "not_found",
-        "extracted_srt": str(out_srt) if out_srt else None,
+        "status": "ok" if ok else "not_found",
+        "extracted_srt": str(target_out) if (ok and target_out.is_file()) else None,
+        "reason": reason,
         "logs": log_buf.getvalue().strip()
     }
 
@@ -472,21 +497,22 @@ def _exec_prepare_translation(arguments: Dict[str, Any]) -> Dict[str, Any]:
     if not srt_path.is_file():
         return {"error": f"English SRT file not found: {srt_path}"}
 
-    title = arguments.get("title") or srt_path.stem.replace(".en", "")
+    base_stem = re.sub(r'(?i)\.(?:en|eng|english)$', '', srt_path.stem)
+    title = arguments.get("title") or base_stem
     enrich_tmdb = bool(arguments.get("enrich_tmdb", True))
     batch_size = int(arguments.get("batch_size", 210))
 
-    work_dir = srt_path.parent / f"{srt_path.stem.replace('.en', '')}_rightsub_work"
+    work_dir = srt_path.parent / f"{base_stem}_rightsub_work"
     batches_dir = work_dir / "batches"
     bible_path = work_dir / "translation_bible.json"
     work_dir.mkdir(parents=True, exist_ok=True)
 
     with _isolated_stdio() as log_buf:
-        bible_data = m03.generate_bible_skeleton([str(srt_path)], title=title, use_tmdb=enrich_tmdb)
+        bible_data = m03.extract_entities([str(srt_path)], title=title, use_tmdb=enrich_tmdb)
         bible_path.write_text(json.dumps(bible_data, indent=2, ensure_ascii=False), encoding="utf-8")
         m04.split_srt_to_batches(str(srt_path), str(batches_dir), batch_size=batch_size)
 
-    batch_files = sorted(str(p) for p in batches_dir.glob("batch_*_input.json"))
+    batch_files = sorted(str(p) for p in batches_dir.glob("batch_*_en.json"))
     return {
         "status": "ok",
         "work_dir": str(work_dir),
@@ -512,7 +538,7 @@ def _exec_merge_and_master(arguments: Dict[str, Any]) -> Dict[str, Any]:
         return {"error": f"Translated batches directory not found: {batches_dir}"}
 
     with _isolated_stdio() as log_buf:
-        ok = m05.merge_batches_to_srt(str(en_srt_path), str(batches_dir), str(output_path))
+        ok = m05.merge_and_validate(str(en_srt_path), str(batches_dir), str(output_path))
 
     return {
         "status": "ok" if ok else "failed",
@@ -533,6 +559,8 @@ def _exec_polish_subtitles(arguments: Dict[str, Any]) -> Dict[str, Any]:
 
     if not target_path.exists():
         return {"error": f"Target path not found: {target_path}"}
+    if target_path.is_dir():
+        return {"error": f"polish_subtitles requires a subtitle (.srt) or video file, not a directory: {target_path}"}
 
     args = argparse.Namespace(
         target=str(target_path),
@@ -544,6 +572,8 @@ def _exec_polish_subtitles(arguments: Dict[str, Any]) -> Dict[str, Any]:
         gemini=not offline_canon_only,
         model=None,
         api_key=None,
+        gemini_key=None,
+        tmdb_key=None,
         batch_size=60,
         offline_canon_only=offline_canon_only,
         diff_only=False,
@@ -578,18 +608,40 @@ def _exec_audit_subtitles_qa(arguments: Dict[str, Any]) -> Dict[str, Any]:
 
     with _isolated_stdio() as log_buf:
         if en_srt_path.is_dir():
-            passed = m08.audit_directory(str(en_srt_path), strict_gender=strict_gender)
-        else:
-            if not he_srt_path:
-                stem = en_srt_path.stem
-                base = stem[:-3] if stem.lower().endswith(".en") else stem
-                cand = en_srt_path.parent / f"{base}.he.srt"
-                he_srt_path = str(cand)
-            passed = m08.run_qa_audit(str(en_srt_path), str(Path(he_srt_path).expanduser().resolve()), strict_gender=strict_gender)
+            en_files = sorted(en_srt_path.rglob("*.en.srt"))
+            pair_reports = []
+            passed_count = 0
+            for en_f in en_files:
+                he_f = Path(re.sub(r'\.en(?:g)?\.srt$', '.he.srt', str(en_f), flags=re.IGNORECASE))
+                ok_p, rep = m08.audit_pair(str(en_f), str(he_f), strict_gender=strict_gender)
+                if ok_p:
+                    passed_count += 1
+                pair_reports.append({"file": str(en_f), "passed": bool(ok_p), "report": rep})
+            passed = (len(en_files) > 0 and passed_count == len(en_files))
+            return {
+                "status": "passed" if passed else ("issues_found" if en_files else "no_files"),
+                "passed": passed,
+                "files_checked": len(en_files),
+                "passed_count": passed_count,
+                "failed_count": len(en_files) - passed_count,
+                "reports": pair_reports,
+                "logs": log_buf.getvalue().strip()
+            }
+
+        if not he_srt_path:
+            he_srt_path = re.sub(r'\.en(?:g)?\.srt$', '.he.srt', str(en_srt_path), flags=re.IGNORECASE)
+            if he_srt_path == str(en_srt_path):
+                he_srt_path = str(en_srt_path.parent / f"{en_srt_path.stem}.he.srt")
+        passed, qa_report = m08.audit_pair(
+            str(en_srt_path),
+            str(Path(he_srt_path).expanduser().resolve()),
+            strict_gender=strict_gender
+        )
 
     return {
         "status": "passed" if passed else "issues_found",
         "passed": bool(passed),
+        "report": qa_report,
         "logs": log_buf.getvalue().strip()
     }
 
@@ -604,10 +656,13 @@ def _exec_transcribe_audio(arguments: Dict[str, Any]) -> Dict[str, Any]:
         return {"error": f"Media file not found: {video_path}"}
 
     with _isolated_stdio() as log_buf:
-        ok = m00.transcribe_media(str(video_path), engine=engine)
+        res = m00.transcribe_audio(str(video_path), engine=engine)
 
+    ok = bool(isinstance(res, dict) and res.get("success"))
     return {
         "status": "ok" if ok else "failed",
+        "output_file": res.get("output_file") if isinstance(res, dict) else None,
+        "error": res.get("error") if (isinstance(res, dict) and not ok) else None,
         "video_path": str(video_path),
         "engine": engine,
         "logs": log_buf.getvalue().strip()
@@ -747,61 +802,80 @@ def serve_stdio(in_stream=None, out_stream=None) -> int:
     """
     Runs the MCP JSON-RPC 2.0 loop over binary/text stdio streams.
     Supports both newline-delimited JSON and Content-Length headers.
+    Redirects OS fd 1 -> fd 2 when using real stdio so child subprocesses
+    can never pollute the JSON-RPC wire pipe.
     """
     raw_in = in_stream if in_stream is not None else sys.stdin.buffer
-    raw_out = out_stream if out_stream is not None else sys.stdout.buffer
+    owns_rpc_fd = False
+    saved_stdout = sys.stdout
+    if out_stream is not None:
+        raw_out = out_stream
+    else:
+        rpc_fd = os.dup(1)
+        os.dup2(2, 1)
+        raw_out = os.fdopen(rpc_fd, "wb", buffering=0)
+        sys.stdout = sys.stderr
+        owns_rpc_fd = True
 
-    while True:
-        line = raw_in.readline()
-        if not line:
-            break
-
-        stripped = line.strip()
-        if not stripped:
-            continue
-
-        # Mode A: LSP-style Content-Length framing
-        if stripped.lower().startswith(b"content-length:"):
-            try:
-                length = int(stripped.split(b":", 1)[1].strip())
-            except ValueError:
-                continue
-            # Consume remaining headers until blank line
-            while True:
-                hdr = raw_in.readline()
-                if not hdr or hdr in (b"\r\n", b"\n"):
-                    break
-            body = raw_in.read(length)
-            if not body:
+    try:
+        while True:
+            line = raw_in.readline()
+            if not line:
                 break
-            try:
-                msg = json.loads(body.decode("utf-8"))
-            except Exception:
-                resp = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}
-                payload = json.dumps(resp, ensure_ascii=False).encode("utf-8")
-                raw_out.write(f"Content-Length: {len(payload)}\r\n\r\n".encode("ascii") + payload)
-                raw_out.flush()
+
+            stripped = line.strip()
+            if not stripped:
                 continue
 
-            resp = handle_jsonrpc_message(msg)
-            if resp is not None:
-                payload = json.dumps(resp, ensure_ascii=False).encode("utf-8")
-                raw_out.write(f"Content-Length: {len(payload)}\r\n\r\n".encode("ascii") + payload)
-                raw_out.flush()
-        else:
-            # Mode B: Standard MCP Newline-Delimited JSON
-            try:
-                msg = json.loads(stripped.decode("utf-8"))
-            except Exception:
-                resp = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}
-                raw_out.write((json.dumps(resp, ensure_ascii=False) + "\n").encode("utf-8"))
-                raw_out.flush()
-                continue
+            # Mode A: LSP-style Content-Length framing
+            if stripped.lower().startswith(b"content-length:"):
+                try:
+                    length = int(stripped.split(b":", 1)[1].strip())
+                except ValueError:
+                    continue
+                # Consume remaining headers until blank line
+                while True:
+                    hdr = raw_in.readline()
+                    if not hdr or hdr in (b"\r\n", b"\n"):
+                        break
+                body = raw_in.read(length)
+                if not body:
+                    break
+                try:
+                    msg = json.loads(body.decode("utf-8"))
+                except Exception:
+                    resp = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}
+                    payload = json.dumps(resp, ensure_ascii=False).encode("utf-8")
+                    raw_out.write(f"Content-Length: {len(payload)}\r\n\r\n".encode("ascii") + payload)
+                    raw_out.flush()
+                    continue
 
-            resp = handle_jsonrpc_message(msg)
-            if resp is not None:
-                raw_out.write((json.dumps(resp, ensure_ascii=False) + "\n").encode("utf-8"))
-                raw_out.flush()
+                resp = handle_jsonrpc_message(msg)
+                if resp is not None:
+                    payload = json.dumps(resp, ensure_ascii=False).encode("utf-8")
+                    raw_out.write(f"Content-Length: {len(payload)}\r\n\r\n".encode("ascii") + payload)
+                    raw_out.flush()
+            else:
+                # Mode B: Standard MCP Newline-Delimited JSON
+                try:
+                    msg = json.loads(stripped.decode("utf-8"))
+                except Exception:
+                    resp = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}
+                    raw_out.write((json.dumps(resp, ensure_ascii=False) + "\n").encode("utf-8"))
+                    raw_out.flush()
+                    continue
+
+                resp = handle_jsonrpc_message(msg)
+                if resp is not None:
+                    raw_out.write((json.dumps(resp, ensure_ascii=False) + "\n").encode("utf-8"))
+                    raw_out.flush()
+    finally:
+        if owns_rpc_fd:
+            sys.stdout = saved_stdout
+            try:
+                raw_out.close()
+            except Exception:
+                pass
 
     return 0
 
@@ -824,7 +898,14 @@ def get_known_agent_config_paths(home_dir: Optional[Path] = None) -> Dict[str, P
     elif sys.platform == "win32":
         appdata = os.environ.get("APPDATA")
         base = Path(appdata) if appdata else (home / "AppData" / "Roaming")
-        paths["claude"] = base / "Claude" / "claude_desktop_config.json"
+        win_claude = base / "Claude" / "claude_desktop_config.json"
+        if not win_claude.exists():
+            local_app = os.environ.get("LOCALAPPDATA")
+            if local_app:
+                msix_claude = Path(local_app) / "Packages" / "Claude_pzs8sxrjxfjjc" / "LocalCache" / "Roaming" / "Claude" / "claude_desktop_config.json"
+                if msix_claude.parent.exists():
+                    win_claude = msix_claude
+        paths["claude"] = win_claude
     else:
         paths["claude"] = home / ".config" / "Claude" / "claude_desktop_config.json"
 
@@ -834,7 +915,7 @@ def get_known_agent_config_paths(home_dir: Optional[Path] = None) -> Dict[str, P
 def build_mcp_server_entry() -> Dict[str, Any]:
     """
     Constructs a self-contained MCP server definition using exact absolute paths
-    for the Python interpreter and `rightsub.py`, plus full PATH and optional API keys.
+    for the Python interpreter and `rightsub.py`, plus full PATH (never duplicating plaintext API keys).
     """
     rightsub_py = str((REPO_ROOT / "rightsub.py").resolve())
     python_exe = str(Path(sys.executable).resolve())
@@ -843,23 +924,26 @@ def build_mcp_server_entry() -> Dict[str, Any]:
         "PYTHONIOENCODING": "utf-8",
     }
 
-    # Include saved TMDb key if present in ~/.config/rightsub/config.json
-    cfg_file = Path.home() / ".config" / "rightsub" / "config.json"
-    if cfg_file.is_file():
-        try:
-            cfg = json.loads(cfg_file.read_text(encoding="utf-8"))
-            if cfg.get("tmdb_api_key"):
-                env_dict["TMDB_API_KEY"] = cfg["tmdb_api_key"]
-            if cfg.get("gemini_api_key"):
-                env_dict["GEMINI_API_KEY"] = cfg["gemini_api_key"]
-        except Exception:
-            pass
+    custom_cfg_dir = os.environ.get("RIGHTSUB_CONFIG_DIR", "").strip()
+    if custom_cfg_dir:
+        env_dict["RIGHTSUB_CONFIG_DIR"] = custom_cfg_dir
 
     return {
         "command": python_exe,
         "args": [rightsub_py, "mcp"],
         "env": env_dict
     }
+
+
+def _atomic_write_json_preserving_mode(target_path: Path, data: Dict[str, Any]) -> None:
+    tmp_path = target_path.with_suffix(target_path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if target_path.exists():
+        try:
+            shutil.copymode(target_path, tmp_path)
+        except Exception:
+            pass
+    tmp_path.replace(target_path)
 
 
 def update_agent_config_file(config_path: Path, remove: bool = False) -> Tuple[bool, str]:
@@ -896,14 +980,12 @@ def update_agent_config_file(config_path: Path, remove: bool = False) -> Tuple[b
     if remove:
         if "rightsub" in mcp_servers:
             del mcp_servers["rightsub"]
-            config_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            _atomic_write_json_preserving_mode(config_path, data)
             return True, f"Removed 'rightsub' from {config_path}"
         return True, f"'rightsub' was not registered in {config_path}"
 
     mcp_servers["rightsub"] = build_mcp_server_entry()
-    tmp_path = config_path.with_suffix(config_path.suffix + ".tmp")
-    tmp_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    tmp_path.replace(config_path)
+    _atomic_write_json_preserving_mode(config_path, data)
     return True, f"Installed 'rightsub' MCP server in {config_path}"
 
 

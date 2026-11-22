@@ -50,7 +50,7 @@ except (ImportError, ModuleNotFoundError):
         fetch_show_or_movie_metadata = None
         is_tmdb_available = lambda *args, **kwargs: False
 
-def fetch_media_metadata(filepath=None, title=None, api_key=None):
+def fetch_media_metadata(filepath=None, title=None, api_key=None, tmdb_id=None):
     """Wrapper around fetch_show_or_movie_metadata extracting season/episode/year from filepath if present."""
     if not fetch_show_or_movie_metadata:
         return {"success": False, "error": "tmdb_client unavailable"}
@@ -63,14 +63,17 @@ def fetch_media_metadata(filepath=None, title=None, api_key=None):
         season = parsed.get("season")
         episode = parsed.get("episode")
         year = parsed.get("year")
-    return fetch_show_or_movie_metadata(
-        title=title,
-        filepath=str(filepath) if filepath else None,
-        season=season,
-        episode=episode,
-        year=year,
-        api_key=api_key
-    )
+    kwargs = {
+        "title": title,
+        "filepath": str(filepath) if filepath else None,
+        "season": season,
+        "episode": episode,
+        "year": year,
+        "api_key": api_key,
+    }
+    if tmdb_id is not None:
+        kwargs["tmdb_id"] = tmdb_id
+    return fetch_show_or_movie_metadata(**kwargs)
 
 try:
     from domain_knowledge import (
@@ -151,84 +154,53 @@ except Exception:
     transcribe_audio = None
     is_quicksubs_available = lambda: False
 
-# Built-in franchise canonical glossaries & character gender hints
-FRANCHISE_GLOSSARIES = {
-    "star wars": {
-        "canon_terms": [
-            (r"(?<![א-ת])חרב\s*[-–—]?\s*הלייזר(?![א-ת])", "חרב האור", "מינוח קאנוני (Lightsaber = חרב אור ולא חרב לייזר)"),
-            (r"(?<![א-ת])חרב\s*[-–—]?\s*לייזר(?![א-ת])", "חרב אור", "מינוח קאנוני (Lightsaber = חרב אור ולא חרב לייזר)"),
-            (r"(?<![א-ת])חרבות\s*[-–—]?\s*הלייזר(?![א-ת])", "חרבות האור", "מינוח קאנוני (Lightsabers = חרבות אור)"),
-            (r"(?<![א-ת])חרבות\s*[-–—]?\s*לייזר(?![א-ת])", "חרבות אור", "מינוח קאנוני (Lightsabers = חרבות אור)"),
-            (r"(?<![א-ת])בז\s*אלף\s*השנים(?![א-ת])", "המילניום פלקון", "מינוח קאנוני (Millennium Falcon = המילניום פלקון ולא בז אלף השנים)"),
-            (r"דארת\s*,\s*ויידא?ר", "דארת' ויידר", "תיקון איות ופסיק מיותר (דארת' ויידר)"),
-            (r"דארת\.,", "דארת',", "תיקון שגיאת פיסוק (דארת',)"),
-            (r"(?<![א-ת])ויידאר(?![א-ת])", "ויידר", "תיקון איות ארכאי (ויידר ולא ויידאר)"),
-            (r"(?<![א-ת])הגרנד\s*מוף(?![א-ת])", "הגראנד מופ", "מינוח קאנוני (Grand Moff)"),
-            (r"(?<![א-ת])גרנד\s*מוף(?![א-ת])", "גראנד מופ", "מינוח קאנוני (Grand Moff)"),
-            (r"(?<![א-ת])כוכב\s*מוות(?![א-ת])", "כוכב המוות", "מינוח קאנוני (Death Star)"),
-            (r"(?<![א-ת])חייל\s*סער(?![א-ת])", "לוחם סער", "מינוח קאנוני (Stormtrooper)"),
-            (r"(?<![א-ת])חיילי\s*סער(?![א-ת])", "לוחמי סער", "מינוח קאנוני (Stormtroopers)"),
-            (r"(?<![א-ת])הצד\s*החשוך(?![א-ת])", "הצד האפל", "מינוח קאנוני (Dark Side)"),
-            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?מעשה\s*בראשית(?![א-ת])", r"\g<1>למעשה", "תיקון ביטוי שגוי (As a matter of fact = למעשה ולא מעשה בראשית)"),
-            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?קאבתן(?![א-ת])", r"\g<1>קברניט", "תיקון תעתיק פונטי שגוי (Captain = קברניט/קפטן ולא קאבתן)"),
-            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?מכלית\s*קרב(?![א-ת])", r"\g<1>חללית קרב", "מינוח מדויק (snub fighter = חללית קרב)"),
-            (r"(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?קרן\s*משיכה(?![א-ת])", r"\g<1>קרן גרירה", "מינוח קאנוני (Tractor Beam = קרן גרירה ולא קרן משיכה)"),
-            (r"(?<![א-ת])לשום\s+את(?![א-ת])", "לשים את", "תיקון שגיאת כתיב (לשים ולא לשום)"),
-            (r"(?<![א-ת])מוחב\s+אותנו(?![א-ת])", "מושכת אותנו", "תיקון שגיאת כתיב (מושכת ולא מוחב)"),
-            (r"(?<![א-ת])אובי\s*[-–—]?\s*וואן\s+קאנובי(?![א-ת])", "אובי-וואן קנובי", "תיקון איות קאנוני (קנובי ולא קאנובי)"),
-            (r"(?<![א-ת])סי\s*[-–—]?\s*ת'?ריפיאו(?![א-ת])", "סי-ת'ריפיו", "תיקון איות קאנוני (C-3PO)"),
-            (r"(?<![א-ת])ארטו\s*[-–—]?\s*דיטו(?![א-ת])", "ארטו-דיטו", "תיקון איות קאנוני (R2-D2)"),
-        ],
-        "characters": [
-            {"name": "Princess Leia", "he_name": "הנסיכה ליאה", "gender": "Female", "pronouns": "את/היא"},
-            {"name": "Luke Skywalker", "he_name": "לוק סקייווקר", "gender": "Male", "pronouns": "אתה/הוא"},
-            {"name": "Han Solo", "he_name": "האן סולו", "gender": "Male", "pronouns": "אתה/הוא"},
-            {"name": "Darth Vader", "he_name": "דארת' ויידר", "gender": "Male", "pronouns": "אתה/הוא"},
-            {"name": "Obi-Wan Kenobi", "he_name": "אובי-וואן קנובי", "gender": "Male", "pronouns": "אתה/הוא"},
-            {"name": "Grand Moff Tarkin", "he_name": "גראנד מופ טארקין", "gender": "Male", "pronouns": "אתה/הוא"},
-            {"name": "C-3PO", "he_name": "סי-ת'ריפיו", "gender": "Male", "pronouns": "אתה/הוא"},
-            {"name": "R2-D2", "he_name": "ארטו-דיטו", "gender": "Male", "pronouns": "אתה/הוא"},
-        ]
-    },
-    "lord of the rings": {
-        "canon_terms": [
-            (r"(?<![א-ת])טבעת\s*אחת(?![א-ת])", "הטבעת האחת", "מינוח קאנוני (The One Ring)"),
-            (r"(?<![א-ת])ארץ\s*תיכונה(?![א-ת])", "הארץ התיכונה", "מינוח קאנוני (Middle-earth)"),
-            (r"(?<![א-ת])בני\s*לילית(?![א-ת])", "עלפים", "מינוח קאנוני/תרגום מודרני (Elves)"),
-        ],
-        "characters": [
-            {"name": "Frodo", "he_name": "פרודו", "gender": "Male", "pronouns": "אתה/הוא"},
-            {"name": "Gandalf", "he_name": "גנדלף", "gender": "Male", "pronouns": "אתה/הוא"},
-            {"name": "Galadriel", "he_name": "גלדריאל", "gender": "Female", "pronouns": "את/היא"},
-            {"name": "Arwen", "he_name": "ארוון", "gender": "Female", "pronouns": "את/היא"},
-            {"name": "Eowyn", "he_name": "איאווין", "gender": "Female", "pronouns": "את/היא"},
-        ]
-    },
-    "marvel": {
-        "canon_terms": [
-            (r"(?<![א-ת])אבני\s*אינסוף(?![א-ת])", "אבני האינסוף", "מינוח קאנוני (Infinity Stones)"),
-        ],
-        "characters": [
-            {"name": "Natasha Romanoff", "he_name": "נטשה רומנוף", "gender": "Female", "pronouns": "את/היא"},
-            {"name": "Wanda Maximoff", "he_name": "וונדה מקסימוף", "gender": "Female", "pronouns": "את/היא"},
-            {"name": "Carol Danvers", "he_name": "קרול דנברס", "gender": "Female", "pronouns": "את/היא"},
-        ]
-    }
-}
+# Single source of truth for franchise glossaries & character gender hints
+FRANCHISE_GLOSSARIES = dict(FRANCHISE_PACKS) if FRANCHISE_PACKS else {}
+
+_BIDI_CONTROL_RE = re.compile(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]')
+
+def _get_rightsub_config_path():
+    cfg_dir = os.environ.get("RIGHTSUB_CONFIG_DIR")
+    if cfg_dir:
+        return Path(cfg_dir) / "config.json"
+    if Path("/config").is_dir() and Path("/.dockerenv").exists():
+        return Path("/config") / "config.json"
+    return Path.home() / ".config" / "rightsub" / "config.json"
+
+def _redact_secret(text, secret=None):
+    msg = str(text or "")
+    if secret and isinstance(secret, str) and len(secret) > 4:
+        msg = msg.replace(secret, "[REDACTED]")
+    msg = re.sub(r'([?&](?:key|api_key)=)[^&\s]+', r'\1[REDACTED]', msg, flags=re.IGNORECASE)
+    msg = re.sub(r'AIza[0-9A-Za-z_\-]{10,}', '[REDACTED_KEY]', msg)
+    return msg
+
+def _strip_sub_stem(stem):
+    return re.sub(r'(?:\.(?:polished|original|fixed))?(?:\.(?:he|heb|hebrew))?$', '', str(stem), flags=re.IGNORECASE)
 
 def parse_srt(path):
-    """Parses an SRT file and returns list of (index, timing, text)."""
-    with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
-        content = f.read().strip()
+    """Parses an SRT file using auto-encoding detection and strips stale BiDi control marks."""
+    content = None
+    try:
+        import importlib
+        fix_mod = sys.modules.get("07_fix_plex_punctuation") or importlib.import_module("07_fix_plex_punctuation")
+        content, _ = fix_mod.read_file_with_auto_encoding(Path(path))
+        content = content.strip()
+    except Exception:
+        with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
+            content = f.read().strip()
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
     blocks = re.split(r'\n\s*\n', content)
     cues = []
     for b in blocks:
         lines = b.strip().splitlines()
         if len(lines) >= 2:
             try:
-                idx = int(lines[0].strip())
+                idx = int(lines[0].strip().lstrip("\ufeff"))
                 timing = lines[1].strip()
-                text = '\n'.join(lines[2:])
+                if "-->" not in timing:
+                    continue
+                text = _BIDI_CONTROL_RE.sub('', '\n'.join(lines[2:]))
                 cues.append({
                     "index": idx,
                     "timing": timing,
@@ -415,6 +387,19 @@ def run_deterministic_canon_pass(aligned_cues, franchise_data=None, domain_profi
                 modified = num_fixed
                 reasons.append("תיקון היפוך ספרות דו-לשוני (Subabi Number Reversal)")
 
+            # Bilingual 2-speaker dialogue dash restoration: if EN has 2 lines both starting with '-'
+            # and HE has 2 lines where only line 2 starts with '-', prepend '- ' to line 1.
+            en_lines = [l.strip() for l in current_en.splitlines() if l.strip()]
+            he_lines = [l for l in modified.splitlines() if l.strip()]
+            if len(en_lines) == 2 and len(he_lines) == 2:
+                if all(re.match(r'^[-–—]\s*\S', el) for el in en_lines):
+                    l1_clean = re.sub(r'[\u200e\u200f]', '', he_lines[0]).strip()
+                    l2_clean = re.sub(r'[\u200e\u200f]', '', he_lines[1]).strip()
+                    if re.match(r'^[-–—]\s*\S', l2_clean) and not re.match(r'^[-–—]', l1_clean):
+                        he_lines[0] = f"- {l1_clean}"
+                        modified = "\n".join(he_lines)
+                        reasons.append("השלמת מקף דיאלוג דו-דוברי בשורה הראשונה")
+
         # C. Universal typographical & homoglyph pass
         for pattern, replacement, reason in universal_corrections:
             if re.search(pattern, modified):
@@ -494,9 +479,10 @@ CRITICAL INSTRUCTIONS:
    - Retain 85% to 90% of intact lines. Do NOT rewrite for cosmetic preference.
 2. CANON & LORE TERMS:
    - Correct outdated, clumsy, or wrong franchise terms (e.g. 'חרב לייזר' -> 'חרב אור').
-3. GENDER AGREEMENT & DIRECT ADDRESS:
-   - Ensure 2nd-person pronouns and verbs ('את' vs 'אתה') match the confirmed gender of the addressee.
-   - When Han or Luke speaks to Princess Leia, use feminine verbs ('שמעת', 'ראית', 'את').
+3. GENDER AGREEMENT, DIRECT ADDRESS & RECAP/PREVIEW MONTAGES:
+   - Ensure 2nd-person pronouns and verbs ('את' vs 'אתה') and 1st-person verbs ('שומר' vs 'שומרת', 'יודע' vs 'יודעת') match the confirmed gender of the speaker and addressee.
+   - RECAP ('PREVIOUSLY ON...') & PREVIEW ('NEXT ON...') MONTAGE ISOLATION: Opening recaps (cues 1-25) and closing previews stitch together rapid clips from different scenes. A narrator speaker tag on cue 1 (e.g. 'Alan: PREVIOUSLY ON...') applies ONLY to cue 1 — NEVER let it bias the gender of subsequent unmarked clips! Verify each clip's speaker and listener against the character roster (e.g. Lori Colson, Sally Heep, Tara Wilson are Female; Alan Shore, Denny Crane, Brad Chase, Paul Lewiston are Male).
+   - PROPER-NOUN SURNAME HOMOGRAPHS: Fix literal mistranslations of character surnames (e.g. 'from that Shore guy' -> 'מהבחור הזה שור', NEVER 'מהשור הזה').
 4. FLOW & IDIOM MODERNIZATION:
    - Fix clumsy literal machine translations into natural, idiomatic Hebrew dialogue.
 5. SUBTITLE CONSTRAINTS:
@@ -589,11 +575,11 @@ def get_available_gemini_models(api_key):
         return _cached_gemini_models
 
     discovered = []
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models"
     try:
         req = urllib.request.Request(
             url,
-            headers={"Accept": "application/json", "x-goog-api-key": api_key, "User-Agent": "RightSub/1.3"}
+            headers={"Accept": "application/json", "x-goog-api-key": api_key, "User-Agent": "RightSub/1.5"}
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
@@ -608,21 +594,21 @@ def get_available_gemini_models(api_key):
 
     def model_priority(m_name):
         m_lower = m_name.lower()
-        if "gemini-3.5-flash" in m_lower and "lite" not in m_lower:
+        if "gemini-3.8-flash" in m_lower and "lite" not in m_lower:
             return 100
-        if "gemini-3.5-flash-lite" in m_lower:
+        if "gemini-3.7-flash" in m_lower and "lite" not in m_lower:
             return 95
-        if "gemini-flash-latest" in m_lower:
+        if "gemini-3.6-flash" in m_lower and "lite" not in m_lower:
             return 90
-        if "gemini-3.6-flash" in m_lower:
+        if "gemini-flash-latest" in m_lower:
             return 85
-        if "gemini-3.7-flash" in m_lower:
+        if "gemini-3.5-flash-lite" in m_lower:
             return 80
-        if "gemini-3.8-flash" in m_lower:
-            return 75
         if "gemini-3.1-flash-lite" in m_lower:
-            return 70
+            return 75
         if "gemini-flash-lite-latest" in m_lower:
+            return 70
+        if "gemini-3.5-flash" in m_lower:
             return 65
         if "flash" in m_lower:
             return 50
@@ -633,18 +619,16 @@ def get_available_gemini_models(api_key):
         _cached_gemini_models = discovered
         return _cached_gemini_models
 
-    # Lightweight, high-throughput waterfall cascade hierarchy starting with 3.5-flash
+    # Waterfall cascade prioritizing current Gemini 3 Flash models down to Lite/legacy
     _cached_gemini_models = [
-        "gemini-3.5-flash",
-        "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash",
         "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-flash-latest",
+        "gemini-3.5-flash-lite",
         "gemini-3.1-flash-lite",
         "gemini-flash-lite-latest",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
+        "gemini-3.5-flash",
     ]
     return _cached_gemini_models
 
@@ -654,7 +638,7 @@ def query_gemini_api(prompt, api_key=None, model=None):
 
     key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not key:
-        config_path = Path.home() / ".config" / "rightsub" / "config.json"
+        config_path = _get_rightsub_config_path()
         if config_path.is_file():
             try:
                 data = json.loads(config_path.read_text(encoding="utf-8"))
@@ -662,7 +646,7 @@ def query_gemini_api(prompt, api_key=None, model=None):
             except Exception:
                 pass
     if not key:
-        raise ValueError("Gemini API key not found. Run 'rightsub config' or pass --api-key.")
+        raise ValueError("Gemini API key not found. Run 'rightsub config' or pass --gemini-key.")
 
     available_models = get_available_gemini_models(key)
 
@@ -672,33 +656,30 @@ def query_gemini_api(prompt, api_key=None, model=None):
     elif _active_working_model and _active_working_model in available_models:
         preferred_model = _active_working_model
     else:
-        preferred_model = available_models[0] if available_models else "gemini-3.5-flash"
+        preferred_model = available_models[0] if available_models else "gemini-3.8-flash"
 
     models_to_try = [preferred_model]
     for fallback in available_models:
         if fallback not in models_to_try:
             models_to_try.append(fallback)
 
-    # Standard clean payload without restrictive responseMimeType to prevent HTTP 400 on models without native json mode flag
+    # Omit generationConfig.temperature per Gemini 3 guidance (uses default 1.0)
     payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2
-        }
+        "contents": [{"parts": [{"text": prompt}]}]
     }
     raw_data = json.dumps(payload).encode("utf-8")
 
     last_error = None
     for m in models_to_try:
         model_path = m if m.startswith("models/") else f"models/{m}"
-        url = f"https://generativelanguage.googleapis.com/v1beta/{model_path}:generateContent?key={key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/{model_path}:generateContent"
         req = urllib.request.Request(
             url,
             data=raw_data,
             headers={
                 "Content-Type": "application/json",
                 "x-goog-api-key": key,
-                "User-Agent": "RightSub/1.3"
+                "User-Agent": "RightSub/1.5"
             },
             method="POST"
         )
@@ -737,6 +718,9 @@ def query_gemini_api(prompt, api_key=None, model=None):
             # Lock onto the successful model for subsequent batches
             _active_working_model = m
             return parsed
+        except (ValueError, json.JSONDecodeError) as e:
+            last_error = f"Model '{m}' returned malformed JSON output: {_redact_secret(e, key)}"
+            continue
         except urllib.error.HTTPError as e:
             err_msg = ""
             try:
@@ -745,6 +729,7 @@ def query_gemini_api(prompt, api_key=None, model=None):
                 err_msg = err_json.get("error", {}).get("message", err_body)
             except Exception:
                 err_msg = str(e)
+            err_msg = _redact_secret(err_msg, key)
 
             # Retryable cascade conditions: 404 (not found/deprecated), 429 (quota), 500/502/503/504 (overloaded/server),
             # or 400 model feature limitation (e.g. JSON mode not enabled)
@@ -763,15 +748,14 @@ def query_gemini_api(prompt, api_key=None, model=None):
             else:
                 last_error = f"Google API HTTP {e.code} on '{m}': {err_msg}"
                 continue
-        except (urllib.error.URLError, TimeoutError, socket.timeout) as e:
-            err_msg = str(e)
+        except (urllib.error.URLError, TimeoutError, socket.timeout, OSError) as e:
+            err_msg = _redact_secret(e, key)
             last_error = f"Model '{m}' timed out or connection failed: {err_msg}"
             continue
         except Exception as e:
-            last_error = str(e)
-            raise e
+            raise RuntimeError(_redact_secret(e, key)) from e
 
-    raise RuntimeError(f"Gemini API request failed across models ({', '.join(models_to_try)}): {last_error}")
+    raise RuntimeError(_redact_secret(f"Gemini API request failed across models ({', '.join(models_to_try)}): {last_error}", key))
 
 
 
@@ -954,9 +938,22 @@ def write_mastered_srt(cues, output_path):
             out_blocks.append(f"{idx}\n{timing}\n{clean_text}")
 
     content = "\n\n".join(out_blocks) + "\n"
-    Path(output_path).write_text(content, encoding="utf-8")
+    dest = Path(output_path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    import threading as _threading
+    tmp_dest = dest.with_name(f".{dest.name}.tmp.{os.getpid()}.{_threading.get_ident()}")
     try:
-        os.utime(output_path, None)
+        with open(tmp_dest, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp_dest, dest)
+    finally:
+        if tmp_dest.exists():
+            try:
+                tmp_dest.unlink()
+            except Exception:
+                pass
+    try:
+        os.utime(dest, None)
     except Exception:
         pass
 
@@ -1025,16 +1022,17 @@ def polish_target(target, en_path=None, args=None):
         print(f"[*] Hebrew Target: {he_path.name}")
         
         # Check if companion video exists in same directory
+        base_he_stem = _strip_sub_stem(he_path.stem)
         for ext in VIDEO_EXTENSIONS:
-            cand_video = he_path.parent / f"{he_path.stem.replace('.he', '').replace('.polished', '')}{ext}"
+            cand_video = he_path.parent / f"{base_he_stem}{ext}"
             if cand_video.is_file():
                 video_path = cand_video
                 break
-                
+
         # Discover English counterpart
         if not en_path:
             for ext in [".en.srt", ".eng.srt", ".english.srt"]:
-                cand = he_path.parent / f"{he_path.stem.replace('.he', '').replace('.polished', '')}{ext}"
+                cand = he_path.parent / f"{base_he_stem}{ext}"
                 if cand.is_file():
                     en_path = cand
                     break
@@ -1073,14 +1071,15 @@ def polish_target(target, en_path=None, args=None):
     en_map = {item["index"]: item["en"] for item in aligned}
 
     # 4. Detect Media Metadata & Franchise Lore
-    title = getattr(args, "title", None)
+    raw_title = getattr(args, "title", None)
+    title = raw_title if (isinstance(raw_title, str) and raw_title.strip()) else None
     sample_name = video_path.name if video_path else he_path.name
     if not title:
         if parse_media_filename:
             parsed = parse_media_filename(sample_name)
-            title = parsed.get("title") or sample_name.replace(".he", "").replace(".polished", "")
+            title = parsed.get("title") or _strip_sub_stem(Path(sample_name).stem)
         else:
-            title = sample_name.replace(".he", "").replace(".polished", "")
+            title = _strip_sub_stem(Path(sample_name).stem)
 
     franchise_name, franchise_data = detect_franchise(title)
     if franchise_name:
@@ -1122,11 +1121,26 @@ def polish_target(target, en_path=None, args=None):
         except Exception as e:
             print(f"[!] Bible loading notice: {e}")
 
+    raw_api_key = getattr(args, "api_key", None)
+    api_key_str = raw_api_key.strip() if (isinstance(raw_api_key, str) and raw_api_key.strip()) else None
+    raw_gemini_key = getattr(args, "gemini_key", None)
+    gemini_key_str = raw_gemini_key.strip() if (isinstance(raw_gemini_key, str) and raw_gemini_key.strip()) else None
+    raw_tmdb_key = getattr(args, "tmdb_key", None)
+    tmdb_key_str = raw_tmdb_key.strip() if (isinstance(raw_tmdb_key, str) and raw_tmdb_key.strip()) else None
+
+    effective_gemini_key = gemini_key_str or api_key_str
+    effective_tmdb_key = tmdb_key_str or (api_key_str if (api_key_str and not api_key_str.startswith("AIza")) else None)
+    raw_tmdb_id = getattr(args, "tmdb_id", None)
+    tmdb_id_val = raw_tmdb_id if (isinstance(raw_tmdb_id, int) and not isinstance(raw_tmdb_id, bool)) else None
+
     # Query TMDb for ground truth metadata & cast if not already populated or if TMDb available
-    if fetch_media_metadata and is_tmdb_available(getattr(args, "api_key", None)):
+    if fetch_media_metadata and is_tmdb_available(effective_tmdb_key):
         try:
             print(f"[*] Querying TMDb for '{title}' ground-truth metadata & cast...")
-            tmdb_meta = fetch_media_metadata(filepath=he_path, title=title, api_key=getattr(args, "api_key", None))
+            meta_kwargs = {"filepath": he_path, "title": title, "api_key": effective_tmdb_key}
+            if tmdb_id_val is not None:
+                meta_kwargs["tmdb_id"] = tmdb_id_val
+            tmdb_meta = fetch_media_metadata(**meta_kwargs)
             if tmdb_meta and tmdb_meta.get("success"):
                 tmdb_chars = tmdb_meta.get("characters", [])
                 overview = tmdb_meta.get("overview") or overview
@@ -1178,9 +1192,20 @@ def polish_target(target, en_path=None, args=None):
         print(f"[✓] Offline Canon Pass identified {len(modifications)} terminology corrections.")
 
     # 7. AI Polish Pass (if backend requested / available)
-    use_ollama = getattr(args, "ollama", False)
-    use_gemini = getattr(args, "gemini", False) or bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
-    offline_only = getattr(args, "offline_canon_only", False)
+    cfg_gemini_key = None
+    cfg_path = _get_rightsub_config_path()
+    if cfg_path.is_file():
+        try:
+            _cfg_data = json.loads(cfg_path.read_text(encoding="utf-8"))
+            cfg_gemini_key = _cfg_data.get("gemini_api_key") or _cfg_data.get("GEMINI_API_KEY")
+        except Exception:
+            pass
+
+    use_ollama = getattr(args, "ollama", False) is True
+    use_gemini = (getattr(args, "gemini", False) is True) or bool(
+        effective_gemini_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or cfg_gemini_key
+    )
+    offline_only = getattr(args, "offline_canon_only", False) is True
 
     if not offline_only and (use_ollama or use_gemini):
         raw_bs = getattr(args, "batch_size", 60)
@@ -1188,7 +1213,7 @@ def polish_target(target, en_path=None, args=None):
         raw_model = getattr(args, "model", None)
         model = raw_model if (isinstance(raw_model, str) and raw_model.strip()) else None
 
-        backend_model = model or ("qwen2.5:7b" if use_ollama else "gemini-3.5-flash")
+        backend_model = model or ("qwen2.5:7b" if use_ollama else "auto (Gemini 3.8 Flash)")
         backend_name = f"Ollama ({backend_model})" if use_ollama else f"Gemini ({backend_model})"
         print(f"[*] Running Semantic AI Proofreader via {backend_name}...")
 
@@ -1222,10 +1247,7 @@ def polish_target(target, en_path=None, args=None):
                     ollama_model = model or "qwen2.5:7b"
                     res = query_ollama_api(prompt, model=ollama_model)
                 else:
-                    gemini_model = model or "gemini-3.5-flash"
-                    raw_api_key = getattr(args, "api_key", None)
-                    api_key = raw_api_key if isinstance(raw_api_key, str) else None
-                    res = query_gemini_api(prompt, api_key=api_key, model=gemini_model)
+                    res = query_gemini_api(prompt, api_key=effective_gemini_key, model=model)
 
                 batch_cues = res.get("cues", []) if isinstance(res, dict) else []
                 valid_count = 0
@@ -1383,8 +1405,10 @@ def main():
     parser.add_argument("-b", "--bible", help="Path to Translation Bible (translation_bible.json) or directory")
     parser.add_argument("--ollama", action="store_true", help="Use local Ollama engine")
     parser.add_argument("--gemini", action="store_true", help="Force Google Gemini engine")
-    parser.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, gemini-3.5-flash for Gemini)")
-    parser.add_argument("--api-key", help="TMDb or Gemini API key")
+    parser.add_argument("--model", help="LLM model name (default: qwen2.5:7b for Ollama, auto Gemini 3.8 Flash for Gemini)")
+    parser.add_argument("--gemini-key", help="Google Gemini API key")
+    parser.add_argument("--tmdb-key", help="TMDb API key or v4 Bearer Read Token")
+    parser.add_argument("--api-key", help="Legacy API key alias (Gemini or TMDb)")
     parser.add_argument("--batch-size", type=int, default=60, help="Number of cues per prompt batch (default: 60)")
     parser.add_argument("--offline-canon-only", action="store_true", help="Run only offline deterministic canon pass (0 tokens)")
     parser.add_argument("--diff-only", "--dry-run", dest="diff_only", action="store_true", help="Generate audit report only without saving subtitle file")

@@ -94,50 +94,131 @@ def clamp_overlapping_timelines(en_subs_dict):
     return {item[0]: item[3] for item in parsed}, overlaps_fixed
 
 
+def _is_song_or_sdh_only(en_t):
+    """Returns True if an English cue contains only blank text, music lyrics/notes, SDH tags, or credits."""
+    s = re.sub(r'<[^>]+>', '', en_t or '').strip()
+    if not s:
+        return True
+    if '♪' in s or re.search(r'^\s*\*+|\*+\s*$', s):
+        return True
+    if re.match(r'^\s*(?:\[[^\]]*\]|\([^\)]*\))(?:\s*[-–—]?\s*(?:\[[^\]]*\]|\([^\)]*\)))*\s*$', s, flags=re.DOTALL):
+        return True
+    if re.search(r'(?i)captioned\s+by|closed\s+captioning|playing\)\s*$', s):
+        return True
+    if not re.search(r'[A-Za-z0-9]', s):
+        return True
+    return False
+
+
 def validate_anchor_alignment(en_texts, he_translations):
     """
-    Cross-checks anchor features (numbers, question marks, musical notes, and short vs long length ratios)
-    between English cues and translated Hebrew cues to detect systematic Cue Drift (off-by-1 / off-by-2 shifts).
+    Three-layer bilingual alignment & non-sequitur validator between English cues and Hebrew cues:
+      Check A: Sliding-window drift detection (k in -2, -1, +1, +2) on non-song dialogue cues.
+      Check B: Consecutive untranslated dialogue runs (>= 8 non-lyric EN cues with zero Hebrew glyphs).
+      Check C: Isolated non-sequitur / hallucinated cue contradictions (missing specific numbers,
+               1-speaker EN '?' vs 2-speaker HE dashes without '?', or long EN vs 1-word HE).
     Returns (is_aligned, drift_report_dict).
     """
     common_indices = sorted(set(en_texts.keys()) & set(he_translations.keys()))
     if len(common_indices) < 10:
-        return True, {"shifted_cues": 0, "details": []}
+        return True, {"shifted_windows": 0, "details": []}
 
     def _score_pair(en_t, he_t):
-        en_c = re.sub(r'<[^>]+>', '', en_t or '').strip()
-        he_c = re.sub(r'[\u200e\u200f\u202a-\u202e]|<[^>]+>', '', he_t or '').strip()
-        if not en_c or not he_c:
-            return 0
-        score = 0
+        en_c = re.sub(r'<[^>]+>|\[[^\]]*\]|\([^\)]*\)', '', en_t or '').strip()
+        he_c = re.sub(r'[\u200e\u200f\u202a-\u202e]|<[^>]+>|\[[^\]]*\]|\([^\)]*\)', '', he_t or '').strip()
+        if not en_c:
+            return 0.0
+        if not he_c or not re.search(r'[\u0590-\u05FF]', he_c):
+            return -2.5
+        score = 0.0
         if ('?' in en_c) == ('?' in he_c):
-            score += 2 if '?' in en_c else 0
+            score += 2.0 if '?' in en_c else 0.3
         else:
-            score -= 2
-        en_nums = set(re.findall(r'\d+', en_c))
-        he_nums = set(re.findall(r'\d+', he_c))
+            score -= 2.0
+        if ('!' in en_c) == ('!' in he_c):
+            score += 1.2 if '!' in en_c else 0.1
+        else:
+            score -= 1.0
+        en_nums = set(re.findall(r'\d+', en_c.replace(',', '')))
+        he_nums = set(re.findall(r'\d+', he_c.replace(',', '')))
         if en_nums and en_nums == he_nums:
-            score += 4
-        if ('♪' in en_c) and ('♪' in he_c):
-            score += 4
-        ratio = (len(he_c) + 1) / (len(en_c) + 1)
-        if ratio < 0.18 or ratio > 3.5:
-            score -= 3
+            score += 3.0
+        ew = len(en_c.split())
+        hw = len(he_c.split())
+        ratio = (hw + 1) / (ew * 0.72 + 1)
+        if 0.5 <= ratio <= 1.85:
+            score += 1.0
+        elif ratio < 0.28 or ratio > 3.0:
+            score -= 2.0
         return score
 
     shifted_details = []
-    # Check in windows of 25 cues for systematic +1 or -1 drift
-    window_size = 25
-    for start in range(0, len(common_indices), window_size):
-        chunk = common_indices[start:start + window_size]
-        if len(chunk) < 8:
+    dialogue_indices = [i for i in common_indices if not _is_song_or_sdh_only(en_texts[i])]
+
+    # Check A: Sliding-window drift detection (k in -2, -1, 1, 2)
+    if len(dialogue_indices) >= 8:
+        ws = min(12, len(dialogue_indices))
+        starts = list(range(0, max(1, len(dialogue_indices) - ws + 1), 4))
+        if len(dialogue_indices) > ws and (len(dialogue_indices) - ws) % 4 != 0:
+            starts.append(len(dialogue_indices) - ws)
+        for pos in starts:
+            chunk = dialogue_indices[pos:pos + ws]
+            score_0 = sum(_score_pair(en_texts[i], he_translations.get(i, "")) for i in chunk)
+            best_k, best_s = 0, score_0
+            for k in (-2, -1, 1, 2):
+                sk = sum(_score_pair(en_texts[i], he_translations.get(i + k, "")) for i in chunk if (i + k) in he_translations)
+                if sk > best_s:
+                    best_k, best_s = k, sk
+            if best_k != 0 and best_s >= score_0 + 9.0 and best_s > 4.0:
+                shifted_details.append(f"Cues {chunk[0]}..{chunk[-1]} (drift {best_k:+d})")
+
+    # Check B: Untranslated dialogue run (>= 8 consecutive non-lyric cues with no Hebrew characters)
+    untranslated_run = []
+    for i in common_indices:
+        if _is_song_or_sdh_only(en_texts[i]):
             continue
-        score_0 = sum(_score_pair(en_texts[i], he_translations.get(i, "")) for i in chunk)
-        score_plus1 = sum(_score_pair(en_texts[i], he_translations.get(i + 1, "")) for i in chunk if (i + 1) in he_translations)
-        score_minus1 = sum(_score_pair(en_texts[i], he_translations.get(i - 1, "")) for i in chunk if (i - 1) in he_translations)
-        if score_plus1 >= score_0 + 12 or score_minus1 >= score_0 + 12:
-            direction = "+1" if score_plus1 > score_minus1 else "-1"
-            shifted_details.append(f"Cues {chunk[0]}..{chunk[-1]} (drift {direction})")
+        e_raw = re.sub(r'<[^>]+>|\[[^\]]*\]|\([^\)]*\)', '', en_texts[i] or '').strip()
+        h_raw = re.sub(r'[\u200e\u200f]', '', he_translations.get(i, "") or '')
+        if len(e_raw.split()) >= 3 and not re.search(r'[\u0590-\u05FF]', h_raw):
+            untranslated_run.append((i, e_raw))
+        else:
+            if len(untranslated_run) >= 8:
+                words = [w.lower() for _, txt in untranslated_run for w in re.findall(r'[a-zA-Z]+', txt)]
+                if len(set(words)) / max(1, len(words)) > 0.55:
+                    shifted_details.append(f"Untranslated dialogue run at cues {untranslated_run[0][0]}..{untranslated_run[-1][0]}")
+            untranslated_run = []
+    if len(untranslated_run) >= 8:
+        words = [w.lower() for _, txt in untranslated_run for w in re.findall(r'[a-zA-Z]+', txt)]
+        if len(set(words)) / max(1, len(words)) > 0.55:
+            shifted_details.append(f"Untranslated dialogue run at cues {untranslated_run[0][0]}..{untranslated_run[-1][0]}")
+
+    # Check C: Isolated non-sequitur / hallucinated cues
+    c1_hits = []
+    c23_hits = []
+    for i in dialogue_indices:
+        en_c = re.sub(r'<[^>]+>|\[[^\]]*\]|\([^\)]*\)', '', en_texts[i] or '').strip()
+        he_clean = re.sub(r'[\u200e\u200f\u202a-\u202e]|<[^>]+>|\[[^\]]*\]|\([^\)]*\)', '', he_translations[i] or '').strip()
+        en_body = re.sub(r'^[A-Za-z][A-Za-z0-9\s.#\'\-]{0,20}:\s*', '', en_c).strip()
+
+        raw_nums = re.findall(r'\b\d{4,}\b', en_body.replace(',', ''))
+        nums = [n for n in raw_nums if not (n.startswith('0') and re.match(r'^0\d[0-5]\d$', n))]
+        has_time_expr = bool(re.search(r'\b(?:0\d|1\d|2[0-3])[0-5]\d\b', en_body)) and bool(
+            re.search(r'(?:^|\s)[בלמ]?(?:אפס|אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|שתים|חצות|צהריים|בוקר|ערב)(?=\s|$|[.,?!])', he_clean)
+        )
+        if nums and not has_time_expr and not re.search(r'\d', he_clean) and not re.search(r'אלף|אלפים|אלפיים|אלפי|מאות|מיליון|מיליארד', he_clean):
+            c1_hits.append(i)
+
+        en_words = en_body.split()
+        he_lines = [l.strip() for l in he_clean.splitlines() if l.strip()]
+        if len(en_words) <= 7 and '?' in en_body and not any(re.match(r'^\s*[-–—]', l) for l in en_c.splitlines()):
+            if len(he_lines) >= 2 and all(re.match(r'^[-–—]\s*', l) for l in he_lines[:2]) and '?' not in he_clean:
+                c23_hits.append(i)
+        elif len(en_words) >= 8 and len(he_clean.split()) == 1 and len(he_clean) <= 7 and not re.search(r'(?i)come again\?|sorry\?|what say you\?|excuse me\?', en_body):
+            c23_hits.append(i)
+
+    if c1_hits or len(c23_hits) >= 2:
+        flagged = sorted(set(c1_hits + c23_hits))[:10]
+        shifted_details.append(f"Isolated non-sequitur cues: {flagged}")
 
     return len(shifted_details) == 0, {
         "shifted_windows": len(shifted_details),
@@ -147,10 +228,14 @@ def validate_anchor_alignment(en_texts, he_translations):
 
 def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
     # 1. Parse original English SRT
-    with open(en_srt_path, "r", encoding="utf-8-sig", errors="replace") as f:
-        en_content = f.read().strip()
-    
-    en_blocks = re.split(r'\n\s*\n', en_content)
+    try:
+        en_content, _ = _m07.read_file_with_auto_encoding(en_srt_path)
+        en_content = en_content.strip()
+    except Exception:
+        with open(en_srt_path, "r", encoding="utf-8-sig", errors="replace") as f:
+            en_content = f.read().strip()
+
+    en_blocks = re.split(r'\r?\n\s*\r?\n', en_content) if en_content else []
     en_subs = {}
     en_texts = {}
     for b in en_blocks:
@@ -166,13 +251,22 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
 
     en_subs, overlaps_fixed = clamp_overlapping_timelines(en_subs)
 
-    # 2. Gather all translated batches
-    files = sorted([f for f in os.listdir(translated_json_dir) if f.startswith("batch_") and f.endswith(".json")])
+    # 2. Gather all translated batches (excluding English *_input.json / *_en.json files and sorting naturally)
+    files = sorted(
+        [
+            f for f in os.listdir(translated_json_dir)
+            if f.startswith("batch_")
+            and f.endswith(".json")
+            and not f.lower().endswith(("_input.json", "_en.json"))
+        ],
+        key=lambda s: [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', s)]
+    )
     if not files:
         print(f"[-] No batch files found in {translated_json_dir}")
         return False
 
     he_translations = {}
+    overlapping_indices = []
     for fname in files:
         fpath = os.path.join(translated_json_dir, fname)
         with open(fpath, "r", encoding="utf-8") as f:
@@ -181,10 +275,15 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
             except Exception as e:
                 print(f"[!] JSON parsing error in {fname}: {e}. Retrying with sanitization...")
                 with open(fpath, "r", encoding="utf-8") as rf:
-                    raw = rf.read()
+                    raw = rf.read().strip()
+                raw = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw, flags=re.IGNORECASE | re.DOTALL)
                 sanitized = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', raw)
-                data = json.loads(sanitized)
-            
+                try:
+                    data = json.loads(sanitized)
+                except Exception as e2:
+                    print(f"[CRITICAL ERROR] Unrecoverable JSON syntax error in {fname}: {e2}")
+                    return False
+
             # Handle multiple batch JSON schemas:
             # a) {"cues": [{"index": 1, "text": "..."}]}
             # b) [{"index": 1, "hebrew": "..."}]
@@ -198,10 +297,25 @@ def merge_and_validate(en_srt_path, translated_json_dir, output_he_srt_path):
             else:
                 items = []
 
+            if not isinstance(items, list):
+                print(f"[CRITICAL ERROR] Malformed batch JSON list structure in {fname}")
+                return False
+
             for item in items:
-                idx_val = int(item["index"])
-                he_text = item.get("hebrew", item.get("text", ""))
-                he_translations[idx_val] = str(he_text).strip()
+                if not isinstance(item, dict) or "index" not in item:
+                    continue
+                try:
+                    idx_val = int(item["index"])
+                except (ValueError, TypeError):
+                    continue
+                raw_he = item.get("hebrew") if item.get("hebrew") is not None else item.get("text")
+                he_text = "" if raw_he is None else str(raw_he).strip()
+                if idx_val in he_translations:
+                    overlapping_indices.append(idx_val)
+                he_translations[idx_val] = he_text
+
+    if overlapping_indices:
+        print(f"[WARNING] Overwritten duplicate batch indices ({len(overlapping_indices)}): {overlapping_indices[:10]}")
 
     # 3. Discrepancy & Validation Check
     missing = [idx for idx in en_subs if idx not in he_translations]
@@ -252,4 +366,5 @@ if __name__ == "__main__":
     parser.add_argument("json_dir", help="Directory containing translated batch JSON files")
     parser.add_argument("-o", "--output", required=True, help="Output Hebrew SRT file")
     args = parser.parse_args()
-    merge_and_validate(args.en_srt, args.json_dir, args.output)
+    ok = merge_and_validate(args.en_srt, args.json_dir, args.output)
+    sys.exit(0 if ok else 1)

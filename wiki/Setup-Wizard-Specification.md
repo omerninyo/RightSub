@@ -1,11 +1,11 @@
 # 🛠️ Architectural Specification: Automated Setup, Downloader Hooks & Health-Check Wizard (`rightsub setup` / `rightsub doctor`)
 
-> **Status:** ✅ **Shipped in Production (`v1.3.0` & `v1.5.0`)** — Implemented in [`scripts/20_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/20_config_and_doctor.py), [`install.sh`](file:///Volumes/Other/Antigravity/RightSub/install.sh), [`install.bat`](file:///Volumes/Other/Antigravity/RightSub/install.bat), and [`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). Verified by [`tests/test_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_config_and_doctor.py).
+> **Status:** ✅ **Shipped in Production (`v1.3.0`–`v1.5.1`)** — Implemented in [`scripts/20_config_and_doctor.py`](https://github.com/omerninyo/RightSub/blob/main/scripts/20_config_and_doctor.py), [`install.sh`](https://github.com/omerninyo/RightSub/blob/main/install.sh), [`install.bat`](https://github.com/omerninyo/RightSub/blob/main/install.bat), and [`rightsub.py`](https://github.com/omerninyo/RightSub/blob/main/rightsub.py). Verified by [`tests/test_config_and_doctor.py`](https://github.com/omerninyo/RightSub/blob/main/tests/test_config_and_doctor.py).
 
 <p align="left">
   <b>Language / שפה:</b>
   <b>English</b> |
-  <a href="RFC_003_SYSTEM_INTEGRATION_WIZARD.he.md"><b>עברית</b></a>
+  <a href="מפרט-אשף-התקנה-ואבחון"><b>עברית</b></a>
 </p>
 
 This document details the architectural design principles, workflow, and production implementation of the **Interactive Setup, Downloader Hooks & Health-Check Wizard** in **RightSub** (`rightsub setup`, `rightsub config`, `rightsub doctor`).  
@@ -48,8 +48,8 @@ The wizard makes onboarding 100% autonomous (One-Click / One-Liner), including A
       ✓ Detected: macOS 15.1 (Apple Silicon - aarch64)
 
 [2/5] Checking Python Runtime...
-      ✓ Python 3.9+ detected: /opt/homebrew/bin/python3 (v3.11.8)
-      ✓ Installing/verifying requirements.txt dependencies... Done.
+      ✓ Python 3.9+ detected: /opt/homebrew/bin/python3 (v3.12.x)
+      ✓ Zero-dependency standard library runtime ready. Done.
 
 [3/5] Checking Media Binaries & Package Managers...
       [!] Homebrew is not installed on this Mac.
@@ -104,7 +104,7 @@ if ($userPath -notlike "*$installDir*") {
 
 ---
 
-## 5. Shipped Commands (`v1.5.0`)
+## 5. Shipped Commands (`v1.5.1`)
 
 ```bash
 rightsub setup                    # Full interactive onboarding: health check + API keys + downloader hooks + background service

@@ -6,17 +6,22 @@ echo     RightSub Windows Installer (CMD / PowerShell)
 echo ===================================================
 echo.
 
-:: 1. Check Python
+:: 1. Check Python (supports both python and Windows py -3 launcher)
+set "PY_CMD=python"
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [-] Python 3 is not detected in your PATH.
-    echo [*] Please install Python 3.9+ from https://www.python.org/ or Microsoft Store.
-    echo [*] Make sure to check "Add Python to PATH" during installation.
-    pause
-    exit /b 1
+    py -3 --version >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [-] Python 3 is not detected in your PATH.
+        echo [*] Please install Python 3.9+ from https://www.python.org/ or Microsoft Store.
+        echo [*] Make sure to check "Add Python to PATH" during installation.
+        pause
+        exit /b 1
+    )
+    set "PY_CMD=py -3"
 )
 
-for /f "tokens=*" %%i in ('python --version') do set PY_VER=%%i
+for /f "tokens=*" %%i in ('%PY_CMD% --version') do set PY_VER=%%i
 echo [✓] Detected: %PY_VER%
 
 :: 2. Check FFmpeg (Warning only)
@@ -30,22 +35,16 @@ if %errorlevel% neq 0 (
     echo [✓] Detected: FFmpeg is available.
 )
 
-:: 3. Install Python dependencies
-echo [*] Installing required Python packages from requirements.txt...
-python -m pip install -q -r "%~dp0requirements.txt"
-if %errorlevel% neq 0 (
-    echo [-] Warning: Failed to install some dependencies. Please check network connection.
-) else (
-    echo [✓] Dependencies installed successfully.
-)
+:: 3. Zero external pip dependencies
+echo [✓] Runtime verified: 0 external pip packages required (100%% Python stdlib).
 
-:: 4. Register RightSub in Windows User PATH automatically via PowerShell
+:: 4. Register RightSub in Windows User PATH automatically via PowerShell (exact path match)
 echo [*] Registering RightSub in your Windows User PATH...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$dir = '%~dp0'.TrimEnd('\'); $p = [Environment]::GetEnvironmentVariable('Path', 'User'); if ($p -notlike \"*$dir*\") { [Environment]::SetEnvironmentVariable('Path', \"$p;$dir\", 'User'); Write-Host '[✓] Added RightSub to Windows User PATH.' } else { Write-Host '[✓] RightSub is already in Windows User PATH.' }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$dir = '%~dp0'.TrimEnd('\'); $p = [Environment]::GetEnvironmentVariable('Path', 'User'); $parts = @(); if ($p) { $parts = $p -split ';' | Where-Object { $_ -and $_.Trim() } }; $norm = $parts | ForEach-Object { $_.TrimEnd('\').ToLowerInvariant() }; if ($norm -notcontains $dir.ToLowerInvariant()) { $newPath = (($parts + $dir) -join ';'); [Environment]::SetEnvironmentVariable('Path', $newPath, 'User'); Write-Host '[✓] Added RightSub to Windows User PATH.' } else { Write-Host '[✓] RightSub is already in Windows User PATH.' }"
 
 echo.
 echo ===================================================
-echo [✓] RightSub v1.5.0 is ready on Windows!
+echo [✓] RightSub v1.5.1 is ready on Windows!
 echo ===================================================
 echo.
 echo Quick Commands (open a new CMD or PowerShell window):

@@ -1,6 +1,6 @@
 # 🔌 RFC 002: RightSub Native Model Context Protocol (MCP) Server (`rightsub mcp`)
 
-> **Status:** ✅ **Shipped in Production (`v1.5.0`)** — Implemented in [`scripts/23_mcp_server.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/23_mcp_server.py) and [`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). Verified by [`tests/test_mcp_server.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_mcp_server.py).
+> **Status:** ✅ **Shipped in Production (`v1.5.0+` / `v1.5.1`)** — Implemented in [`scripts/23_mcp_server.py`](../../scripts/23_mcp_server.py) and [`rightsub.py`](../../rightsub.py). Verified by [`tests/test_mcp_server.py`](../../tests/test_mcp_server.py).
 
 <p align="left">
   <b>Language / שפה:</b>
@@ -40,7 +40,7 @@ The MCP server exposes RightSub's core media discovery, FFmpeg stream extraction
   ```bash
   rightsub mcp
   # or via python:
-  python3 -m scripts.mcp_server
+  python3 rightsub.py mcp
   ```
 
 ---
@@ -69,7 +69,7 @@ rightsub mcp --uninstall    # Cleanly removes RightSub from agent configs
 ```
 
 ### Red Team Safeguards Implemented in `scripts/23_mcp_server.py`:
-- **Strict `stdout` Isolation (`_isolated_stdio`)**: Redirects Python `sys.stdout` to `sys.stderr` during tool execution so internal `print()` calls or `ffmpeg` output never corrupt the JSON-RPC 2.0 wire stream.
+- **Strict OS File-Descriptor & `stdout` Isolation (`_isolated_stdio`)**: Redirects both Python `sys.stdout` and OS file descriptor `1` (`os.dup2` -> `stderr`) during tool execution so internal `print()` calls or native `ffmpeg` output never corrupt the JSON-RPC 2.0 wire stream.
 - **Dual-Mode Wire Framing**: Automatically detects and replies in either newline-delimited JSON (MCP stdio standard) or LSP-style `Content-Length` headers.
 - **GUI Subprocess `PATH` Injection**: Injects `/opt/homebrew/bin`, `/usr/local/bin`, and `~/.local/bin` into the MCP `env` block so GUI clients (Claude Desktop, Cursor) always locate `ffmpeg` and `python3`.
 
@@ -77,5 +77,5 @@ rightsub mcp --uninstall    # Cleanly removes RightSub from agent configs
 
 ## 5. Release Status
 
-- **Status:** ✅ **Shipped in Version 1.5.0**
-- **Milestone:** `v1.5.0 — Agentic Subtitle Protocol, Interactive TUI & Turnkey Setup`
+- **Status:** ✅ **Shipped in Version 1.5.1**
+- **Milestone:** `v1.5.1 — Agentic Subtitle Protocol, Interactive TUI & Hardened Setup`

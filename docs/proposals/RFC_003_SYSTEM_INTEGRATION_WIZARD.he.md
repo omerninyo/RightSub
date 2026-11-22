@@ -2,7 +2,7 @@
 
 # 🛠️ מפרט ארכיטקטוני: אשף התקנה, אבחון, Hooks ושירותי רקע (`rightsub setup` / `rightsub doctor`)
 
-> **סטטוס:** ✅ **שוחרר בייצור (`v1.3.0` ו-`v1.5.0`)** — מומש ב-[`scripts/20_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/scripts/20_config_and_doctor.py), ב-[`install.sh`](file:///Volumes/Other/Antigravity/RightSub/install.sh), ב-[`install.bat`](file:///Volumes/Other/Antigravity/RightSub/install.bat) וב-[`rightsub.py`](file:///Volumes/Other/Antigravity/RightSub/rightsub.py). מאומת על ידי [`tests/test_config_and_doctor.py`](file:///Volumes/Other/Antigravity/RightSub/tests/test_config_and_doctor.py).
+> **סטטוס:** ✅ **שוחרר בייצור (`v1.3.0`–`v1.5.1`)** — מומש ב-[`scripts/20_config_and_doctor.py`](../../scripts/20_config_and_doctor.py), ב-[`install.sh`](../../install.sh), ב-[`install.bat`](../../install.bat) וב-[`rightsub.py`](../../rightsub.py). מאומת על ידי [`tests/test_config_and_doctor.py`](../../tests/test_config_and_doctor.py).
 
 <p align="right">
   <b>שפה / Language:</b>
@@ -50,8 +50,8 @@
       ✓ Detected: macOS 15.1 (Apple Silicon - aarch64)
 
 [2/5] Checking Python Runtime...
-      ✓ Python 3.9+ detected: /opt/homebrew/bin/python3 (v3.11.8)
-      ✓ Installing/verifying requirements.txt dependencies... Done.
+      ✓ Python 3.9+ detected: /opt/homebrew/bin/python3 (v3.12.x)
+      ✓ Zero-dependency standard library runtime ready. Done.
 
 [3/5] Checking Media Binaries & Package Managers...
       [!] Homebrew is not installed on this Mac.
@@ -106,7 +106,7 @@ if ($userPath -notlike "*$installDir*") {
 
 ---
 
-## 5. הפקודות הזמינות בייצור (`v1.5.0`)
+## 5. הפקודות הזמינות בייצור (`v1.5.1`)
 
 ```bash
 rightsub setup                    # אשף הקמה מלא: בדיקת מערכת + מפתחות API + יצירת Hooks + שירות רקע

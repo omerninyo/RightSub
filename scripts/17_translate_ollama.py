@@ -90,7 +90,13 @@ def query_ollama(prompt, model, url=DEFAULT_OLLAMA_URL, temperature=0.2):
             
             # Sanitize internal double-quotes in Hebrew text before parsing
             sanitized = re.sub(r'([\u0590-\u05FF])"([\u0590-\u05FF])', r'\1״\2', raw_response)
-            return json.loads(sanitized)
+            try:
+                return json.loads(sanitized)
+            except json.JSONDecodeError:
+                match = re.search(r'(\{.*\}|\[.*\])', sanitized, re.DOTALL)
+                if match:
+                    return json.loads(match.group(1))
+                raise
     except urllib.error.URLError as e:
         raise RuntimeError(f"Failed to connect to Ollama at {url}: {e}")
     except json.JSONDecodeError as e:
@@ -140,12 +146,16 @@ CUES TO TRANSLATE (JSON):
     translations = {}
     if isinstance(result, list):
         for it in result:
+            if not isinstance(it, dict) or it.get("index") is None:
+                continue
             idx = str(it.get("index"))
             he = it.get("hebrew", it.get("text", ""))
             translations[idx] = str(he)
     elif isinstance(result, dict):
         if "cues" in result and isinstance(result["cues"], list):
             for it in result["cues"]:
+                if not isinstance(it, dict) or it.get("index") is None:
+                    continue
                 idx = str(it.get("index"))
                 he = it.get("hebrew", it.get("text", ""))
                 translations[idx] = str(he)
@@ -182,8 +192,11 @@ def run_ollama_pipeline(prompts_dir, model=None, url=DEFAULT_OLLAMA_URL, en_srt=
     print("    • For broadcast-quality subtitles, use cloud models (Gemini Flash/Pro, Claude).")
     print("==================================================================")
 
-    # Discover batch input files
-    batch_inputs = sorted(list(pdir.glob("batch_*_input.json")) or list(pdir.glob("batch_*_en.json")))
+    # Discover batch input files with natural numeric sorting
+    def _nat_key(p):
+        return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', p.name)]
+
+    batch_inputs = sorted(list(pdir.glob("batch_*_input.json")) or list(pdir.glob("batch_*_en.json")), key=_nat_key)
     if not batch_inputs:
         print(f"[-] No batch input JSON files found in {pdir}")
         return False
@@ -192,7 +205,7 @@ def run_ollama_pipeline(prompts_dir, model=None, url=DEFAULT_OLLAMA_URL, en_srt=
     all_success = True
 
     for b_in in batch_inputs:
-        batch_stem = b_in.stem.replace("_input", "").replace("_en", "")
+        batch_stem = re.sub(r'_(?:input|en)$', '', b_in.stem)
         b_prompt = pdir / f"{batch_stem}_prompt.txt"
         b_out = pdir / f"{batch_stem}_translated.json"
 
@@ -203,8 +216,17 @@ def run_ollama_pipeline(prompts_dir, model=None, url=DEFAULT_OLLAMA_URL, en_srt=
         print(f"[*] Translating {b_in.name} with model '{chosen_model}'...")
         try:
             translations = translate_batch(b_in, b_prompt if b_prompt.exists() else None, model=chosen_model, url=url)
-            with open(b_out, "w", encoding="utf-8") as out_f:
-                json.dump(translations, out_f, ensure_ascii=False, indent=2)
+            tmp_out = b_out.with_name(f".{b_out.name}.tmp.{os.getpid()}")
+            try:
+                with open(tmp_out, "w", encoding="utf-8") as out_f:
+                    json.dump(translations, out_f, ensure_ascii=False, indent=2)
+                os.replace(tmp_out, b_out)
+            finally:
+                if tmp_out.exists():
+                    try:
+                        tmp_out.unlink()
+                    except Exception:
+                        pass
             print(f"    [✓] Successfully saved: {b_out.name} ({len(translations)} cues)")
         except Exception as e:
             print(f"    [!] Error translating {b_in.name}: {e}")
@@ -213,18 +235,23 @@ def run_ollama_pipeline(prompts_dir, model=None, url=DEFAULT_OLLAMA_URL, en_srt=
     # Auto-merge if requested or if English SRT is identified
     if en_srt and all_success:
         if not output_he:
-            output_he = str(Path(en_srt).with_suffix(".he.srt"))
+            en_p = Path(en_srt)
+            base_stem = re.sub(r'\.(?:en|eng|english)$', '', en_p.stem, flags=re.IGNORECASE)
+            output_he = str(en_p.with_name(f"{base_stem}.he.srt"))
         print(f"[*] Auto-merging batches into {output_he}...")
-        try:
-            from scripts.import_helper import import_script
-        except ImportError:
-            pass
-        
         merge_script = SCRIPT_DIR / "05_merge_and_validate.py"
         if merge_script.exists():
             import subprocess
             cmd = [sys.executable, str(merge_script), str(en_srt), str(pdir), "-o", str(output_he)]
-            res = subprocess.run(cmd)
+            capture = (sys.stdout is not sys.__stdout__) or (sys.stderr is not sys.__stderr__)
+            if capture:
+                res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace")
+                if res.stdout:
+                    sys.stdout.write(res.stdout)
+                if res.stderr:
+                    sys.stderr.write(res.stderr)
+            else:
+                res = subprocess.run(cmd, stdin=subprocess.DEVNULL)
             return res.returncode == 0
 
     return all_success

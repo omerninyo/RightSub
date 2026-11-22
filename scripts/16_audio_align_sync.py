@@ -25,6 +25,10 @@ import argparse
 from pathlib import Path
 from importlib import import_module
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 try:
     _transcribe_mod = import_module("00_transcribe_audio")
     transcribe_audio = _transcribe_mod.transcribe_audio
@@ -32,6 +36,12 @@ try:
 except Exception:
     transcribe_audio = None
     is_quicksubs_available = lambda: False
+
+try:
+    _fix_mod = import_module("07_fix_plex_punctuation")
+    _read_auto = _fix_mod.read_file_with_auto_encoding
+except Exception:
+    _read_auto = None
 
 def parse_time(t_str: str) -> int:
     """Parse SRT timestamp 'HH:MM:SS,mmm' to milliseconds."""
@@ -56,8 +66,13 @@ def format_time(ms: int) -> str:
     return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
 def parse_srt_cues(srt_path: Path) -> list:
-    """Parse SRT file into structured cues: [{'index': int, 'start': int, 'end': int, 'lines': [str]}]."""
-    content = srt_path.read_text(encoding="utf-8-sig", errors="replace").strip()
+    """Parse SRT file into structured cues: [{'raw_index': str, 'start': int, 'end': int, 'lines': [str]}]."""
+    if _read_auto:
+        content, _ = _read_auto(Path(srt_path))
+        content = content.strip()
+    else:
+        content = Path(srt_path).read_text(encoding="utf-8-sig", errors="replace").strip()
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
     blocks = re.split(r'\n\s*\n', content)
     cues = []
     
@@ -187,8 +202,21 @@ def align_subtitles(
         aligned_blocks.append("\n".join(block))
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    with open(output, "w", encoding="utf-8") as f:
-        f.write("\n\n".join(aligned_blocks) + "\n\n")
+    tmp_out = output.with_name(f".{output.name}.tmp.{os.getpid()}")
+    try:
+        with open(tmp_out, "w", encoding="utf-8") as f:
+            f.write("\n\n".join(aligned_blocks) + "\n")
+        os.replace(tmp_out, output)
+    finally:
+        if tmp_out.exists():
+            try:
+                tmp_out.unlink()
+            except Exception:
+                pass
+    try:
+        os.utime(output, None)
+    except Exception:
+        pass
 
     # Clean up temporary reference file if created
     if temp_ref_generated and temp_ref_generated.exists():

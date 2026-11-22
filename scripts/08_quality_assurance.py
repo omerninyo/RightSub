@@ -20,7 +20,7 @@ import argparse
 def parse_srt(path):
     with open(path, 'r', encoding='utf-8-sig', errors='replace') as f:
         content = f.read().strip()
-    blocks = re.split(r'\n\s*\n', content)
+    blocks = re.split(r'\r?\n\s*\r?\n', content) if content else []
     res = []
     for b in blocks:
         lines = b.strip().splitlines()
@@ -35,19 +35,22 @@ def parse_srt(path):
     return res
 
 FEMALE_TITLES = ["גברתי השופטת", "כבוד השופטת", "גברתי", "השופטת", "גברת"]
-DEFAULT_FEMALE_NAMES = ["שירלי", "טרה", "לורי", "סאלי", "דניס", "בברלי", "קנדיס", "קלייר", "צ'לסי", "קייטי", "בטאני", "בת'אני", "מרלנה", "רנטה", "רייצ'ל", "רחל"]
+DEFAULT_FEMALE_NAMES = [
+    "שירלי", "טרה", "לורי", "סאלי", "דניס", "בברלי", "קנדיס", "קלייר",
+    "צ'לסי", "צ׳לסי", "קייטי", "בטאני", "בת'אני", "בת׳אני", "מרלנה", "רנטה", "רייצ'ל", "רייצ׳ל", "רחל"
+]
 
 MALE_TITLES = ["כבוד השופט", "אדוני השופט", "אדוני", "השופט"]
-DEFAULT_MALE_NAMES = ["אלן", "דני", "פול", "בראד", "ג'רי", "דניאל", "ג'פרי"]
+DEFAULT_MALE_NAMES = ["אלן", "דני", "פול", "בראד", "ג'רי", "ג׳רי", "דניאל", "ג'פרי", "ג׳פרי"]
 
 MASCULINE_VERBS_AND_PRONOUNS = [
     "אתה יכול", "אתה רוצה", "אתה יודע", "אתה מבין", "אתה חושב", "אתה מוכן", "אתה צודק", "אתה הולך",
-    "אתה", "תגיד", "תשמע", "תפסיק", "בוא", "שב", "לך", "תרגיע", "תקשיב", "תן לי"
+    "אתה", "תגיד", "תשמע", "תפסיק", "בוא", "לך", "תרגיע", "תקשיב", "תן לי"
 ]
 
 FEMININE_VERBS_AND_PRONOUNS = [
     "את יכולה", "את רוצה", "את יודעת", "את מבינה", "את חושבת", "את מוכנה", "את צודקת", "את הולכת",
-    "תגידי", "תשמעי", "תפסיקי", "בואי", "שבי", "לכי", "תרגיעי", "תקשיבי", "תני לי"
+    "תגידי", "תשמעי", "תפסיקי", "בואי", "לכי", "תרגיעי", "תקשיבי", "תני לי"
 ]
 
 def get_gender_rosters(bible_path=None):
@@ -91,36 +94,48 @@ def check_gender_mismatches(he_subs, bible_path=None):
     f_names_union = '|'.join(re.escape(x) for x in female_entities)
     m_names_union = '|'.join(re.escape(x) for x in male_entities)
     masc_verbs_union = '|'.join(re.escape(x) for x in MASCULINE_VERBS_AND_PRONOUNS)
-    # Exclude ambiguous 'לך' (which is also feminine 'לָךְ' = 'to you' in unvocalized Hebrew) from trailing-vocative scan
-    masc_verbs_trail_union = '|'.join(re.escape(x) for x in MASCULINE_VERBS_AND_PRONOUNS if x != "לך")
+    # Exclude 'לך' (also feminine 'לָךְ') and bare future/prefix verbs ambiguous with 3rd-person feminine ('היא תגיד/תקשיב'),
+    # replacing those bare verbs in trailing scan with unambiguous negative imperatives ('אל תגיד', ...).
+    _ambig_fem3 = {"לך", "תגיד", "תשמע", "תפסיק", "תרגיע", "תקשיב"}
+    _masc_trail_list = [x for x in MASCULINE_VERBS_AND_PRONOUNS if x not in _ambig_fem3] + [
+        "אל תגיד", "אל תשמע", "אל תפסיק", "אל תרגיע", "אל תקשיב"
+    ]
+    masc_verbs_trail_union = '|'.join(re.escape(x) for x in _masc_trail_list)
     fem_verbs_union = '|'.join(re.escape(x) for x in FEMININE_VERBS_AND_PRONOUNS)
 
-    # 1. Leading vocative: "שירלי, אתה מוכן"
+    # 1. Leading vocative: "שירלי, אתה מוכן" / "- שירלי, אתה מוכן?" / "<i>שירלי, אתה מוכן?</i>"
     f_lead_regex = re.compile(
-        r'(?:^|[.?!;\n])\s*(' + f_names_union + r')\s*[,:\-]\s*(?:(?:ו?מה|ו?למה|ו?איך|ו?אם|ו?אולי|בבקשה|עכשיו)\s+)?(' + masc_verbs_union + r')\b'
+        r'(?:^|[.?!;\n])\s*(?:[-–—]\s*)?(' + f_names_union + r')\s*[,:\-]\s*(?:(?:ו?מה|ו?למה|ו?איך|ו?אם|ו?אולי|בבקשה|עכשיו)\s+)?(' + masc_verbs_union + r')\b'
     )
     m_lead_regex = re.compile(
-        r'(?:^|[.?!;\n])\s*(' + m_names_union + r')\s*[,:\-]\s*(?:(?:ו?מה|ו?למה|ו?איך|ו?אם|ו?אולי|בבקשה|עכשיו)\s+)?(' + fem_verbs_union + r')\b'
+        r'(?:^|[.?!;\n])\s*(?:[-–—]\s*)?(' + m_names_union + r')\s*[,:\-]\s*(?:(?:ו?מה|ו?למה|ו?איך|ו?אם|ו?אולי|בבקשה|עכשיו)\s+)?(' + fem_verbs_union + r')\b'
     )
 
     # 2. Trailing vocative within the same clause (no sentence break between 2nd-person verb/pronoun and vocative):
     # Exclude 1st-person clauses like "אני ... , אלן" by requiring an explicit 2nd-person token in the same clause.
     f_trail_regex = re.compile(
-        r'(?:^|[.?!;\n])\s*(?!אני\b)[^.?!;\n]*?\b(' + masc_verbs_trail_union + r')\b[^.?!;\n]*?,\s*(' + f_names_union + r')(?=\s*[.?!;\n]|$)'
+        r'(?:^|[.?!;\n])\s*(?:[-–—]\s*)?(?!אני\b)[^.?!;\n]*?\b(' + masc_verbs_trail_union + r')\b[^.?!;\n]*?,\s*(' + f_names_union + r')(?=\s*[.?!;\n]|$)'
     )
     m_trail_regex = re.compile(
-        r'(?:^|[.?!;\n])\s*(?!אני\b)[^.?!;\n]*?\b(' + fem_verbs_union + r')\b[^.?!;\n]*?,\s*(' + m_names_union + r')(?=\s*[.?!;\n]|$)'
+        r'(?:^|[.?!;\n])\s*(?:[-–—]\s*)?(?!אני\b)[^.?!;\n]*?\b(' + fem_verbs_union + r')\b[^.?!;\n]*?,\s*(' + m_names_union + r')(?=\s*[.?!;\n]|$)'
     )
 
-    # 3. Internal morphological contradictions
+    # 3. Internal morphological contradictions & typography anomalies
     internal_contradictions = [
         (re.compile(r'\bאתה\s+ובעלך\b'), "Internal gender contradiction: 'אתה ובעלך' (should be 'את ובעלך')"),
         (re.compile(r'\bאלוהים\s+אדיבים\b'), "Malformed idiom: 'אלוהים אדיבים' (should be 'אלוהים אדירים')"),
         (re.compile(r'\b(?:אמם|המם|ממם|טרמף)\b'), "Corrupted final letter form (אמם/המם/ממם/טרמף)"),
+        (re.compile(r'(?<![א-ת])ו?ירתי\s+(?:בו|בה|בהם|בהן|לעבר|באוויר)\b'), "Spelling error: 'ירתי' (should be 'יריתי')"),
+        (re.compile(r'(?<![א-ת])ש?הודאת\s+(?:תחת|בכך|בפני)\b'), "Morphological error: 'הודאת' verb (should be 'הודית')"),
+        (re.compile(r'(?<![א-ת])(?:אתה\s*(?:\.{2,3}|…|--?)\s*את\s+רוצה|את\s*(?:\.{2,3}|…|--?)\s*אתה\s+רוצה)\b'), "Internal pronoun gender contradiction ('אתה... את רוצה' / 'את... אתה רוצה')"),
+        (re.compile(r'\bמתקדימים\b'), "Spelling error: 'מתקדימים' (should be 'מתקדמים')"),
+        (re.compile(r'\bהאחרוןהס\b'), "Homoglyph corruption: 'האחרוןהס' (should be 'האחרונות')"),
+        (re.compile(r'(?<![א-ת])((?:[והבלכמש]|ו?[בכלהמש]|מה|שה|כש|מש)־?)״[^\s"״][^"״\n]*?(?<=\S)"(?![^\n"]*")'), "Mismatched quote pair: opening gershayim '״' closed with ASCII quote '\"'"),
     ]
 
     for idx, timing, text in he_subs:
-        clean_text = re.sub(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', '', text)
+        clean_text = re.sub(r'<[^>]+>|\{\\[^}]+\}', '', text)
+        clean_text = re.sub(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', '', clean_text)
 
         f_match = f_lead_regex.search(clean_text)
         if f_match:
@@ -189,8 +204,19 @@ def audit_pair(en_path, he_path, verbose=False, bible_path=None, strict_gender=F
     if timing_mismatches > 3:
         errors.append(f"Total timing mismatches: {timing_mismatches}")
 
-    with open(he_path, 'r', encoding='utf-8', errors='replace') as f:
-        he_raw = f.read()
+    with open(he_path, 'rb') as bf:
+        he_bytes = bf.read()
+    if he_bytes.startswith((b'\xff\xfe', b'\xfe\xff')):
+        errors.append("Invalid encoding (UTF-16 detected; convert to UTF-8 via rightsub fix-plex)")
+        he_raw = he_bytes.decode('utf-16', errors='replace')
+    else:
+        try:
+            he_raw = he_bytes.decode('utf-8-sig')
+        except UnicodeDecodeError:
+            errors.append("Invalid UTF-8 / legacy CP1255 encoding detected (convert to UTF-8 via rightsub fix-plex)")
+            he_raw = he_bytes.decode('utf-8', errors='replace')
+    if '\ufffd' in he_raw:
+        errors.append("Found corrupted replacement characters (U+FFFD mojibake) in Hebrew file")
 
     rlm_count = he_raw.count('\u200F')
     foreign_matches = re.findall(DISALLOWED_FOREIGN_SCRIPTS, he_raw)
@@ -221,6 +247,19 @@ def audit_pair(en_path, he_path, verbose=False, bible_path=None, strict_gender=F
         else:
             warnings.extend(gender_mismatches)
 
+    # Bilingual cue-drift, untranslated-run, and isolated non-sequitur checks
+    if len(en_subs) == len(he_subs) and len(en_subs) >= 10:
+        import importlib
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        if script_dir not in sys.path:
+            sys.path.insert(0, script_dir)
+        m05 = importlib.import_module("05_merge_and_validate")
+        en_map = {i + 1: en_subs[i][2] for i in range(len(en_subs))}
+        he_map = {i + 1: he_subs[i][2] for i in range(len(he_subs))}
+        ok_align, drift_info = m05.validate_anchor_alignment(en_map, he_map)
+        if not ok_align:
+            errors.append(f"Anchor/semantic alignment failure: {drift_info['details']}")
+
     is_clean = (len(errors) == 0)
     report = {
         "en_cues": len(en_subs),
@@ -245,8 +284,8 @@ def main():
 
     if os.path.isfile(args.en_srt):
         if not args.he_srt:
-            he_candidate = args.en_srt.replace('.en.srt', '.he.srt')
-            if not os.path.exists(he_candidate):
+            he_candidate = re.sub(r'\.en(?:g)?\.srt$', '.he.srt', args.en_srt, flags=re.IGNORECASE)
+            if he_candidate == args.en_srt or not os.path.exists(he_candidate):
                 print("[-] Please specify he_srt path or pass matching .en.srt/.he.srt pair")
                 sys.exit(1)
             args.he_srt = he_candidate
@@ -286,7 +325,7 @@ def main():
         passed_count = 0
         failed_count = 0
         for en in en_files:
-            he = en.replace('.en.srt', '.he.srt')
+            he = re.sub(r'\.en(?:g)?\.srt$', '.he.srt', en, flags=re.IGNORECASE)
             passed, report = audit_pair(
                 en_path=en,
                 he_path=he,
@@ -307,6 +346,9 @@ def main():
         print(f"Passed: {passed_count}/{len(en_files)} ({passed_count/len(en_files)*100:.1f}%)")
         print(f"Failed: {failed_count}/{len(en_files)}")
         sys.exit(0 if failed_count == 0 else 1)
+    else:
+        print(f"[-] Path not found: {args.en_srt}")
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

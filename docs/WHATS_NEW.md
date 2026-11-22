@@ -10,6 +10,20 @@ This document tracks **major milestone releases** and product capabilities in Ri
 
 ---
 
+## 🌟 Version 1.5.1 — Security Hardening, Zero-Dependency Packaging, Web UI Workbench & Docs/Wiki SSOT Sync
+
+> **Release Date:** November 2026  
+> **Milestone Focus:** Comprehensive full-repo QA remediation: Webhook & MCP security hardening, `site/subrefine.js` & Python 1:1 parity fixes, zero-dependency packaging (`python@3.12` Homebrew without stale bottles, fixed `pyproject.toml` wheel bundling), and unified docs/wiki/site synchronization.
+
+### 🎯 Key Highlights
+- **Webhook & Server Hardening (`scripts/21_webhook_server.py`):** Default `127.0.0.1` binding in Docker/OS services (opt-in `0.0.0.0` for containers), `--api-key` bearer/header authentication, `--allowed-roots` filesystem confinement, strict `application/json` content-type validation, Seed-Safe default even when `in_place` is omitted, and local `/ui` web workbench serving with cache headers.
+- **MCP Server OS Pipe & Path Safety (`scripts/23_mcp_server.py`):** OS-level file-descriptor `stdout -> stderr` (`os.dup2`) isolation preventing native subprocess leaks on JSON-RPC stdio, strict argument validation, and fixed `en_path` / `--en` wiring across `fix-plex` and CLI entrypoints.
+- **Gemini Auth & Pipeline Reliability (`scripts/19_polish_and_qc.py`, `scripts/tmdb_client.py`, `scripts/00..18`):** Moved Gemini API keys from query strings to HTTP `x-goog-api-key` headers with log redaction, enforced atomic writes + SMB `os.utime()` across pipeline stages, fixed 64KB multi-byte SRT encoding detection, added bare `rightsub adjust-fps` alias (`--fps-from` / `--fps-to`), and fixed `--seed-safe` propagation in Docker.
+- **Web App & `SubRefine` JS Parity (`site/`):** Upgraded `site/subrefine.js` and `site/app.js` with `safeGetStorage` incognito safety, batch `.zip` downloads, per-file English companion timestamp matching, clean `HELP_KB` CLI commands, and 100% parity with Python UAX #9 Rule N1 + bilingual number un-flipping.
+- **Zero-Dependency Packaging & Docs/Wiki SSOT:** Fixed `pyproject.toml` `[tool.setuptools]` package discovery (bundled `scripts/` + `rightsub`), removed stale `pip install -r` references, modernized Homebrew to `python@3.12`, and eliminated local filesystem links across `docs/` and `wiki/`.
+
+---
+
 ## 🌟 Version 1.5.0 — Native MCP Server (`rightsub mcp`), Multi-Agent Auto-Installer & Interactive Mastering Suite (`wizard` / `setup`)
 
 > **Release Date:** October 2026  
