@@ -1,5 +1,5 @@
 /**
- * subrefine.js — RightSub Client-Side SubRefine Mastering Engine (v1.5.0)
+ * subrefine.js — RightSub Client-Side SubRefine Mastering Engine (v1.5.1)
  * ----------------------------------------------------------------------
  * 100% browser-local & Node.js compatible port of `scripts/07_fix_plex_punctuation.py`.
  * Zero server uploads. Zero external dependencies.
@@ -25,18 +25,18 @@
   const RLM = "\u200F";
 
   const AD_PATTERNS = [
-    /opensubtitles/i,
-    /torec(?:\.net)?/i,
-    /wizdom(?:\.xyz)?/i,
-    /sratim\.co\.il/i,
-    /subcenter/i,
-    /ktuvit/i,
+    /\bopensubtitles\b/i,
+    /\btorec(?:\.net)?\b/i,
+    /\bwizdom(?:\.xyz)?\b/i,
+    /\bsratim\.co\.il\b/i,
+    /\bsubcenter\b/i,
+    /\bktuvit\b/i,
     /סונכרן\s+(?:על\s+ידי|ע["״']?י)/i,
     /תורגם\s+(?:על\s+ידי|ע["״']?י)/i,
     /^[\u200F\s\-–—]*(?:מלאכת\s+)?ה?תרגום\s*:\s*\S+/i,
     /^[\u200F\s\-–—]*(?:מלאכת\s+)?ה?סנכרון\s*:\s*\S+/i,
-    /הורד\s+מ[-–—]/i,
-    /הועלה\s+על\s+ידי/i,
+    /הורד\s+מ[-–—]\s*(?!\d)(?:אתר|[A-Za-z0-9\-]+\.[A-Za-z]{2,}|טורק|כתובית|סאבסנטר|וויזדום)/i,
+    /^[\u200e\u200f\s\-–—]*(?:הועלה|סונכרן\s+ו?הועלה)\s+על\s+ידי/i,
     /הצטרפו\s+ל.*טלגרם/i,
     /t\.me\//i,
     /telegram\.me/i,
@@ -95,6 +95,8 @@
     [/(?<![א-ת\u0600-\u06FF])أكون(?![א-ת\u0600-\u06FF])/g, "אהיה"],
     [/(?<![א-ת\u0600-\u06FF])بالכאד(?![א-ת\u0600-\u06FF])/g, "בקושי"],
     [/(?<![א-ת\u0600-\u06FF])بالكاد(?![א-ת\u0600-\u06FF])/g, "בקושי"],
+    [/(?<![א-ת\u0600-\u06FF])هي(?![א-ת\u0600-\u06FF])/g, "היא"],
+    [/(?<![א-ת\u0600-\u06FF])هو(?![א-ת\u0600-\u06FF])/g, "הוא"],
   ];
 
   const CYRILLIC_TO_HEBREW = {
@@ -151,14 +153,14 @@
 
   const UNIVERSAL_PHRASES = [
     [/השופט[\u03BF][\u03C2]/g, "השופט"],
-    [/האחרונ[\u03B5][\u03C2]/g, "האחרונות"],
+    [/האחרו[נן\u03BD][ה\u03B5][ס\u03C2]/g, "האחרונות"],
     [/מב[\u0578]ס[\u03C4][\u03BF][\u03BD]/g, "מבוסטון"],
     [/בא[\u30E1][ר\u30EA][ק\u30AB]ה?/g, "באמריקה"],
     [/לא\s*מ[\u0565\u10D4][ל\u10DA]רוז/g, "לא מלרוז"],
     [/מר\s*מ[\u0995\u09C7\u09AC\u09BE\u0C2C\u0C3E]+/g, "מר מקבה"],
     [/פ[ר\u0F62\u0F0B]+סה/g, "פארסה"],
-    [/ג׳ק\s*בוסטי[ק\u0E01\u0E34]+/g, "ג׳ק בוסטיק"],
-    [/מתקד[ימ\u056B\u0574]+ם/g, "מתקדימים"],
+    [/ג([׳'])ק\s*בוסט[יק\u0E01\u0E34]+/g, "ג$1ק בוסטיק"],
+    [/מתקד[ימ\u056B\u0574]+ם/g, "מתקדמים"],
     [/קרויצפלד[- ]י[א\u10D0][ק\u10D9]וב/g, "קרויצפלד-יאקוב"],
     [/ה[ת\u10D7]זת/g, "התזת"],
     [/(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?ד[\u10D4]ייט(?![א-ת])/g, "$1דייט"],
@@ -167,6 +169,8 @@
     [/(?<![א-ת])(ו|ה|ב|ל|כ|מ|ש)?קאבתן(?![א-ת])/g, "$1קברניט"],
     [/(?<![א-ת])לשום\s+את(?![א-ת])/g, "לשים את"],
     [/(?<![א-ת])מוחב\s+אותנו(?![א-ת])/g, "מושכת אותנו"],
+    [/(?<![א-ת])(ו)?ירתי(?=\s+(?:בו|בה|בהם|בהן|לעבר|באוויר|כדור))/g, "$1יריתי"],
+    [/(?<![א-ת])(ש)?הודאת(?=\s+(?:תחת|בכך|בפני|כי|על))/g, "$1הודית"],
   ];
 
   const DISALLOWED_FOREIGN_SCRIPTS =
@@ -175,7 +179,7 @@
   const BIDI_CONTROL_CHARS_REGEX = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 
   const SPEAKER_TAG_REGEX =
-    /^((?:<(?:[iIuUbB]|font\b[^>]*)>\s*)*)[\u200e\u200f\u202a-\u202e\u2066-\u2069\s]*(?:[-–—]\s*)?(?:אלן|דני|שירלי|פול|בראד|לורי|טרה|סאלי|דניס|קייטי|ג['׳]רי|בברלי|אדווין|אישה|גבר|שופט|שופטת|השופט|השופטת|קול|קריין|כולם|גבר 2|אישה 2):\s*/i;
+    /^((?:\{\\[^}]+\}\s*)*(?:<(?:[iIuUbB]|font\b[^>]*)>\s*)*)[\u200e\u200f\u202a-\u202e\u2066-\u2069\s]*(?:[-–—]\s*)?(?:(?:אלן|דני|שירלי|פול|בראד|לורי|טרה|סאלי|דניס|קייטי|ג['׳]רי|בברלי|אדווין|אישה|גבר|דובר|דוברת|שופט|שופטת|השופט|השופטת|קול|קריין|קריינית|כולם|שוטר|שוטרת|ילד|ילדה|רופא|רופאה|אחות|עד(?!\s+\d+\s*:\s*\d)|עדה|סוכן|סוכנת)(?:\s+\d+)?:(?:\s+|$)|\[\s*(?:לוחש|לוחשת|לוחשים|לוחש\/ת)\s*\]\s+(?=[\u0590-\u05FFA-Za-z]))/i;
 
   /**
    * Decodes raw subtitle bytes (ArrayBuffer or Uint8Array) with automatic
@@ -307,10 +311,18 @@
 
     text = text.replace(/<truncated\s+\d+\s+bytes>/g, "");
 
-    const hasJsonLeak = /["']?(?:hebrew|index|text)["']?\s*:/.test(text);
+    const hasJsonLeak = /(?:["'](?:hebrew|index|text)["']|(?<![A-Za-z])(?:hebrew|index))\s*:/.test(
+      text
+    );
     if (hasJsonLeak) {
-      text = text.replace(/["']?(?:hebrew|text)["']?\s*:\s*["']?/g, "");
-      text = text.replace(/["']?index["']?\s*:\s*\d+,?/g, "");
+      text = text.replace(
+        /(?:["'](?:hebrew|text)["']|(?<![A-Za-z])hebrew)\s*:\s*["']?/g,
+        ""
+      );
+      text = text.replace(
+        /(?:["']index["']|(?<![A-Za-z])index)\s*:\s*\d+,?/g,
+        ""
+      );
       text = text.replace(/^\s*[\{\}\[\]]+\s*/g, "");
       text = text.replace(/\s*[\{\}\[\]]+\s*$/g, "");
     } else {
@@ -319,6 +331,13 @@
     }
 
     text = text.replace(/\\n/g, "\n").replace(/\\r/g, "").replace(/\\"/g, '"');
+    text = text.replace(/[\uFB1D-\uFDFF\uFE70-\uFEFF]+/g, (m) =>
+      m.normalize("NFKD")
+    );
+
+    text = text.replace(/א\u05B4מ\u05B8?ם/g, "אימם");
+    text = text.replace(/(?<=אביהם וגם )אמם(?![א-ת])/g, "אימם");
+    text = text.replace(/[\u0591-\u05BD\u05BF-\u05C7]/g, "");
 
     for (const [pattern, repl] of UNIVERSAL_PHRASES) {
       text = text.replace(pattern, repl);
@@ -328,6 +347,11 @@
     }
 
     let hadHomoglyph = false;
+    if (/[\u064B-\u065F\u0670]/.test(text)) {
+      text = text.replace(/[\u064B-\u065F\u0670]/g, "");
+      hadHomoglyph = true;
+    }
+
     for (const [cyr, he] of Object.entries(CYRILLIC_TO_HEBREW)) {
       if (text.includes(cyr)) {
         text = text.split(cyr).join(he);
@@ -350,9 +374,6 @@
     if (hadHomoglyph) {
       text = normalizeFinalLetters(text);
     }
-
-    text = text.replace(/א\u05B4מ\u05B8?ם/g, "אימם");
-    text = text.replace(/(?<=אביהם וגם )אמם(?![א-ת])/g, "אימם");
 
     text = text.replace(/(?<![א-ת])אמם(?![א-ת])/g, "אממ");
     text = text.replace(/(?<![א-ת])המם(?![א-ת])/g, "הממ");
@@ -394,8 +415,15 @@
     };
   }
 
+  function stripTagsAndBidi(line) {
+    return line
+      .replace(/<[^>]+>|\{\\[^}]+\}/g, "")
+      .replace(BIDI_CONTROL_CHARS_REGEX, "")
+      .trim();
+  }
+
   function isAdLine(line) {
-    const clean = line.replace(/<[^>]+>/g, "").trim();
+    const clean = stripTagsAndBidi(line);
     return AD_PATTERNS.some((rx) => rx.test(clean));
   }
 
@@ -413,13 +441,13 @@
       }
       if (isAdLine(l)) {
         removed++;
-        const cleanCurr = l.replace(/<[^>]+>/g, "").trim();
+        const cleanCurr = stripTagsAndBidi(l);
         const lowerCurr = l.toLowerCase();
         const hasUnclosedItalic =
           lowerCurr.includes("<i") && !lowerCurr.includes("</i>");
         if (idx + 1 < lines.length) {
           const nextL = lines[idx + 1];
-          const cleanNext = nextL.replace(/<[^>]+>/g, "").trim();
+          const cleanNext = stripTagsAndBidi(nextL);
           const lowerNext = nextL.toLowerCase();
           const closesItalic =
             lowerNext.includes("</i>") && !lowerNext.includes("<i");
@@ -444,7 +472,7 @@
     if (!content) return false;
     let preflippedVotes = 0;
     let logicalVotes = 0;
-    const rawLines = content.split(/\r?\n/);
+    const rawLines = content.split(/\r\n|\n|\r/);
 
     for (const rawLine of rawLines) {
       const s = rawLine
@@ -456,8 +484,10 @@
 
       if (
         /^[\.,!:;]+\s*[\u0590-\u05FF]/.test(s) ||
-        /^\?+[\u0590-\u05FF]/.test(s) ||
-        /^["'״׳]?[\.?!,:;…]+\s*.+[-–—]$/.test(s) ||
+        /^\?+\s*[\u0590-\u05FF]/.test(s) ||
+        /^(?!\.{2,}|…)["'״׳]?[\.?!,:;]+\s*.+(?<![-–—\s][והבלכמש])(?<![-–—])[-–—]$/.test(
+          s
+        ) ||
         /^[-–—]\s*[\.,?!:;]+/.test(s) ||
         /^[\.,?!:;]+\s*[-–—]/.test(s) ||
         /^["'״׳][\.,?!:;]+[\u0590-\u05FF]/.test(s)
@@ -506,24 +536,33 @@
 
     // 3. P_FULL_EDGE_SWAP
     m = s.match(
-      /^(["'״׳]?\s*(?:\.{2,3}|…|[\.?!,:;]+)\s*["'״׳]?)\s*(.+?)\s*([-–—])$/
+      /^(["'״׳]?\s*(?:\.{2,3}|…|[\.?!,:;]+)\s*["'״׳]?)\s*(.+?)\s*(?<![-–—])([-–—])$/
     );
     if (m) {
       let leadPunct = m[1].trim();
       const body = m[2].trim();
       const dash = m[3];
-      const mQpEdge = leadPunct.match(/^(["'״׳])(\.{2,3}|…|[\.?!,:;]+)$/);
-      if (mQpEdge) {
-        leadPunct = mQpEdge[2] + mQpEdge[1];
+      const isEllipsisOnly = /^["'״׳\s]*(?:\.{2,3}|…)["'״׳\s]*$/.test(
+        leadPunct
+      );
+      if (isPreflippedFile || !isEllipsisOnly) {
+        const mQpEdge = leadPunct.match(/^(["'״׳])(\.{2,3}|…|[\.?!,:;]+)$/);
+        if (mQpEdge) {
+          leadPunct = mQpEdge[2] + mQpEdge[1];
+        }
+        s = `${dash} ${body}${leadPunct}`;
       }
-      s = `${dash} ${body}${leadPunct}`;
     }
 
     // 4. P_START_QUOTE_PUNCT
     const mQp1 = s.match(
       /^(["'״׳])((?:\.{2,3}|…|[\.?!,:;]+))\s*([\u0590-\u05FF].*)$/
     );
-    if (mQp1 && !/[\.?!,:;…]["'״׳]?$/.test(s)) {
+    if (
+      mQp1 &&
+      (isPreflippedFile || !/^(?:\.{2,3}|…)$/.test(mQp1[2])) &&
+      !/[\.?!,:;…]["'״׳]?$/.test(s)
+    ) {
       const [, q, punct, rawBody] = mQp1;
       const body = rawBody.trim();
       if (['"', "'", "״", "׳"].some((ch) => body.endsWith(ch))) {
@@ -535,7 +574,11 @@
       const mQp2 = s.match(
         /^((?:\.{2,3}|…|[\.?!,:;]+))(["'״׳])\s*([\u0590-\u05FF].*)$/
       );
-      if (mQp2 && !/[\.?!,:;…]["'״׳]?$/.test(s)) {
+      if (
+        mQp2 &&
+        (isPreflippedFile || !/^(?:\.{2,3}|…)$/.test(mQp2[1])) &&
+        !/[\.?!,:;…]["'״׳]?$/.test(s)
+      ) {
         const [, punct, q, rawBody] = mQp2;
         const body = rawBody.trim();
         if (['"', "'", "״", "׳"].some((ch) => body.endsWith(ch))) {
@@ -586,17 +629,12 @@
     }
 
     // 7. P_END_DASH_ONLY
-    if (!/^[-–—]/.test(s)) {
-      const mEdAttached = s.match(/^(.+[\u0590-\u05FF])([-–—])$/);
-      if (mEdAttached) {
-        s = `${mEdAttached[2]} ${mEdAttached[1].trim()}`;
-      } else if (isPreflippedFile) {
-        const mEdSpaced = s.match(
-          /^(.+[\u0590-\u05FF][\.?!,:;"'״׳]*)\s+([-–—])$/
-        );
-        if (mEdSpaced) {
-          s = `${mEdSpaced[2]} ${mEdSpaced[1].trim()}`;
-        }
+    if (isPreflippedFile && !/^[-–—]/.test(s)) {
+      const mEd = s.match(
+        /^(.+[\u0590-\u05FF][\.?!,:;"'״׳]*)\s*(?<![-–—])([-–—])$/
+      );
+      if (mEd && !/(?:^|\s)[והבלכמש]$/.test(mEd[1].trim())) {
+        s = `${mEd[2]} ${mEd[1].trim()}`;
       }
     }
 
@@ -652,7 +690,11 @@
     return s;
   }
 
-  function applyRlmToLine(line, isPreflippedFile = false) {
+  function applyRlmToLine(
+    line,
+    isPreflippedFile = false,
+    cleanSpeakers = false
+  ) {
     line = cleanAndSanitizeText(line);
     let stripped = line.trim();
     if (!stripped) return line;
@@ -697,9 +739,34 @@
         stripped = postTagOpen[2].trim();
       }
     }
-    stripped = stripped.replace(/([\u0590-\u05FF])"([\u0590-\u05FF])/g, "$1״$2");
+
+    if (cleanSpeakers) {
+      stripped = stripped.replace(SPEAKER_TAG_REGEX, "$1").trim();
+      if (!stripped) return "";
+      if (!/[\u0590-\u05FF]/.test(stripped)) {
+        return `${ssaPrefix}${tagPrefix}${stripped}${tagSuffix}`;
+      }
+    }
+
+    stripped = stripped.replace(
+      /([\u0590-\u05FF]{2,})"([\u0590-\u05FF](?:ים|ות|ית)?)(?![\u0590-\u05FF"])(?=\s|$|[\.,?!:;…\)\]\-–—׳'])/g,
+      "$1״$2"
+    );
+    stripped = stripped.replace(
+      /(?<![\u0590-\u05FF"])([\u0590-\u05FF])"([\u0590-\u05FF](?:ים|ות)?)(?![\u0590-\u05FF"])(?=\s|$|[\.,?!:;…\)\]\-–—׳'])/g,
+      "$1״$2"
+    );
+
+    stripped = stripped.replace(
+      /(?<![א-ת])(?!(?:ב״ה|ב״ש|ד״ר|ה״י|ה״ש|כ״כ|כ״ע|כ״א|ל״ג|ל״ט|מ״פ|מ״מ|מ״ג|נ״ב|ס״מ|ק״מ|ש״ח|ש״ס|ש״י|ת״א|ז״ל)(?=\s|$|[\.,?!:;…\)\]\-–—]))((?:[והבלכמש]|ו?[בכלהמש]|מה|שה|כש|מש)־?)״([^\s"״][^"״\n]*?(?<=\S))"(?=\s|$|[\.,?!:;…\)\]\-–—])/g,
+      '$1"$2"'
+    );
+
     stripped = stripped.replace(/^([-\–\—]\s+)(?=[A-Za-z])/, `$1${RLM}`);
-    stripped = stripped.replace(/(?<=[A-Za-z])([\.!\?,:;…]+)$/, `${RLM}$1`);
+    stripped = stripped.replace(
+      /([A-Za-z][A-Za-z0-9\-]*\d|[A-Za-z])([\.!\?,:;…]+)$/,
+      `$1${RLM}$2`
+    );
 
     stripped = `${RLM}${stripped}${RLM}`;
 
@@ -708,37 +775,100 @@
 
   function crossCheckBilingualNumbers(heText, enText) {
     if (!heText || !enText) return heText;
-    const enNumbers = new Set(enText.match(/\b\d{2,}\b/g) || []);
-    if (enNumbers.size === 0) return heText;
+    const enCounts = new Map();
+    for (const num of enText.match(/\b\d{2,}\b/g) || []) {
+      enCounts.set(num, (enCounts.get(num) || 0) + 1);
+    }
+    if (enCounts.size === 0) return heText;
 
-    return heText.replace(/(?<!\d)\d{2,}(?!\d)/g, function (numStr) {
-      const revStr = numStr.split("").reverse().join("");
-      if (numStr === revStr || enNumbers.has(numStr)) {
+    const heVisible = heText.replace(
+      /<[^>]+>|&#\d+;|&[A-Za-z0-9#]+;/g,
+      " "
+    );
+    const heCounts = new Map();
+    for (const num of heVisible.match(/(?<!\d)\d{2,}(?!\d)/g) || []) {
+      heCounts.set(num, (heCounts.get(num) || 0) + 1);
+    }
+
+    return heText.replace(
+      /(<[^>]+>|&#\d+;)|(?<!\d)(\d{2,})(?!\d)/g,
+      function (fullMatch, tagOrEntity, numStr) {
+        if (tagOrEntity) return tagOrEntity;
+        const revStr = numStr.split("").reverse().join("");
+        if (numStr === revStr) {
+          return numStr;
+        }
+        const enRevCount = enCounts.get(revStr) || 0;
+        const heRevCount = heCounts.get(revStr) || 0;
+        const heNumCount = heCounts.get(numStr) || 0;
+        const enNumCount = enCounts.get(numStr) || 0;
+        if (enRevCount > heRevCount && heNumCount > enNumCount) {
+          heCounts.set(numStr, heNumCount - 1);
+          heCounts.set(revStr, heRevCount + 1);
+          return revStr;
+        }
         return numStr;
       }
-      if (enNumbers.has(revStr)) {
-        return revStr;
-      }
-      return numStr;
-    });
+    );
+  }
+
+  function parseSrtStartMs(timeline) {
+    if (!timeline) return null;
+    const m = timeline.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->/);
+    if (!m) return null;
+    return (
+      parseInt(m[1], 10) * 3600000 +
+      parseInt(m[2], 10) * 60000 +
+      parseInt(m[3], 10) * 1000 +
+      parseInt(m[4], 10)
+    );
   }
 
   function parseEnCueMap(enContent) {
     const byIdx = new Map();
     const byTime = new Map();
-    if (!enContent) return { byIdx, byTime };
-    const blocks = enContent.trim().split(/\r?\n\s*\r?\n/);
+    const entries = [];
+    if (!enContent) return { byIdx, byTime, entries };
+    const normalized = enContent.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const blocks = normalized.trim().split(/\n\s*\n/);
     for (const b of blocks) {
-      const lines = b.trim().split(/\r?\n/);
-      if (lines.length >= 3) {
-        const idx = lines[0].trim();
-        const time = lines[1].trim();
-        const text = lines.slice(2).join("\n");
-        byIdx.set(idx, text);
+      const lines = b.trim().split(/\n/);
+      if (lines.length >= 2 && (lines[1].includes("-->") || lines[0].includes("-->"))) {
+        const hasIdx = lines[1].includes("-->");
+        const idx = hasIdx ? lines[0].trim() : "";
+        const time = (hasIdx ? lines[1] : lines[0]).trim();
+        const text = (hasIdx ? lines.slice(2) : lines.slice(1)).join("\n");
+        if (idx) byIdx.set(idx, text);
         byTime.set(time, text);
+        const startMs = parseSrtStartMs(time);
+        if (startMs !== null) {
+          entries.push({ startMs, text });
+        }
       }
     }
-    return { byIdx, byTime };
+    return { byIdx, byTime, entries };
+  }
+
+  function findCompanionEnText(enCueMap, timeline) {
+    const tKey = timeline.trim();
+    if (enCueMap.byTime.has(tKey)) {
+      return enCueMap.byTime.get(tKey);
+    }
+    if (!enCueMap.entries.length) return "";
+    const heStartMs = parseSrtStartMs(tKey);
+    if (heStartMs === null) return "";
+    let bestText = "";
+    let bestDiff = 2501;
+    for (const entry of enCueMap.entries) {
+      const diff = Math.abs(entry.startMs - heStartMs);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestText = entry.text;
+      } else if (entry.startMs > heStartMs + 2501) {
+        break;
+      }
+    }
+    return bestText;
   }
 
   function processSrtContent(content, options = {}) {
@@ -747,9 +877,14 @@
       options.cleanSpeakers !== undefined ? options.cleanSpeakers : true;
     const enContent = options.enContent || null;
 
-    const isPreflippedFile = detectFileFlipPolarity(content);
+    const normalizedContent = (content || "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n");
+    const isPreflippedFile = detectFileFlipPolarity(normalizedContent);
     const enCueMap = parseEnCueMap(enContent);
-    const blocks = content.trim() ? content.trim().split(/\r?\n\s*\r?\n/) : [];
+    const blocks = normalizedContent.trim()
+      ? normalizedContent.trim().split(/\n\s*\n/)
+      : [];
     const newBlocks = [];
     let totalSubs = 0;
     let modifiedLines = 0;
@@ -760,18 +895,26 @@
     let idxCounter = 1;
 
     for (const b of blocks) {
-      const lines = b.trim().split(/\r?\n/);
-      if (lines.length >= 2) {
-        const origIdx = lines[0].trim();
-        const timeline = lines[1];
-        const textLines = lines.length >= 3 ? lines.slice(2) : [];
+      const lines = b.trim().split(/\n/);
+      if (
+        lines.length >= 2 &&
+        (lines[1].includes("-->") || lines[0].includes("-->"))
+      ) {
+        const hasIdx = lines[1].includes("-->");
+        const timeline = hasIdx ? lines[1] : lines[0];
+        const textLines = hasIdx
+          ? lines.length >= 3
+            ? lines.slice(2)
+            : []
+          : lines.slice(1);
 
         const flatText = textLines.join("\n").replace(/\\n/g, "\n");
         let expandedLines = flatText
-          .split(/\r?\n/)
+          .split(/\n/)
           .filter((l) => l.trim().length > 0);
+        const wasInitiallyEmpty = expandedLines.length === 0;
 
-        if (cleanAds) {
+        if (cleanAds && !wasInitiallyEmpty) {
           const filtered = filterAdLinesFromBlock(expandedLines);
           expandedLines = filtered.kept;
           adsRemoved += filtered.removed;
@@ -780,12 +923,18 @@
           }
         }
 
-        totalSubs++;
+        if (wasInitiallyEmpty) {
+          totalSubs++;
+          const newBlock = [String(idxCounter), timeline, ""];
+          idxCounter++;
+          newBlocks.push(newBlock.join("\n"));
+          continue;
+        }
+
         const newTextLines = [];
-        const companionEn =
-          enCueMap.byTime.get(timeline.trim()) ||
-          enCueMap.byIdx.get(origIdx) ||
-          "";
+        const companionEn = enContent
+          ? findCompanionEnText(enCueMap, timeline)
+          : "";
 
         for (let tl of expandedLines) {
           const origTl = tl;
@@ -799,7 +948,7 @@
               tl = afterNum;
             }
           }
-          const fixed = applyRlmToLine(tl, isPreflippedFile);
+          const fixed = applyRlmToLine(tl, isPreflippedFile, cleanSpeakers);
           const cleanCheck = fixed.replace(BIDI_CONTROL_CHARS_REGEX, "").trim();
           if (!["", "-", "–", "—"].includes(cleanCheck)) {
             newTextLines.push(fixed);
@@ -825,6 +974,7 @@
           continue;
         }
 
+        totalSubs++;
         const newBlock = [String(idxCounter), timeline, ...newTextLines];
         idxCounter++;
         newBlocks.push(newBlock.join("\n"));
@@ -847,17 +997,22 @@
 
   /**
    * Computes a Seed-Safe output filename (`Movie.srt` -> `Movie.he.srt`).
+   * Strips control chars / BiDi override characters to prevent spoofing.
    */
   function getSeedSafeFilename(originalName) {
     if (!originalName) return "subtitle.he.srt";
-    const lower = originalName.toLowerCase();
-    if (lower.endsWith(".he.srt") || lower.endsWith(".heb.srt")) {
-      return originalName;
+    const safeName = String(originalName)
+      .replace(/[\x00-\x1F\x7F\u200E\u200F\u202A-\u202E\u2066-\u2069/\\]/g, "")
+      .trim();
+    if (!safeName) return "subtitle.he.srt";
+    const lower = safeName.toLowerCase();
+    if (/\.(?:he|heb)(?:\.(?:sdh|hi|forced))?\.srt$/i.test(lower)) {
+      return safeName;
     }
     if (lower.endsWith(".srt")) {
-      return originalName.slice(0, -4) + ".he.srt";
+      return safeName.slice(0, -4) + ".he.srt";
     }
-    return originalName + ".he.srt";
+    return safeName + ".he.srt";
   }
 
   return {

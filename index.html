@@ -10,8 +10,10 @@
   <meta property="og:title" id="og-title" content="RightSub — מאסטרינג, תיקון כיווניות ותרגום כתוביות בעברית" />
   <meta property="og:description" id="og-desc" content="תיקון פיסוק וכיווניות (UAX #9 Rule N1), קידוד Windows-1255, הגנת טורנט ושרת MCP מובנה עבור Plex, Infuse ו-Apple TV." />
   <meta property="og:url" content="https://rightsub.ninyo.co/" />
+  <meta property="og:image" content="https://raw.githubusercontent.com/omerninyo/RightSub/main/docs/assets/social_preview.png" />
   <link rel="canonical" href="https://rightsub.ninyo.co/" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/omerninyo/RightSub/main/docs/assets/social_preview.png" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314b8a6' stroke-width='2.2' stroke-linecap='square'%3E%3Crect x='2' y='4' width='20' height='16' rx='2' fill='%2309090b'/%3E%3Cline x1='6' y1='12' x2='18' y2='12'/%3E%3Cline x1='10' y1='16' x2='18' y2='16'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -33,7 +35,7 @@
           </svg>
           <span class="brand-name">RightSub</span>
         </a>
-        <span class="meta-tag" dir="ltr">v1.5.0</span>
+        <span class="meta-tag" dir="ltr">v1.5.1</span>
         <span id="daemon-status-badge" class="daemon-tag" hidden>
           <span class="daemon-dot"></span>
           <span id="daemon-status-text" dir="ltr">Daemon Active</span>
@@ -57,8 +59,8 @@
           id="theme-toggle"
           class="icon-btn"
           aria-pressed="false"
-          aria-label="החלף ערכת נושא"
-          title="החלף ערכת נושא"
+          aria-label="החלף ערכת נושא (כהה / בהיר)"
+          title="החלף ערכת נושא (כהה / בהיר)"
           data-i18n-aria="aria_theme"
           data-i18n-title="aria_theme"
         >
@@ -81,8 +83,8 @@
           type="button"
           id="lang-toggle"
           class="lang-btn"
-          aria-label="החלף שפה לאנגלית"
-          title="החלף שפה לאנגלית"
+          aria-label="החלף שפה לאנגלית (Switch to English)"
+          title="החלף שפה לאנגלית (Switch to English)"
           data-i18n-aria="aria_lang"
           data-i18n-title="aria_lang"
         >
@@ -252,7 +254,7 @@
           <div id="wb-panel-sandbox" class="wb-panel" role="tabpanel" aria-labelledby="wb-tab-sandbox" hidden>
             <div class="sandbox-presets">
               <span class="preset-label" data-i18n="sb_preset_label">דוגמאות מוכנות:</span>
-              <div class="preset-chips" role="group" aria-label="דוגמאות מוכנות" data-i18n-aria="sb_preset_label">
+              <div class="preset-chips" role="group" aria-label="דוגמאות מוכנות" data-i18n-aria="aria_presets">
                 <button type="button" class="chip-btn active" aria-pressed="true" data-sb-preset="punct" data-i18n="sb_chip_1">פיסוק קופץ</button>
                 <button type="button" class="chip-btn" aria-pressed="false" data-sb-preset="subabi" data-i18n="sb_chip_2">היפוך Subabi</button>
                 <button type="button" class="chip-btn" aria-pressed="false" data-sb-preset="english" data-i18n="sb_chip_3">מילה באנגלית (FBI.)</button>
@@ -319,13 +321,13 @@
 
           <div class="help-quick-row">
             <span class="help-quick-label" data-i18n="help_quick_label">שאלות נפוצות:</span>
-            <div class="help-quick-chips" role="group" aria-label="שאלות נפוצות" data-i18n-aria="help_quick_label">
-              <button type="button" class="chip-btn active" data-help-q="sync" data-i18n="help_q_sync">תזמון לא נכון מול אנגלית</button>
-              <button type="button" class="chip-btn" data-help-q="punct" data-i18n="help_q_punct">סימני שאלה קופצים לימין ב-Plex</button>
-              <button type="button" class="chip-btn" data-help-q="numbers" data-i18n="help_q_numbers">מספרים הפוכים (84 במקום 48)</button>
-              <button type="button" class="chip-btn" data-help-q="mkv" data-i18n="help_q_mkv">סרט MKV ללא כתוביות בעברית</button>
-              <button type="button" class="chip-btn" data-help-q="cp1255" data-i18n="help_q_cp1255">ג׳יבריש בקידוד Windows-1255</button>
-              <button type="button" class="chip-btn" data-help-q="torrent" data-i18n="help_q_torrent">לא לשבור סידינג בטורנט</button>
+            <div class="help-quick-chips" role="group" aria-label="שאלות נפוצות" data-i18n-aria="aria_help_chips">
+              <button type="button" class="chip-btn active" aria-pressed="true" data-help-q="sync" data-i18n="help_q_sync">תזמון לא נכון מול אנגלית</button>
+              <button type="button" class="chip-btn" aria-pressed="false" data-help-q="punct" data-i18n="help_q_punct">סימני שאלה קופצים לימין ב-Plex</button>
+              <button type="button" class="chip-btn" aria-pressed="false" data-help-q="numbers" data-i18n="help_q_numbers">מספרים הפוכים (84 במקום 48)</button>
+              <button type="button" class="chip-btn" aria-pressed="false" data-help-q="mkv" data-i18n="help_q_mkv">סרט MKV ללא כתוביות בעברית</button>
+              <button type="button" class="chip-btn" aria-pressed="false" data-help-q="cp1255" data-i18n="help_q_cp1255">ג׳יבריש בקידוד Windows-1255</button>
+              <button type="button" class="chip-btn" aria-pressed="false" data-help-q="torrent" data-i18n="help_q_torrent">לא לשבור סידינג בטורנט</button>
             </div>
           </div>
 
@@ -364,7 +366,7 @@
             </div>
             <h3 data-i18n="cap2_title">הצלת קידוד Windows-1255, הומוגליפים והצלבת מספרים</h3>
             <p data-i18n="cap2_desc">
-              זיהוי אוטומטי ברמת הבייטים של קובצי <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> והמרתם ל-<code dir="ltr">UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code dir="rtl">&#x202E;דეייט&#x202C;</code> ← <code dir="rtl">דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code dir="ltr">84</code> ← <code dir="ltr">48</code>) בהצלבה מול כתובית באנגלית.
+              זיהוי אוטומטי ברמת הבייטים של קובצי <code dir="ltr">CP1255</code> / <code dir="ltr">ISO-8859-8</code> והמרתם ל-<code dir="ltr">UTF-8</code> תקני. ניקוי תווים זרים שהסתננו למילים בעברית מ-7 מערכות כתב (כגון האות הגאורגית ב-<code dir="rtl">ד&#x10D4;ייט</code> ← <code dir="rtl">דייט</code>), הסרת שורות פרסומת וקרדיטים, והיפוך חזרה של מספרים דו-ספרתיים (<code dir="ltr">84</code> ← <code dir="ltr">48</code>) בהצלבה מול כתובית באנגלית.
             </p>
           </article>
 
@@ -469,7 +471,7 @@
               <div id="tv-before-line1" class="sim-caption" dir="rtl">?אלן, אתה באמת חושב שהשופט יקבל את זה</div>
               <div id="tv-before-line2" class="sim-caption" dir="rtl">!אין לנו שום סיכוי בלי ראיות-</div>
             </div>
-            <p id="tv-before-explain" class="sim-note" data-i18n="tv_before_exp_punct">
+            <p id="tv-before-explain" class="sim-note">
               ללא תו RLM סמוי אחרי סימן הפיסוק, אלגוריתם ה-BiDi של הנגן מפרש את סימן השאלה כתו ניטרלי בראש שורת LTR ומקפיץ אותו לימין.
             </p>
           </div>
@@ -483,7 +485,7 @@
               <div id="tv-after-line1" class="sim-caption" dir="rtl">&#x200F;אלן, אתה באמת חושב שהשופט יקבל את זה?&#x200F;</div>
               <div id="tv-after-line2" class="sim-caption" dir="rtl">&#x200F;- אין לנו שום סיכוי בלי ראיות!&#x200F;</div>
             </div>
-            <p id="tv-after-explain" class="sim-note" data-i18n="tv_after_exp_punct">
+            <p id="tv-after-explain" class="sim-note">
               עטיפת השורה ב-RLM מוביל ו-RLM סוגר (אחרי סימן השאלה) נועלת את הפיסוק והמקף במקומם הטבעי בכל נגן.
             </p>
           </div>
@@ -734,7 +736,7 @@ rightsub config --install-hooks</code></pre>
   <footer class="site-footer">
     <div class="container footer-inner">
       <p class="footer-copy" data-i18n="footer_copy">
-        <strong>RightSub v1.5.0</strong> · קוד פתוח ברישיון MIT · 194 בדיקות אוטומטיות · עיבוד מקומי ב-100% ללא העלאת קבצים.
+        <strong>RightSub v1.5.1</strong> · קוד פתוח ברישיון MIT · 212 בדיקות אוטומטיות · עיבוד מקומי ב-100% ללא העלאת קבצים.
       </p>
       <div class="footer-links" dir="ltr">
         <a href="https://github.com/omerninyo/RightSub" target="_blank" rel="noopener">GitHub</a>
