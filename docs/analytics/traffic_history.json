@@ -287,6 +287,10 @@
     "2026-11-20": {
       "count": 7,
       "uniques": 6
+    },
+    "2026-11-21": {
+      "count": 4,
+      "uniques": 2
     }
   },
   "clones": {
@@ -577,6 +581,10 @@
     "2026-11-20": {
       "count": 1,
       "uniques": 1
+    },
+    "2026-11-21": {
+      "count": 13,
+      "uniques": 8
     }
   },
   "referrers": {
@@ -586,15 +594,20 @@
       "last_seen": "2026-10-05"
     },
     "github.com": {
-      "count": 9,
+      "count": 10,
       "uniques": 6,
-      "last_seen": "2026-11-22"
+      "last_seen": "2026-11-23"
     },
     "perplexity.ai": {
       "count": 1,
       "uniques": 1,
-      "last_seen": "2026-11-22"
+      "last_seen": "2026-11-23"
+    },
+    "rightsub.ninyo.co": {
+      "count": 1,
+      "uniques": 1,
+      "last_seen": "2026-11-23"
     }
   },
-  "last_updated": "2026-11-22 03:38:25 UTC"
+  "last_updated": "2026-11-23 04:12:16 UTC"
 }
