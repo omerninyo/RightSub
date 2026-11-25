@@ -1,6 +1,6 @@
 # 📊 RightSub — Historical Traffic & Analytics Report
 
-> **Last Updated**: `2026-11-24 07:12:06 UTC`  
+> **Last Updated**: `2026-11-25 05:46:07 UTC`  
 > *This report archives continuous visitor and clone statistics, overcoming GitHub's standard 14-day limit.*
 
 ## 📈 Lifetime Cumulative Totals
@@ -14,10 +14,10 @@
 
 | Referring Source | Total Views | Unique Visitors | Last Active |
 | :--- | :---: | :---: | :---: |
-| `github.com` | 10 | 6 | 2026-11-24 |
+| `github.com` | 10 | 6 | 2026-11-25 |
 | `org.telegram.plus` | 5 | 2 | 2026-10-05 |
 | `perplexity.ai` | 1 | 1 | 2026-11-23 |
-| `rightsub.ninyo.co` | 1 | 1 | 2026-11-24 |
+| `rightsub.ninyo.co` | 1 | 1 | 2026-11-25 |
 
 ## 📅 Daily Activity Breakdown
 
